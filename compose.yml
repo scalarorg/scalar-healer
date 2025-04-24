@@ -6,24 +6,24 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB:  goes_template 
+      POSTGRES_DB:  scalar_healer 
     ports:
       - "5432:5432"
     volumes:
-      - goes_template_postgres_data:/var/lib/postgresql/data
+      - scalar_healer_postgres_data:/var/lib/postgresql/data
 
   openobserve:
     image: public.ecr.aws/zinclabs/openobserve:latest
     restart: unless-stopped
-    container_name: goes_template-openobserve
+    container_name: scalar_healer_openobserve
     environment:
       ZO_ROOT_USER_EMAIL: "root@gmail.com"
       ZO_ROOT_USER_PASSWORD: "helloworld"
     ports:
       - "5080:5080"
     volumes:
-      - goes_template_openobserve_data:/data
+      - scalar_healer_openobserve_data:/data
 
 volumes:
-  goes_template_postgres_data:
-  goes_template_openobserve_data:
+  scalar_healer_postgres_data:
+  scalar_healer_openobserve_data:

@@ -21,9 +21,6 @@ func New() *Server {
 	config.LoadEnv()
 
 	appName := config.Env.APP_NAME
-	if config.Env.IsDev {
-		appName = appName + "-dev"
-	}
 	openobserve.Init(openobserve.OpenObserveConfig{
 		Endpoint:    config.Env.OPENOBSERVE_ENDPOINT,
 		Credential:  config.Env.OPENOBSERVE_CREDENTIAL,

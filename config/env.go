@@ -10,19 +10,13 @@ import (
 )
 
 type ServerEnv struct {
-	ENV             string
+	ENV             string `validate:"oneof=development test production"`
 	CORS_WHITE_LIST []string
 
-	APP_NAME   string `validate:"min=1"`
-	API_HOST   string `validate:"min=1"`
-	JWT_SECRET string `validate:"min=10"`
+	APP_NAME string `validate:"min=1"`
+	API_HOST string `validate:"min=1"`
 
 	PORT string `validate:"number"`
-
-	IsProd    bool
-	IsStaging bool
-	IsDev     bool
-	IsTest    bool
 
 	OPENOBSERVE_ENDPOINT   string `validate:"url"`
 	OPENOBSERVE_CREDENTIAL string `validate:"min=1"`
@@ -75,14 +69,15 @@ func loadEnv() {
 		port = "12345"
 	}
 
+	env := os.Getenv("ENV")
+
 	Env = ServerEnv{
-		ENV:             os.Getenv("ENV"),
+		ENV:             env,
 		CORS_WHITE_LIST: corsWhiteList,
 
-		APP_NAME:   os.Getenv("APP_NAME"),
-		API_HOST:   os.Getenv("API_HOST"),
-		JWT_SECRET: os.Getenv("JWT_SECRET"),
-		PORT:       port,
+		APP_NAME: os.Getenv("APP_NAME"),
+		API_HOST: os.Getenv("API_HOST"),
+		PORT:     port,
 
 		OPENOBSERVE_ENDPOINT:   os.Getenv("OPENOBSERVE_ENDPOINT"),
 		OPENOBSERVE_CREDENTIAL: os.Getenv("OPENOBSERVE_CREDENTIAL"),
@@ -97,9 +92,4 @@ func loadEnv() {
 	if err != nil {
 		panic(err)
 	}
-
-	Env.IsProd = Env.ENV == "production"
-	Env.IsStaging = Env.ENV == "staging"
-	Env.IsDev = Env.ENV == "development" || len(Env.ENV) == 0
-	Env.IsTest = Env.ENV == "test"
 }
