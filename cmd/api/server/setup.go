@@ -4,13 +4,16 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"time"
 
-	"github.com/0xdavid7/goes-template/config"
-	"github.com/0xdavid7/goes-template/pkg/openobserve"
-	"github.com/0xdavid7/goes-template/pkg/utils"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/rs/zerolog/log"
+	"github.com/scalarorg/scalar-healer/config"
+	"github.com/scalarorg/scalar-healer/pkg/openobserve"
+	"github.com/scalarorg/scalar-healer/pkg/utils"
+	"github.com/scalarorg/scalar-healer/pkg/worker"
 )
 
 type RouteInfo struct {
@@ -22,7 +25,7 @@ type RouteInfo struct {
 
 var RouteRecs map[string][]RouteInfo = make(map[string][]RouteInfo)
 
-const trimModule = "github.com/0xdavid7/goes-template/internal/"
+const trimModule = "github.com/scalarorg/scalar-healer/internal/"
 
 func setupAddHandlerEvent(e *echo.Echo) {
 	e.OnAddRouteHandler = func(host string, route echo.Route, handler echo.HandlerFunc, middleware []echo.MiddlewareFunc) {
@@ -82,6 +85,21 @@ func setupErrorHandler(e *echo.Echo) {
 
 func setupValidator(e *echo.Echo) {
 	e.Validator = utils.NewValidator()
+}
+
+func setupWorkers() {
+	// Calculate time until next 5am UTC
+	now := time.Now().UTC()
+	today5AM := time.Date(now.Year(), now.Month(), now.Day(), 5, 0, 0, 0, time.UTC)
+	if now.After(today5AM) {
+		today5AM = today5AM.Add(24 * time.Hour)
+	}
+
+	w := worker.NewScheduler(today5AM, "fetch-redeem-tx")
+	w.AddJob(func() {
+		log.Info().Msg("Fetching redeem txs")
+	})
+
 }
 
 func (s *Server) printRoutes() {

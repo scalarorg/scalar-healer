@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/0xdavid7/goes-template/cmd/api/server"
+	"github.com/scalarorg/scalar-healer/cmd/api/server"
 )
 
 func main() {

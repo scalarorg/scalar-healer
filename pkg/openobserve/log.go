@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/0xdavid7/goes-template/pkg/utils"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"github.com/scalarorg/scalar-healer/pkg/utils"
 )
 
 type LogWriter struct {

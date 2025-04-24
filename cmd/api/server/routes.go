@@ -1,8 +1,8 @@
 package server
 
 import (
-	"github.com/0xdavid7/goes-template/internal/health"
 	"github.com/labstack/echo/v4"
+	"github.com/scalarorg/scalar-healer/internal/health"
 )
 
 func setupRoute(e *echo.Echo) {

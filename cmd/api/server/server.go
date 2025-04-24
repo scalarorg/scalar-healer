@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/0xdavid7/goes-template/config"
-	"github.com/0xdavid7/goes-template/pkg/db"
-	"github.com/0xdavid7/goes-template/pkg/openobserve"
 	"github.com/labstack/echo/v4"
 	"github.com/rs/zerolog/log"
+	"github.com/scalarorg/scalar-healer/config"
+	"github.com/scalarorg/scalar-healer/pkg/db"
+	"github.com/scalarorg/scalar-healer/pkg/openobserve"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
 
@@ -39,6 +39,7 @@ func New() *Server {
 	setupErrorHandler(e)
 	setupRoute(e)
 	setupValidator(e)
+	setupWorkers()
 
 	return &Server{e, tp}
 }

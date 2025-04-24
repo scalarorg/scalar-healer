@@ -1,10 +1,12 @@
-module github.com/0xdavid7/goes-template
+module github.com/scalarorg/scalar-healer
 
 go 1.22.0
 
 toolchain go1.23.3
 
 require (
+	github.com/0xdavid7/goes-template v0.0.0-20250423084542-f98263fe6fd7
+	github.com/go-co-op/gocron v1.37.0
 	github.com/go-playground/validator/v10 v10.24.0
 	github.com/golang-migrate/migrate/v4 v4.18.2
 	github.com/jackc/pgx/v5 v5.7.2
@@ -39,6 +41,7 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.16 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
+	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.2 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect

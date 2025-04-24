@@ -4,9 +4,9 @@ import (
 	"io"
 	"os"
 
-	"github.com/0xdavid7/goes-template/pkg/openobserve"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"github.com/scalarorg/scalar-healer/pkg/openobserve"
 )
 
 func InitLogger() {
