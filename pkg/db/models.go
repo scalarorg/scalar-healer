@@ -16,3 +16,11 @@ type User struct {
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
 }
+
+type RedeemSession struct {
+	ID        int64              `json:"id"`
+	ChainId string `json:"chain_id"`
+	GroupUid string	`json:"group_uid"`
+	Sequence uint64 `json:"sequence"`
+	Phase uint8 `json:"phase"`
+}
