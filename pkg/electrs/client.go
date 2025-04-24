@@ -66,9 +66,9 @@ func (c *Client) Start(ctx context.Context) error {
 		params = append(params, c.electrumConfig.LastVaultTx)
 	}
 	log.Debug().Msg("[ElectrumClient] [Start] Subscribing to new block event for request to confirm if vault transaction is get enought confirmation")
-	c.Electrs.BlockchainHeaderSubscribe(ctx, c.BlockchainHeaderHandler)
-	log.Debug().Msgf("[ElectrumClient] [Start] Subscribing to vault transactions with params: %v", params)
-	c.Electrs.VaultTransactionSubscribe(ctx, c.VaultTxMessageHandler, params...)
+	// c.Electrs.BlockchainHeaderSubscribe(ctx, c.BlockchainHeaderHandler)
+	// log.Debug().Msgf("[ElectrumClient] [Start] Subscribing to vault transactions with params: %v", params)
+	// c.Electrs.VaultTransactionSubscribe(ctx, c.VaultTxMessageHandler, params...)
 
 	return nil
 }

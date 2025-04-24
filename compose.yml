@@ -1,16 +1,14 @@
 services:
-  postgres:
-    image: postgres:latest
+  mongo:
+    image: mongo:latest
     restart: unless-stopped
-    container_name: postgres
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB:  scalar_healer 
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: helloworld
     ports:
-      - "5432:5432"
+      - "27017:27017"
     volumes:
-      - scalar_healer_postgres_data:/var/lib/postgresql/data
+      - scalar_healer_mongo_data:/data/db
 
   openobserve:
     image: public.ecr.aws/zinclabs/openobserve:latest
@@ -25,5 +23,5 @@ services:
       - scalar_healer_openobserve_data:/data
 
 volumes:
-  scalar_healer_postgres_data:
+  scalar_healer_mongo_data:
   scalar_healer_openobserve_data:

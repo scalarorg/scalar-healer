@@ -12,7 +12,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/scalarorg/data-models/chains"
 	"github.com/scalarorg/scalar-healer/config"
-	contracts "github.com/scalarorg/scalar-healer/internal/clients/evm/contracts/generated"
+	contracts "github.com/scalarorg/scalar-healer/pkg/evm/contracts/generated"
 )
 
 // func (ec *EvmClient) handleContractCall(event *contracts.IScalarGatewayContractCall) error {
@@ -327,25 +327,25 @@ func (ec *EvmClient) preprocessContractCallApproved(event *contracts.IScalarGate
 	return nil
 }
 
-func (ec *EvmClient) HandleCommandExecuted(event *contracts.IScalarGatewayExecuted) error {
-	//0. Preprocess the event
-	ec.preprocessCommandExecuted(event)
-	//1. Convert into a RelayData instance then store to the db
-	cmdExecuted := ec.CommandExecutedEvent2Model(event)
-	//Get commandId from scalarnet
-	if ec.ScalarClient != nil {
-		command, err := ec.ScalarClient.GetCommand(cmdExecuted.SourceChain, cmdExecuted.CommandID)
-		if err != nil {
-			log.Warn().Err(err).Msgf("[EvmClient] [HandleCommandExecuted] failed to get commandId from scalarnet")
-		} else if command != nil {
-			log.Info().Any("command", command).Msg("[EvmClient] [HandleCommandExecuted] get command from scalarnet")
-		} else {
-			log.Warn().Any("command", command).Msg("[EvmClient] [HandleCommandExecuted] command not found in scalarnet")
-		}
+// func (ec *EvmClient) HandleCommandExecuted(event *contracts.IScalarGatewayExecuted) error {
+// 	//0. Preprocess the event
+// 	ec.preprocessCommandExecuted(event)
+// 	//1. Convert into a RelayData instance then store to the db
+// 	cmdExecuted := ec.CommandExecutedEvent2Model(event)
+// 	//Get commandId from scalarnet
+// 	if ec.ScalarClient != nil {
+// 		command, err := ec.ScalarClient.GetCommand(cmdExecuted.SourceChain, cmdExecuted.CommandID)
+// 		if err != nil {
+// 			log.Warn().Err(err).Msgf("[EvmClient] [HandleCommandExecuted] failed to get commandId from scalarnet")
+// 		} else if command != nil {
+// 			log.Info().Any("command", command).Msg("[EvmClient] [HandleCommandExecuted] get command from scalarnet")
+// 		} else {
+// 			log.Warn().Any("command", command).Msg("[EvmClient] [HandleCommandExecuted] command not found in scalarnet")
+// 		}
 
-	}
-	return nil
-}
+// 	}
+// 	return nil
+// }
 
 func (ec *EvmClient) preprocessCommandExecuted(event *contracts.IScalarGatewayExecuted) error {
 	log.Info().Any("event", event).Msg("[EvmClient] [ExecutedHandler] Start processing evm command executed")
@@ -365,47 +365,6 @@ func (ec *EvmClient) HandleSwitchPhase(event *contracts.IScalarGatewaySwitchPhas
 		}
 	}
 	return nil
-}
-
-func (ec *EvmClient) ExecuteDestinationCall(
-	contractAddress common.Address,
-	commandId [32]byte,
-	sourceChain string,
-	sourceAddress string,
-	payload []byte,
-) (*ethtypes.Transaction, error) {
-	executable, err := contracts.NewIScalarExecutable(contractAddress, ec.Client)
-	if err != nil {
-		log.Error().Err(err).Any("contractAddress", contractAddress).Msg("[EvmClient] [ExecuteDestinationCall] create executable contract")
-		return nil, err
-	}
-	if ec.auth == nil {
-		return nil, fmt.Errorf("auth is nil")
-	}
-	//Return signed transaction
-	signedTx, err := executable.Execute(ec.auth, commandId, sourceChain, sourceAddress, payload)
-	if err != nil {
-		log.Error().Err(err).
-			Str("Sender", ec.auth.From.String()).
-			Uint64("GasLimit", ec.auth.GasLimit).
-			Str("commandId", hex.EncodeToString(commandId[:])).
-			Str("sourceChain", sourceChain).
-			Str("sourceAddress", sourceAddress).
-			Str("contractAddress", contractAddress.String()).
-			Msg("[EvmClient] [ExecuteDestinationCall]")
-		//Retry
-		return nil, err
-	}
-	//Remove pending tx
-	// ec.pendingTxs.RemoveTx(signedTx.Hash().Hex())
-	//Resubmit the transaction to the network
-	// receipt, err := ec.SubmitTx(signedTx, 0)
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	// return receipt, nil
-	return signedTx, nil
 }
 
 func (ec *EvmClient) SubmitTx(signedTx *ethtypes.Transaction, retryAttempt int) (*ethtypes.Receipt, error) {

@@ -3,7 +3,7 @@ package evm
 import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/rs/zerolog/log"
-	contracts "github.com/scalarorg/scalar-healer/internal/clients/evm/contracts/generated"
+	contracts "github.com/scalarorg/scalar-healer/pkg/evm/contracts/generated"
 )
 
 var (

@@ -3,7 +3,7 @@ ifneq (,$(wildcard .env))
     export
 endif
 
-$(info POSTGRES_URL: $(POSTGRES_URL))
+$(info MONGODB_URI: $(MONGODB_URI))
 
 .PHONY: test coverage clean run compose down watch
 
@@ -33,18 +33,6 @@ shutdown:
 	docker compose -f app.compose.yml down --remove-orphans
 	docker compose down --remove-orphans
 
-#### DB ####
-.PHONY: sqlc migrate-up migrate-down new-migration
-sqlc:
-	@rm -rf pkg/db/*.sql.go
-	@./scripts/sqlc-generate.sh
 
-migrate-up:
-	migrate -path pkg/db/migration -database "$(POSTGRES_URL)" -verbose up
-
-migrate-down:
-	migrate -path pkg/db/migration -database "$(POSTGRES_URL)" -verbose down
-new-migration:
-	migrate create -ext sql -dir pkg/db/migration -seq $(name)
 
 

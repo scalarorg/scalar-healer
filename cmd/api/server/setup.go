@@ -87,7 +87,7 @@ func setupValidator(e *echo.Echo) {
 	e.Validator = utils.NewValidator()
 }
 
-func setupWorkers() {
+func setupWorkers() *worker.Scheduler {
 	// Calculate time until next 5am UTC
 	now := time.Now().UTC()
 	today5AM := time.Date(now.Year(), now.Month(), now.Day(), 5, 0, 0, 0, time.UTC)
@@ -100,6 +100,7 @@ func setupWorkers() {
 		log.Info().Msg("Fetching redeem txs")
 	})
 
+	return w
 }
 
 func (s *Server) printRoutes() {

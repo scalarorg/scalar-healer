@@ -1,6 +1,4 @@
-# Golang with Echo and Postgres Template
-
-This is a template for a Golang project using the Echo framework and MongoDB. It includes a basic project structure, configuration, and Docker setup.
+# <>
 
 ## Table of Contents
 

@@ -12,10 +12,17 @@ import (
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/rs/zerolog/log"
 	"github.com/scalarorg/bitcoin-vault/go-utils/types"
-	contracts "github.com/scalarorg/relayers/pkg/clients/evm/contracts/generated"
-	"github.com/scalarorg/relayers/pkg/clients/evm/parser"
-	"github.com/scalarorg/relayers/pkg/events"
+	contracts "github.com/scalarorg/scalar-healer/pkg/evm/contracts/generated"
 )
+
+type ExecuteParams struct {
+	SourceChain      string
+	SourceAddress    string
+	ContractAddress  common.Address
+	PayloadHash      [32]byte
+	SourceTxHash     [32]byte
+	SourceEventIndex uint64
+}
 
 const (
 	COMPONENT_NAME = "EvmClient"
@@ -123,12 +130,12 @@ func (m *MissingLogs) AppendLogs(logs []ethTypes.Log) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 	log.Info().Str("Chain", m.chainId).Int("Number of event logs", len(logs)).Msgf("[EvmClient] [AppendLogs] appending logs")
-	redeemTokenEvent, ok := GetEventByName(events.EVENT_EVM_REDEEM_TOKEN)
+	redeemTokenEvent, ok := GetEventByName(EVENT_EVM_REDEEM_TOKEN)
 	if !ok {
 		log.Error().Msgf("RedeemToken event not found")
 		return
 	}
-	switchedPhaseEvent, ok := GetEventByName(events.EVENT_EVM_SWITCHED_PHASE)
+	switchedPhaseEvent, ok := GetEventByName(EVENT_EVM_SWITCHED_PHASE)
 	if !ok {
 		log.Error().Msgf("SwitchedPhase event not found")
 		return
@@ -146,7 +153,7 @@ func (m *MissingLogs) appendRedeemLog(redeemEvent *abi.Event, eventLog ethTypes.
 	redeemToken := &contracts.IScalarGatewayRedeemToken{
 		Raw: eventLog,
 	}
-	err := parser.ParseEventData(&eventLog, redeemEvent.Name, redeemToken)
+	err := ParseEventData(&eventLog, redeemEvent.Name, redeemToken)
 	if err != nil {
 		log.Error().Err(err).Msgf("failed to parse event %s", redeemEvent.Name)
 		return err
@@ -184,7 +191,7 @@ func (m *MissingLogs) SetLastSwitchedEvents(mapPreparingEvents map[string]*contr
 	defer m.mutex.Unlock()
 	m.lastPreparingSwitchedEvents = mapPreparingEvents
 	m.lastExecutingSwitchedEvents = mapExecutingEvents
-	_, ok := GetEventByName(events.EVENT_EVM_SWITCHED_PHASE)
+	_, ok := GetEventByName(EVENT_EVM_SWITCHED_PHASE)
 	if !ok {
 		log.Error().Msgf("SwitchedPhase event not found")
 		return

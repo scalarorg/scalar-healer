@@ -9,12 +9,14 @@ import (
 	"github.com/scalarorg/scalar-healer/config"
 	"github.com/scalarorg/scalar-healer/pkg/db"
 	"github.com/scalarorg/scalar-healer/pkg/openobserve"
+	"github.com/scalarorg/scalar-healer/pkg/worker"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
 
 type Server struct {
 	Raw           *echo.Echo
 	traceProvider *sdktrace.TracerProvider
+	scheduler     worker.Worker
 }
 
 func New() *Server {
@@ -39,14 +41,13 @@ func New() *Server {
 	setupErrorHandler(e)
 	setupRoute(e)
 	setupValidator(e)
-	setupWorkers()
+	s := setupWorkers()
 
-	return &Server{e, tp}
+	return &Server{e, tp, s}
 }
 
 func (s *Server) Start() error {
-	ctx := context.Background()
-	loadSvcs(ctx)
+	loadSvcs()
 	s.printRoutes()
 
 	return s.Raw.Start(fmt.Sprintf("%s:%s", config.Env.API_HOST, config.Env.PORT))
@@ -54,6 +55,9 @@ func (s *Server) Start() error {
 
 func (s *Server) Close() {
 	closeSvcs()
+
+	s.scheduler.Shutdown()
+
 	s.Raw.Close()
 	err := s.traceProvider.Shutdown(context.Background())
 	if err != nil {
@@ -61,8 +65,8 @@ func (s *Server) Close() {
 	}
 }
 
-func loadSvcs(ctx context.Context) {
-	db.Init(ctx, config.Env.POSTGRES_URL, config.Env.MIGRATION_URL)
+func loadSvcs() {
+	db.Init()
 }
 
 func closeSvcs() {

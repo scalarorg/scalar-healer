@@ -5,6 +5,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/rs/zerolog/log"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type ErrResponse struct {
@@ -28,6 +29,12 @@ func HttpErrorHandler(err error, c echo.Context) {
 		}
 	} else {
 		log.Err(err).Msg("http error")
+		if err == mongo.ErrNoDocuments {
+			c.JSON(http.StatusNotFound, ErrResponse{
+				Message: "Resource not found",
+			})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, ErrResponse{
 			Message: http.StatusText(http.StatusInternalServerError),
 		})

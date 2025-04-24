@@ -21,8 +21,8 @@ type ServerEnv struct {
 	OPENOBSERVE_ENDPOINT   string `validate:"url"`
 	OPENOBSERVE_CREDENTIAL string `validate:"min=1"`
 
-	POSTGRES_URL  string `validate:"url"`
-	MIGRATION_URL string `validate:"url"`
+	MONGODB_URI      string `validate:"uri"`
+	MONGODB_DATABASE string `validate:"min=1"`
 }
 
 var Env ServerEnv
@@ -82,8 +82,9 @@ func loadEnv() {
 		OPENOBSERVE_ENDPOINT:   os.Getenv("OPENOBSERVE_ENDPOINT"),
 		OPENOBSERVE_CREDENTIAL: os.Getenv("OPENOBSERVE_CREDENTIAL"),
 
-		POSTGRES_URL:  os.Getenv("POSTGRES_URL"),
-		MIGRATION_URL: os.Getenv("MIGRATION_URL"),
+		MONGODB_URI:      os.Getenv("MONGODB_URI"),
+		MONGODB_DATABASE: os.Getenv("MONGODB_DATABASE"),
+
 	}
 
 	validate := validator.New()

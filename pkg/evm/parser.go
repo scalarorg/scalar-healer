@@ -7,10 +7,29 @@ import (
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	eth_types "github.com/ethereum/go-ethereum/core/types"
-	contracts "github.com/scalarorg/relayers/pkg/clients/evm/contracts/generated"
-	"github.com/scalarorg/relayers/pkg/clients/evm/parser"
+	contracts "github.com/scalarorg/scalar-healer/pkg/evm/contracts/generated"
 )
+
+type EvmEvent[T any] struct {
+	Hash             string //TxHash
+	BlockNumber      uint64
+	TxIndex          uint
+	LogIndex         uint
+	WaitForFinality  func() (*types.Receipt, error)
+	SourceChain      string
+	DestinationChain string
+	EventName        string
+	Args             T
+}
+
+type AllEvmEvents struct {
+	ContractCallApproved *EvmEvent[*contracts.IScalarGatewayContractCallApproved]
+	ContractCall         *EvmEvent[*contracts.IScalarGatewayContractCall]
+	Executed             *EvmEvent[*contracts.IScalarGatewayExecuted]
+	TokenSent            *EvmEvent[*contracts.IScalarGatewayTokenSent]
+}
 
 type ValidEvmEvent interface {
 	*contracts.IScalarGatewayContractCallApproved |
@@ -89,7 +108,7 @@ func parseLogIntoEventArgs(log eth_types.Log) (any, error) {
 // 	}
 // }
 
-func parseEventArgsIntoEvent[T ValidEvmEvent](eventArgs T, currentChainName string, log eth_types.Log) (*parser.EvmEvent[T], error) {
+func parseEventArgsIntoEvent[T ValidEvmEvent](eventArgs T, currentChainName string, log eth_types.Log) (*EvmEvent[T], error) {
 	// Get the value of eventArgs using reflection
 	v := reflect.ValueOf(eventArgs).Elem()
 	sourceChain := currentChainName
@@ -101,7 +120,7 @@ func parseEventArgsIntoEvent[T ValidEvmEvent](eventArgs T, currentChainName stri
 		destinationChain = f.String()
 	}
 
-	return &parser.EvmEvent[T]{
+	return &EvmEvent[T]{
 		Hash:             log.TxHash.Hex(),
 		BlockNumber:      log.BlockNumber,
 		LogIndex:         log.Index,
@@ -115,7 +134,7 @@ func parseEventArgsIntoEvent[T ValidEvmEvent](eventArgs T, currentChainName stri
 func parseEvmEventContractCallApproved[T *contracts.IScalarGatewayContractCallApproved](
 	currentChainName string,
 	log eth_types.Log,
-) (*parser.EvmEvent[T], error) {
+) (*EvmEvent[T], error) {
 	eventArgs, err := parseContractCallApproved(log)
 	if err != nil {
 		return nil, err
@@ -178,7 +197,7 @@ func parseContractCallApproved(
 func parseEvmEventContractCall[T *contracts.IScalarGatewayContractCall](
 	currentChainName string,
 	log eth_types.Log,
-) (*parser.EvmEvent[T], error) {
+) (*EvmEvent[T], error) {
 	eventArgs, err := parseContractCall(log)
 	if err != nil {
 		return nil, err
@@ -237,7 +256,7 @@ func parseContractCall(
 func parseEvmEventExecute[T *contracts.IScalarGatewayExecuted](
 	currentChainName string,
 	log eth_types.Log,
-) (*parser.EvmEvent[T], error) {
+) (*EvmEvent[T], error) {
 	eventArgs, err := parseExecute(log)
 	if err != nil {
 		return nil, err
@@ -289,4 +308,29 @@ func parseExecute(
 // Add helper function to validate UTF-8 strings
 func isValidUTF8(s string) bool {
 	return strings.ToValidUTF8(s, "") == s
+}
+
+func ParseEventData(receiptLog *eth_types.Log, eventName string, eventData any) error {
+	// gatewayAbi := GetScalarGatewayAbi()
+	// if gatewayAbi.Events[eventName].ID != receiptLog.Topics[0] {
+	// 	return fmt.Errorf("receipt log topic 0 does not match %s event id", eventName)
+	// }
+	// // Unpack non-indexed arguments
+	// if err := gatewayAbi.UnpackIntoInterface(eventData, eventName, receiptLog.Data); err != nil {
+	// 	return fmt.Errorf("failed to unpack event: %w", err)
+	// }
+	// // Unpack indexed arguments
+	// // concat all topic data from second element into single buffer
+	// var buffer []byte
+	// for i := 1; i < len(receiptLog.Topics); i++ {
+	// 	buffer = append(buffer, receiptLog.Topics[i].Bytes()...)
+	// }
+	// indexedArgs := getEventIndexedArguments(eventName)
+	// if len(buffer) > 0 && len(indexedArgs) > 0 {
+	// 	unpacked, err := indexedArgs.Unpack(buffer)
+	// 	if err == nil {
+	// 		indexedArgs.Copy(eventData, unpacked)
+	// 	}
+	// }
+	return nil
 }

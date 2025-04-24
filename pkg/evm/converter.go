@@ -8,8 +8,8 @@ import (
 	chainTypes "github.com/scalarorg/bitcoin-vault/go-utils/chain"
 	chains "github.com/scalarorg/data-models/chains"
 	"github.com/scalarorg/data-models/scalarnet"
-	contracts "github.com/scalarorg/relayers/pkg/clients/evm/contracts/generated"
-	"github.com/scalarorg/relayers/pkg/utils"
+	contracts "github.com/scalarorg/scalar-healer/pkg/evm/contracts/generated"
+	"github.com/scalarorg/scalar-healer/pkg/utils"
 )
 
 func (c *EvmClient) ContractCallEvent2Model(event *contracts.IScalarGatewayContractCall) (chains.ContractCall, error) {
