@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/rs/zerolog/log"
-	"github.com/scalarorg/scalar-healer/config"
 	"github.com/scalarorg/scalar-healer/pkg/btc"
 	"github.com/scalarorg/scalar-healer/pkg/db"
 	"github.com/scalarorg/scalar-healer/pkg/electrs"
@@ -18,16 +17,16 @@ type Service struct {
 	EvmClients   []*evm.EvmClient
 }
 
-func NewService(config *config.Config, dbAdapter db.DbAdapter) *Service {
-	electrsClient, err := electrs.NewElectrumClient(config.ConfigPath, dbAdapter)
+func NewService(configPath string, dbAdapter db.DbAdapter) *Service {
+	electrsClient, err := electrs.NewElectrumClient(configPath, dbAdapter)
 	if err != nil {
 		panic(err)
 	}
-	btcClient, err := btc.NewBtcClient(config.ConfigPath)
+	btcClient, err := btc.NewBtcClient(configPath)
 	if err != nil {
 		panic(err)
 	}
-	evmClients, err := evm.NewEvmClients(config.ConfigPath, dbAdapter)
+	evmClients, err := evm.NewEvmClients(configPath, dbAdapter)
 	if err != nil {
 		panic(err)
 	}

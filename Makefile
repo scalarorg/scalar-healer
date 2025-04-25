@@ -5,7 +5,7 @@ endif
 
 $(info MONGODB_URI: $(MONGODB_URI))
 
-.PHONY: test coverage clean run compose down watch
+.PHONY: test coverage clean run compose down watch start stop restart shutdown deamon
 
 test:
 	ENV=test go test -coverprofile=cover.out -v ./...
@@ -18,6 +18,8 @@ down:
 	docker compose down --remove-orphans
 run:
 	@go run cmd/api/main.go
+daemon:
+	@go run cmd/daemon/main.go
 watch:
 	air -c .air.toml
 compose:

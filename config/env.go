@@ -23,6 +23,8 @@ type ServerEnv struct {
 
 	MONGODB_URI      string `validate:"uri"`
 	MONGODB_DATABASE string `validate:"min=1"`
+
+	CLIENTS_CONFIG_PATH string `validate:"min=1"`
 }
 
 var Env ServerEnv
@@ -85,6 +87,7 @@ func loadEnv() {
 		MONGODB_URI:      os.Getenv("MONGODB_URI"),
 		MONGODB_DATABASE: os.Getenv("MONGODB_DATABASE"),
 
+		CLIENTS_CONFIG_PATH: os.Getenv("CLIENTS_CONFIG_PATH"),
 	}
 
 	validate := validator.New()
