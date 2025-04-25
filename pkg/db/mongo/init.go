@@ -1,28 +1,30 @@
-package db
+package mongo
 
 import (
 	"context"
 
+	"github.com/labstack/echo/v4"
 	"github.com/rs/zerolog/log"
 	"github.com/scalarorg/scalar-healer/config"
+	"github.com/scalarorg/scalar-healer/pkg/db"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-var (
+type MongoRepository struct {
 	client *mongo.Client
 	DB     *mongo.Database
+}
 
-	User *mongo.Collection
-)
+var _ db.DbAdapter = (*MongoRepository)(nil)
 
-func Init() {
+func NewMongoRepository() *MongoRepository {
 	serverAPI := options.ServerAPI(options.ServerAPIVersion1)
 	opts := options.Client().ApplyURI(config.Env.MONGODB_URI).SetServerAPIOptions(serverAPI)
 	// Create a new client and connect to the server
 	var err error
-	client, err = mongo.Connect(context.TODO(), opts)
+	client, err := mongo.Connect(context.TODO(), opts)
 	if err != nil {
 		panic(err)
 	}
@@ -32,28 +34,28 @@ func Init() {
 		panic(err)
 	}
 
-	DB = client.Database(config.Env.MONGODB_DATABASE)
+	DB := client.Database(config.Env.MONGODB_DATABASE)
 
-	User = DB.Collection("users")
+	m := &MongoRepository{
+		client: client,
+		DB:     DB,
+	}
 
-	initIndexes()
-
-	// create a user for mocking
-	// TODO: Remove this
-
-	User.InsertOne(context.TODO(), bson.M{"name": "test", "email": "test@example.com"})
+	m.initIndexes()
 
 	log.Info().Msg("Connected to MongoDB!")
+
+	return m
 }
 
-func Close() {
-	if err := client.Disconnect(context.TODO()); err != nil {
+func (m *MongoRepository) Close() {
+	if err := m.client.Disconnect(context.TODO()); err != nil {
 		panic(err)
 	}
 	log.Info().Msg("Connection to MongoDB closed.")
 }
 
-func initIndexes() {
+func (m *MongoRepository) initIndexes() {
 	var errs []error
 
 	// TODO: Add indexes here
@@ -62,5 +64,17 @@ func initIndexes() {
 		log.Logger.Fatal().Errs("Failed to create indexes", errs).Msg("")
 	}
 	log.Info().Msg("Indexes created")
+}
 
+func GetRepositoryContextKey() string {
+	return "mongo_repository"
+}
+
+func GetRepositoryFromContext(c echo.Context) db.DbAdapter {
+	return c.Get(GetRepositoryContextKey()).(*MongoRepository)
+}
+
+func SetRepositoryToContext(c echo.Context, next echo.HandlerFunc, m db.DbAdapter) error {
+	c.Set(GetRepositoryContextKey(), m)
+	return next(c)
 }

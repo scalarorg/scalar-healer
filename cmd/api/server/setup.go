@@ -11,6 +11,8 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/rs/zerolog/log"
 	"github.com/scalarorg/scalar-healer/config"
+	"github.com/scalarorg/scalar-healer/pkg/db"
+	"github.com/scalarorg/scalar-healer/pkg/db/mongo"
 	"github.com/scalarorg/scalar-healer/pkg/openobserve"
 	"github.com/scalarorg/scalar-healer/pkg/utils"
 	"github.com/scalarorg/scalar-healer/pkg/worker"
@@ -68,7 +70,7 @@ func setupAddHandlerEvent(e *echo.Echo) {
 	}
 }
 
-func setupMiddleware(e *echo.Echo) {
+func setupMiddleware(e *echo.Echo, db db.DbAdapter) {
 	e.Use(middleware.Recover())
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins:     config.Env.CORS_WHITE_LIST,
@@ -77,6 +79,12 @@ func setupMiddleware(e *echo.Echo) {
 	}))
 	e.Use(openobserve.Middleware())
 	e.Use(utils.RequestLogMiddleware())
+
+	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			return mongo.SetRepositoryToContext(c, next, db)
+		}
+	})
 }
 
 func setupErrorHandler(e *echo.Echo) {
