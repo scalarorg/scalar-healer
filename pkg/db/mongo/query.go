@@ -38,3 +38,40 @@ func (m *MongoRepository) GetRedeemNonce(address common.Address) uint64 {
 func (m *MongoRepository) SaveRedeemRequest(address common.Address, signature []byte, amount *big.Int, symbol string, nonce uint64) error {
 	return nil
 }
+
+func (m *MongoRepository) FindPendingBtcTokenSent(chainId string, expectedConfirmBlock int) ([]*chains.TokenSent, error) {
+	return nil, nil
+}
+func (m *MongoRepository) FindPendingRedeemsTransaction(chainId string, expectedConfirmBlock int) ([]*chains.RedeemTx, error) {
+	return nil, nil
+}
+func (m *MongoRepository) UpdateRedeemExecutedCommands(chainId string, txHashes []string) error {
+	return nil
+}
+
+func (m *MongoRepository) GetAllCustodianGroups() ([]string, error) {
+	return nil, nil
+}
+
+func (m *MongoRepository) GetChainName(chainType string, chainId uint64) (string, error) {
+	return "", nil
+}
+
+func (m *MongoRepository) UpdateLastEventCheckPoint(lastCheckPoint *scalarnet.EventCheckPoint) error {
+	return nil
+}
+
+func (m *MongoRepository) SaveTokenSents(tokenSents []*chains.TokenSent) error {
+	return nil
+}
+func (m *MongoRepository) SaveRedeemTxs(redeemTxs []*chains.RedeemTx) error {
+	return nil
+}
+
+func (m *MongoRepository) UpdateEvmCommandExecuted(cmdExecuted *chains.CommandExecuted) error {
+	return nil
+}
+
+func (m *MongoRepository) GetTokenSymbolByAddress(chainType string, chainId uint64, tokenAddress string) (string, error) {
+	return "", nil
+}
