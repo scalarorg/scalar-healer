@@ -1,13 +1,14 @@
 package redeem
 
 import (
+	"math/big"
 	"net/http"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/signer/core/apitypes"
 	"github.com/labstack/echo/v4"
+	"github.com/scalarorg/scalar-healer/pkg/crypto/eip712"
 	"github.com/scalarorg/scalar-healer/pkg/db/mongo"
-	"github.com/scalarorg/scalar-healer/pkg/eip712"
 	"github.com/scalarorg/scalar-healer/pkg/utils"
 )
 
@@ -45,27 +46,50 @@ func CreateRedeem(c echo.Context) error {
 
 	db := mongo.GetRepositoryFromContext(c)
 
-	// TODO: check nonce match with nonce in db
-	// TODO: parse amount to bigint
-	db.GetRedeemNonce(common.Address{})
+	gatewayAddress := db.GetGatewayAddress(body.ChainID)
+	if gatewayAddress == nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid chain_id")
+	}
+
+	address := common.HexToAddress(body.Address)
+
+	nonce := db.GetRedeemNonce(address)
+	if nonce != body.Nonce {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid nonce")
+	}
+
+	if !db.CheckTokenExists(body.Symbol) {
+		return echo.NewHTTPError(http.StatusBadRequest, "token not exists")
+	}
+
+	amountz, ok := utils.StringToBigInt(body.Amount)
+	if !ok {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid amount")
+	}
 
 	// Create message data for EIP-712 signing
 	message := map[string]interface{}{
 		"symbol": body.Symbol,
-		"amount": body.Amount,
-		"nonce":  body.Nonce,
+		"amount": amountz,
+		"nonce":  big.NewInt(int64(nonce)),
 	}
 
 	// Create EIP-712 typed data
-	typedData := eip712.CreateTypedData(RedeemRequestTypes, primaryType, getDomain(common.Address{}), message)
+	typedData := eip712.CreateTypedData(RedeemRequestTypes, primaryType, getDomain(*gatewayAddress), message)
 
-	// Generate hash for the typed data
-	hash, err := eip712.HashTypedData(typedData)
+	// Verify the signature
+	err := eip712.VerifySignTypedData(typedData, address, common.FromHex(body.Signature))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid signature")
 	}
 
-	return c.JSON(http.StatusOK, common.Bytes2Hex(hash))
+	// Save redeem request
+	err = db.SaveRedeemRequest(body.ChainID, address, common.FromHex(body.Signature), amountz, body.Symbol, nonce)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to save redeem request")
+	}
+
+	return c.NoContent(http.StatusOK)
 }
 
 func getDomain(gatewayAddress common.Address) *eip712.TypedDataDomain {

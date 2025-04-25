@@ -35,7 +35,7 @@ func (m *MongoRepository) GetRedeemNonce(address common.Address) uint64 {
 	return 0
 }
 
-func (m *MongoRepository) SaveRedeemRequest(address common.Address, signature []byte, amount *big.Int, symbol string, nonce uint64) error {
+func (m *MongoRepository) SaveRedeemRequest(chainId uint64, address common.Address, signature []byte, amount *big.Int, symbol string, nonce uint64) error {
 	return nil
 }
 
@@ -74,4 +74,12 @@ func (m *MongoRepository) UpdateEvmCommandExecuted(cmdExecuted *chains.CommandEx
 
 func (m *MongoRepository) GetTokenSymbolByAddress(chainType string, chainId uint64, tokenAddress string) (string, error) {
 	return "", nil
+}
+
+func (m *MongoRepository) CheckTokenExists(symbol string) bool {
+	return false
+}
+
+func (m *MongoRepository) GetGatewayAddress(chainId uint64) *common.Address {
+	return nil
 }

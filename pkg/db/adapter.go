@@ -10,8 +10,10 @@ import (
 )
 
 type DbAdapter interface {
+	GetGatewayAddress(chainId uint64) *common.Address
 	GetAllCustodianGroups() ([]string, error)
 	GetChainName(chainType string, chainId uint64) (string, error)
+	CheckTokenExists(symbol string) bool
 	GetTokenSymbolByAddress(chainType string, chainId uint64, tokenAddress string) (string, error)
 	GetLastEventCheckPoint(chainName, eventName string, fromBlock uint64) (*scalarnet.EventCheckPoint, error)
 	UpdateLastEventCheckPoint(lastCheckPoint *scalarnet.EventCheckPoint) error
@@ -26,6 +28,6 @@ type DbAdapter interface {
 	SaveContractCallWithToken(contractCallWithToken *chains.ContractCallWithToken, eventCheckPoint *scalarnet.EventCheckPoint) error
 	UpdateEvmCommandExecuted(cmdExecuted *chains.CommandExecuted) error
 	GetRedeemNonce(address common.Address) uint64
-	SaveRedeemRequest(address common.Address, signature []byte, amount *big.Int, symbol string, nonce uint64) error
+	SaveRedeemRequest(chainId uint64, address common.Address, signature []byte, amount *big.Int, symbol string, nonce uint64) error
 	Close()
 }
