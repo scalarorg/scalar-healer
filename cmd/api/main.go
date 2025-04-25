@@ -5,12 +5,16 @@ import (
 
 	"github.com/rs/zerolog/log"
 	"github.com/scalarorg/scalar-healer/cmd/api/server"
+	"github.com/scalarorg/scalar-healer/config"
 	"github.com/scalarorg/scalar-healer/internal/daemon"
+	"github.com/scalarorg/scalar-healer/pkg/db"
 )
 
 func main() {
 	s := server.New()
-	service := daemon.NewService()
+	config := &config.Config{}
+	var dbAdapter db.DbAdapter
+	service := daemon.NewService(config, dbAdapter)
 	go func() {
 		err := service.Start(context.Background())
 		if err != nil {

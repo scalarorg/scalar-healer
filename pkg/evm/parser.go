@@ -9,6 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	eth_types "github.com/ethereum/go-ethereum/core/types"
+	"github.com/rs/zerolog/log"
 	contracts "github.com/scalarorg/scalar-healer/pkg/evm/contracts/generated"
 )
 
@@ -161,7 +162,7 @@ func parseContractCallApproved(
 		SourceEventIndex *big.Int
 	}{}
 
-	abi, err := getScalarGatewayAbi()
+	abi, err := GetScalarGatewayAbi()
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse ABI: %w", err)
 	}
@@ -222,7 +223,7 @@ func parseContractCall(
 		Payload                    []byte
 	}{}
 
-	abi, err := getScalarGatewayAbi()
+	abi, err := GetScalarGatewayAbi()
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse ABI: %w", err)
 	}
@@ -276,7 +277,7 @@ func parseExecute(
 	event := struct {
 		CommandId [32]byte
 	}{}
-	abi, err := getScalarGatewayAbi()
+	abi, err := GetScalarGatewayAbi()
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse ABI: %w", err)
 	}
@@ -311,26 +312,34 @@ func isValidUTF8(s string) bool {
 }
 
 func ParseEventData(receiptLog *eth_types.Log, eventName string, eventData any) error {
-	// gatewayAbi := GetScalarGatewayAbi()
-	// if gatewayAbi.Events[eventName].ID != receiptLog.Topics[0] {
-	// 	return fmt.Errorf("receipt log topic 0 does not match %s event id", eventName)
-	// }
-	// // Unpack non-indexed arguments
-	// if err := gatewayAbi.UnpackIntoInterface(eventData, eventName, receiptLog.Data); err != nil {
-	// 	return fmt.Errorf("failed to unpack event: %w", err)
-	// }
-	// // Unpack indexed arguments
-	// // concat all topic data from second element into single buffer
-	// var buffer []byte
-	// for i := 1; i < len(receiptLog.Topics); i++ {
-	// 	buffer = append(buffer, receiptLog.Topics[i].Bytes()...)
-	// }
-	// indexedArgs := getEventIndexedArguments(eventName)
-	// if len(buffer) > 0 && len(indexedArgs) > 0 {
-	// 	unpacked, err := indexedArgs.Unpack(buffer)
-	// 	if err == nil {
-	// 		indexedArgs.Copy(eventData, unpacked)
-	// 	}
-	// }
+	gatewayAbi, err := GetScalarGatewayAbi()
+	if err != nil {
+		log.Error().Err(err).Msg("[EvmClient] ParseEventData")
+		return err
+	}
+	if gatewayAbi.Events[eventName].ID != receiptLog.Topics[0] {
+		return fmt.Errorf("receipt log topic 0 does not match %s event id", eventName)
+	}
+	// Unpack non-indexed arguments
+	if err := gatewayAbi.UnpackIntoInterface(eventData, eventName, receiptLog.Data); err != nil {
+		return fmt.Errorf("failed to unpack event: %w", err)
+	}
+	// Unpack indexed arguments
+	// concat all topic data from second element into single buffer
+	var buffer []byte
+	for i := 1; i < len(receiptLog.Topics); i++ {
+		buffer = append(buffer, receiptLog.Topics[i].Bytes()...)
+	}
+	indexedArgs, err := GetEventIndexedArguments(eventName)
+	if err != nil {
+		log.Error().Err(err).Msg("[EvmClient] ParseEventData")
+		return err
+	}
+	if len(buffer) > 0 && len(indexedArgs) > 0 {
+		unpacked, err := indexedArgs.Unpack(buffer)
+		if err == nil {
+			indexedArgs.Copy(eventData, unpacked)
+		}
+	}
 	return nil
 }

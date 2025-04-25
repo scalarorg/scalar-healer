@@ -21,7 +21,12 @@ type Client struct {
 	currentHeight  int
 }
 
-func NewElectrumClients(config *ElectrsConfig, dbAdapter db.DbAdapter) (*Client, error) {
+func NewElectrumClient(configPath string, dbAdapter db.DbAdapter) (*Client, error) {
+	electrumCfgPath := fmt.Sprintf("%s/electrum.json", configPath)
+	config, err := config.ReadJsonConfig[ElectrsConfig](electrumCfgPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read electrum configs: %w", err)
+	}
 	if config.Host == "" {
 		return nil, fmt.Errorf("electrum rpc host is required")
 	}
@@ -55,6 +60,7 @@ func NewElectrumClients(config *ElectrsConfig, dbAdapter db.DbAdapter) (*Client,
 }
 
 func (c *Client) Start(ctx context.Context) error {
+	log.Info().Msg("[ElectrsClient] start")
 	params := []interface{}{}
 	//Set batch size from config or default value
 	params = append(params, c.electrumConfig.BatchSize)

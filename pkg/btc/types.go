@@ -6,7 +6,6 @@ import (
 	"github.com/btcsuite/btcd/rpcclient"
 	"github.com/btcsuite/btcd/wire"
 	"github.com/scalarorg/bitcoin-vault/go-utils/types"
-	"github.com/scalarorg/scalar-healer/pkg/db"
 )
 
 const COMPONENT_NAME = "BtcClient"
@@ -23,7 +22,6 @@ const (
 type BtcClient struct {
 	btcConfig *BtcNetworkConfig
 	client    *rpcclient.Client
-	dbAdapter *db.DbAdapter
 }
 
 type BtcClientInterface interface {

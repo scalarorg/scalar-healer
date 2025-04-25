@@ -11,10 +11,15 @@ import (
 	"github.com/btcsuite/btcd/rpcclient"
 	"github.com/btcsuite/btcd/wire"
 	"github.com/rs/zerolog/log"
-	"github.com/scalarorg/scalar-healer/pkg/db"
+	"github.com/scalarorg/scalar-healer/config"
 )
 
-func NewBtcClient(btcConfig *BtcNetworkConfig, dbAdapter *db.DbAdapter) (*BtcClient, error) {
+func NewBtcClient(configPath string) (*BtcClient, error) {
+	btcConfigPath := fmt.Sprintf("%s/btc.json", configPath)
+	btcConfig, err := config.ReadJsonConfig[BtcNetworkConfig](btcConfigPath)
+	if err != nil {
+		panic(err)
+	}
 	if btcConfig.MempoolUrl == "" {
 		panic(fmt.Sprintf("mempool url is not set for %s", btcConfig.Name))
 	}
@@ -38,7 +43,6 @@ func NewBtcClient(btcConfig *BtcNetworkConfig, dbAdapter *db.DbAdapter) (*BtcCli
 	btcClient := &BtcClient{
 		btcConfig: btcConfig,
 		client:    client,
-		dbAdapter: dbAdapter,
 	}
 	return btcClient, nil
 }

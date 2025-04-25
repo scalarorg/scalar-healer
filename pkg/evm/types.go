@@ -12,7 +12,9 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/rs/zerolog/log"
+	"github.com/scalarorg/bitcoin-vault/go-utils/encode"
 	"github.com/scalarorg/bitcoin-vault/go-utils/types"
+	"github.com/scalarorg/scalar-healer/pkg/db/models"
 	contracts "github.com/scalarorg/scalar-healer/pkg/evm/contracts/generated"
 )
 
@@ -28,11 +30,20 @@ type ValidWatchEvent interface {
 }
 
 const (
+	HashLen      = 32
 	baseDelay    = 5 * time.Second
 	maxDelay     = 2 * time.Minute
 	maxAttempts  = math.MaxUint64
 	jitterFactor = 0.2 // 20% jitter
 )
+
+type UTXO struct {
+	TxID         [HashLen]byte
+	Vout         uint32
+	ScriptPubkey []byte
+	AmountInSats uint64
+	Reserved     map[string]uint64
+}
 
 type ExecuteParams struct {
 	SourceChain      string
@@ -249,4 +260,154 @@ func (m *MissingLogs) GetLogs(count int) []ethTypes.Log {
 		Int("Remaining logs", len(m.logs)).
 		Msgf("[MissingLogs] [GetLogs] returned logs")
 	return logs
+}
+
+// Each chain store switch phase events array with 1 or 2 elements of the form:
+// 1. [Preparing]
+// 2. [Preparing, Executing] in the same sequence
+type ChainRedeemSessions struct {
+	SwitchPhaseEvents map[string][]*contracts.IScalarGatewaySwitchPhase //Map by custodian group uid
+	RedeemTokenEvents map[string][]*contracts.IScalarGatewayRedeemToken
+}
+
+// Return number of events added
+func (s *ChainRedeemSessions) AppendSwitchPhaseEvent(groupUid string, event *contracts.IScalarGatewaySwitchPhase) int {
+	//Put switch phase event in the first position
+	switchPhaseEvents, ok := s.SwitchPhaseEvents[groupUid]
+	if !ok {
+		s.SwitchPhaseEvents[groupUid] = []*contracts.IScalarGatewaySwitchPhase{event}
+		return 1
+	}
+	if len(switchPhaseEvents) >= 2 {
+		log.Warn().Str("groupUid", groupUid).Msg("[ChainRedeemSessions] [AppendSwitchPhaseEvent] switch phase events already has 2 elements")
+		return 2
+	}
+	currentPhase := switchPhaseEvents[0]
+	log.Warn().Str("groupUid", groupUid).Any("current element", currentPhase).
+		Any("incomming element", event).
+		Msg("[ChainRedeemSessions] [AppendSwitchPhaseEvent] switch phase event has the same sequence")
+	if currentPhase.Sequence == event.Sequence {
+		if currentPhase.To == uint8(models.Preparing) && event.To == uint8(models.Executing) {
+			s.SwitchPhaseEvents[groupUid] = append(switchPhaseEvents, event)
+			return 2
+		} else if currentPhase.To == uint8(models.Executing) && event.To == uint8(models.Preparing) {
+			s.SwitchPhaseEvents[groupUid] = []*contracts.IScalarGatewaySwitchPhase{event, currentPhase}
+			return 2
+		} else {
+			log.Warn().Msg("[ChainRedeemSessions] [AppendSwitchPhaseEvent] event is already in the list")
+			return 1
+		}
+	} else if event.Sequence < currentPhase.Sequence {
+		if event.Sequence == currentPhase.Sequence-1 && event.To == uint8(models.Executing) && currentPhase.To == uint8(models.Preparing) {
+			s.SwitchPhaseEvents[groupUid] = []*contracts.IScalarGatewaySwitchPhase{event, currentPhase}
+			return 2
+		}
+		log.Warn().Msg("[ChainRedeemSessions] [AppendSwitchPhaseEvent] incomming event is too old")
+		return 1
+	} else {
+		//event.Sequence > currentPhase.Sequence
+		if currentPhase.Sequence == event.Sequence-1 && currentPhase.To == uint8(models.Executing) && event.To == uint8(models.Preparing) {
+			s.SwitchPhaseEvents[groupUid] = []*contracts.IScalarGatewaySwitchPhase{currentPhase, event}
+			return 2
+		}
+		log.Warn().Msg("[ChainRedeemSessions] [AppendSwitchPhaseEvent] Incomming event is too high, set it as an unique item in the list")
+		s.SwitchPhaseEvents[groupUid] = []*contracts.IScalarGatewaySwitchPhase{event}
+		return 1
+	}
+}
+
+// Put redeem token event in the first position
+// we keep only the redeem transaction of the max session's sequence
+func (s *ChainRedeemSessions) AppendRedeemTokenEvent(groupUid string, event *contracts.IScalarGatewayRedeemToken) {
+	redeemEvents, ok := s.RedeemTokenEvents[groupUid]
+	if !ok {
+		s.RedeemTokenEvents[groupUid] = []*contracts.IScalarGatewayRedeemToken{event}
+	} else if len(redeemEvents) > 0 {
+		lastInsertedEvent := redeemEvents[0]
+		if event.Sequence > lastInsertedEvent.Sequence {
+			s.RedeemTokenEvents[groupUid] = []*contracts.IScalarGatewayRedeemToken{event}
+		} else if lastInsertedEvent.Sequence == event.Sequence {
+			s.RedeemTokenEvents[groupUid] = append([]*contracts.IScalarGatewayRedeemToken{event}, redeemEvents...)
+		} else {
+			log.Warn().Str("groupUid", groupUid).Any("last inserted event", lastInsertedEvent).
+				Any("incomming event", event).
+				Msg("[ChainRedeemSessions] [AppendRedeemTokenEvent] ignore redeem token tx with lower sequence")
+		}
+	}
+}
+
+type RedeemTokenPayload struct {
+	Amount        uint64
+	LockingScript []byte
+	Utxos         []*UTXO
+	RequestId     [32]byte
+}
+
+type RedeemTokenPayloadWithType struct {
+	RedeemTokenPayload
+	PayloadType encode.ContractCallWithTokenPayloadType
+}
+
+func (p *RedeemTokenPayloadWithType) AbiPack() ([]byte, error) {
+	payload, err := p.RedeemTokenPayload.AbiPack()
+	if err != nil {
+		return nil, err
+	}
+	return encode.AppendPayload(encode.ContractCallWithTokenPayloadType(p.PayloadType), payload), nil
+}
+
+func (p *RedeemTokenPayloadWithType) AbiUnpack(data []byte) error {
+	p.PayloadType = encode.ContractCallWithTokenPayloadType(data[0])
+	var payload RedeemTokenPayload
+	err := payload.AbiUnpack(data[1:])
+	if err != nil {
+		return err
+	}
+	p.RedeemTokenPayload = payload
+	return nil
+}
+
+func (p *RedeemTokenPayload) AbiPack() ([]byte, error) {
+	txIds := make([]string, len(p.Utxos))
+	vouts := make([]uint32, len(p.Utxos))
+	amounts := make([]uint64, len(p.Utxos))
+	for i, utxo := range p.Utxos {
+		txIds[i] = hex.EncodeToString(utxo.TxID[:])
+		vouts[i] = utxo.Vout
+		amounts[i] = utxo.AmountInSats
+	}
+	return RedeemTokenPayloadArguments.Pack(
+		p.Amount,
+		p.LockingScript,
+		txIds,
+		vouts,
+		amounts,
+		p.RequestId,
+	)
+}
+
+func (p *RedeemTokenPayload) AbiUnpack(data []byte) error {
+	unpacked, err := RedeemTokenPayloadArguments.Unpack(data)
+	if err != nil {
+		log.Error().Err(err).Msg("redeem token payload abi unpack error")
+		return err
+	}
+	p.Amount = unpacked[0].(uint64)
+	p.LockingScript = unpacked[1].([]byte)
+	txIds := unpacked[2].([]string)
+	vouts := unpacked[3].([]uint32)
+	amounts := unpacked[4].([]uint64)
+	p.Utxos = make([]*UTXO, len(txIds))
+	for i, txId := range txIds {
+		hash, err := hex.DecodeString(txId)
+		if err != nil {
+			log.Error().Err(err).Msg("txId hash error")
+			return err
+		}
+		var txId [HashLen]byte
+		copy(txId[:], hash)
+		p.Utxos[i] = &UTXO{TxID: txId, Vout: vouts[i], AmountInSats: amounts[i]}
+	}
+	p.RequestId = unpacked[5].([32]byte)
+	return nil
 }

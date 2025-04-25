@@ -7,6 +7,7 @@ import (
 )
 
 type DbAdapter interface {
+	GetAllCustodianGroups() ([]string, error)
 	GetChainName(chainType string, chainId uint64) (string, error)
 	GetTokenSymbolByAddress(chainType string, chainId uint64, tokenAddress string) (string, error)
 	GetLastEventCheckPoint(chainName, eventName string, fromBlock uint64) (*scalarnet.EventCheckPoint, error)
