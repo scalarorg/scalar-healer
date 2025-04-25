@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"math/rand/v2"
 	"time"
 
+	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -164,54 +166,236 @@ func (c *EvmClient) SetAuth(auth *bind.TransactOpts) {
 	c.auth = auth
 }
 
-// func (c *EvmClient) Start(ctx context.Context) error {
-// 	c.ConnectWithRetry(ctx)
-// 	return fmt.Errorf("context cancelled")
-// }
+func (c *EvmClient) Start(ctx context.Context) error {
+	err := c.ListenToEvents(ctx)
+	if err != nil {
+		log.Printf("Error listening to events: %v", err)
+	}
+	//c.ConnectWithRetry(ctx)
+	return fmt.Errorf("context cancelled")
+}
 
-// func (c *EvmClient) ConnectWithRetry(ctx context.Context) {
-// 	var retryInterval = time.Second * 12 // Initial retry interval
-// 	ctx, cancel := context.WithCancel(ctx)
-// 	defer cancel()
-// 	var err error
-// 	for {
-// 		// Directly call recovery method in the service before starting listeners
-// 		// err = c.RecoverInitiatedEvents(ctx)
-// 		// if err != nil {
-// 		// 	log.Printf("Error recovering missing events: %v", err)
-// 		// }
-// 		// err = c.RecoverApprovedEvents(ctx)
-// 		// if err != nil {
-// 		// 	log.Printf("Error recovering missing events: %v", err)
-// 		// }
-// 		// err = c.RecoverExecutedEvents(ctx)
-// 		// if err != nil {
-// 		// 	log.Printf("Error recovering missing events: %v", err)
-// 		// }
-// 		//Listen to new events
-// 		err = c.ListenToEvents(ctx)
-// 		if err != nil {
-// 			log.Printf("Error listening to events: %v", err)
-// 		}
+func (c *EvmClient) ConnectWithRetry(ctx context.Context) {
+	var retryInterval = time.Second * 12 // Initial retry interval
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	var err error
+	for {
+		//Listen to new events
+		err = c.ListenToEvents(ctx)
+		if err != nil {
+			log.Printf("Error listening to events: %v", err)
+		}
 
-// 		// If context is cancelled, stop retrying
-// 		if ctx.Err() != nil {
-// 			log.Warn().Msg("Context cancelled, stopping listener")
-// 			return
-// 		}
+		// If context is cancelled, stop retrying
+		if ctx.Err() != nil {
+			log.Warn().Msg("Context cancelled, stopping listener")
+			return
+		}
 
-// 		// Wait before retrying
-// 		log.Printf("Reconnecting in %v...\n", retryInterval)
-// 		time.Sleep(retryInterval)
+		// Wait before retrying
+		log.Printf("Reconnecting in %v...\n", retryInterval)
+		time.Sleep(retryInterval)
 
-// 		// Exponential backoff with cap
-// 		if retryInterval < time.Minute {
-// 			retryInterval *= 2
-// 		}
-// 		//Wait for context cancel
-// 		<-ctx.Done()
-// 	}
-// }
+		// Exponential backoff with cap
+		if retryInterval < time.Minute {
+			retryInterval *= 2
+		}
+		//Wait for context cancel
+		<-ctx.Done()
+	}
+}
+
+func (c *EvmClient) ListenToEvents(ctx context.Context) error {
+	c.retryInterval = RETRY_INTERVAL
+
+	events := []struct {
+		name  string
+		watch func(context.Context) error
+	}{
+		// {EVENT_EVM_CONTRACT_CALL, func(ctx context.Context) error {
+		// 	return WatchForEvent[*contracts.IScalarGatewayContractCall](c, ctx, events.EVENT_EVM_CONTRACT_CALL)
+		// }},
+		// {EVENT_EVM_CONTRACT_CALL_APPROVED, func(ctx context.Context) error {
+		// 	return WatchForEvent[*contracts.IScalarGatewayContractCallApproved](c, ctx, config.EVENT_EVM_CONTRACT_CALL_APPROVED)
+		// }},
+		// {EVENT_EVM_TOKEN_DEPLOYED, func(ctx context.Context) error {
+		// 	return WatchForEvent[*contracts.IScalarGatewayTokenDeployed](c, ctx, config.EVENT_EVM_TOKEN_DEPLOYED)
+		// }},
+		{EVENT_EVM_TOKEN_SENT, func(ctx context.Context) error {
+			return WatchForEvent[*contracts.IScalarGatewayTokenSent](c, ctx, EVENT_EVM_TOKEN_SENT)
+		}},
+		{EVENT_EVM_CONTRACT_CALL_WITH_TOKEN, func(ctx context.Context) error {
+			return WatchForEvent[*contracts.IScalarGatewayContractCallWithToken](c, ctx, EVENT_EVM_CONTRACT_CALL_WITH_TOKEN)
+		}},
+
+		{EVENT_EVM_COMMAND_EXECUTED, func(ctx context.Context) error {
+			return WatchForEvent[*contracts.IScalarGatewayExecuted](c, ctx, EVENT_EVM_COMMAND_EXECUTED)
+		}},
+
+		{EVENT_EVM_SWITCHED_PHASE, func(ctx context.Context) error {
+			return WatchForEvent[*contracts.IScalarGatewaySwitchPhase](c, ctx, EVENT_EVM_SWITCHED_PHASE)
+		}},
+		{EVENT_EVM_REDEEM_TOKEN, func(ctx context.Context) error {
+			return WatchForEvent[*contracts.IScalarGatewayRedeemToken](c, ctx, EVENT_EVM_REDEEM_TOKEN)
+		}},
+	}
+
+	for _, event := range events {
+		go func(e struct {
+			name  string
+			watch func(context.Context) error
+		}) {
+			if err := e.watch(ctx); err != nil {
+				log.Error().Err(err).Any("Config", c.EvmConfig).Msgf("[EvmClient] [ListenToEvents] failed to watch for event: %s", e.name)
+			}
+		}(event)
+	}
+
+	<-ctx.Done()
+	return nil
+}
+
+func WatchForEvent[T ValidWatchEvent](c *EvmClient, ctx context.Context, eventName string) error {
+
+	lastCheckpoint, err := c.dbAdapter.GetLastEventCheckPoint(c.EvmConfig.GetId(), eventName, c.EvmConfig.StartBlock)
+	if err != nil {
+		log.Warn().Str("chainId", c.EvmConfig.GetId()).
+			Str("eventName", eventName).
+			Msg("[EvmClient] [getLastCheckpoint] using default value")
+	}
+
+	watchOpts := bind.WatchOpts{Start: &lastCheckpoint.BlockNumber, Context: ctx}
+
+	sink := make(chan T)
+
+	subscription, err := setupSubscription(c, &watchOpts, sink, eventName)
+	if err != nil {
+		return err
+	}
+	defer subscription.Unsubscribe()
+
+	log.Info().Msgf("[EvmClient] [watchEVMTokenSent] success. Listening to %s", eventName)
+
+	for {
+		select {
+		case err := <-subscription.Err():
+			log.Error().Err(err).Msgf("[EvmClient] [WatchForEvent] error with subscription for %s, attempting reconnect", eventName)
+			sink = make(chan T)
+			subscription, err = reconnectWithBackoff(c, &watchOpts, sink, eventName)
+			if err != nil {
+				return fmt.Errorf("failed to reconnect: %w", err)
+			}
+
+		case <-watchOpts.Context.Done():
+			return nil
+
+		case event := <-sink:
+			err := handleEvent(c, eventName, event)
+			if err != nil {
+				log.Error().Err(err).Msgf("[EvmClient] [WatchForEvent] error handling %s event", eventName)
+			} else {
+				log.Info().Any("event", event).Msgf("[EvmClient] [WatchForEvent] handled %s event", eventName)
+			}
+		}
+	}
+}
+
+func setupSubscription[T ValidWatchEvent](c *EvmClient, watchOpts *bind.WatchOpts, sink chan T, eventName string) (ethereum.Subscription, error) {
+	sinkInterface := any(sink)
+
+	switch eventName {
+	case EVENT_EVM_TOKEN_SENT:
+		return c.Gateway.WatchTokenSent(watchOpts, sinkInterface.(chan *contracts.IScalarGatewayTokenSent), nil)
+	case EVENT_EVM_CONTRACT_CALL_WITH_TOKEN:
+		return c.Gateway.WatchContractCallWithToken(watchOpts, sinkInterface.(chan *contracts.IScalarGatewayContractCallWithToken), nil, nil)
+	case EVENT_EVM_COMMAND_EXECUTED:
+		return c.Gateway.WatchExecuted(watchOpts, sinkInterface.(chan *contracts.IScalarGatewayExecuted), nil)
+	case EVENT_EVM_SWITCHED_PHASE:
+		return c.Gateway.WatchSwitchPhase(watchOpts, sinkInterface.(chan *contracts.IScalarGatewaySwitchPhase), nil, nil)
+	case EVENT_EVM_REDEEM_TOKEN:
+		return c.Gateway.WatchRedeemToken(watchOpts, sinkInterface.(chan *contracts.IScalarGatewayRedeemToken), nil, nil, nil)
+	// case EVENT_EVM_TOKEN_DEPLOYED:
+	// 	return c.Gateway.WatchTokenDeployed(watchOpts, sinkInterface.(chan *contracts.IScalarGatewayTokenDeployed))
+	// case EVENT_EVM_CONTRACT_CALL_APPROVED:
+	// 	return c.Gateway.WatchContractCallApproved(watchOpts, sinkInterface.(chan *contracts.IScalarGatewayContractCallApproved), nil, nil, nil)
+	default:
+		return nil, fmt.Errorf("[EvmClient] [setupSubscription] unsupported event type for %s, event: %v", eventName, (*T)(nil))
+	}
+}
+
+func reconnectWithBackoff[T ValidWatchEvent](c *EvmClient, watchOpts *bind.WatchOpts, sink chan T, eventName string) (ethereum.Subscription, error) {
+	delay := baseDelay
+	for attempt := uint64(1); attempt <= maxAttempts; attempt++ {
+		jitter := time.Duration(rand.Float64() * float64(delay) * jitterFactor)
+		retryDelay := delay + jitter
+
+		log.Info().
+			Uint64("attempt", attempt).
+			Dur("delay", retryDelay).
+			Msgf("[EvmClient] [WatchForEvent] attempting reconnection for %s", eventName)
+
+		select {
+		case <-watchOpts.Context.Done():
+			return nil, watchOpts.Context.Err()
+		case <-time.After(retryDelay):
+			subscription, err := setupSubscription(c, watchOpts, sink, eventName)
+			if err == nil {
+				log.Info().Msgf("[EvmClient] [WatchForEvent] successfully reconnected for %s", eventName)
+				return subscription, nil
+			}
+
+			log.Error().
+				Err(err).
+				Uint64("attempt", attempt).
+				Msgf("[EvmClient] [WatchForEvent] reconnection failed for %s", eventName)
+
+			delay = time.Duration(float64(delay) * 2)
+			if delay > maxDelay {
+				delay = maxDelay
+			}
+		}
+	}
+
+	return nil, fmt.Errorf("failed to reconnect after %d attempts", uint64(maxAttempts))
+}
+
+func handleEvent(c *EvmClient, eventName string, event any) error {
+	switch eventName {
+	case EVENT_EVM_TOKEN_SENT:
+		if evt, ok := event.(*contracts.IScalarGatewayTokenSent); ok {
+			return c.HandleTokenSent(evt)
+		}
+		return fmt.Errorf("cannot parse event %s: %T to %T", eventName, event, (*contracts.IScalarGatewayTokenSent)(nil))
+	case EVENT_EVM_CONTRACT_CALL_WITH_TOKEN:
+		if evt, ok := event.(*contracts.IScalarGatewayContractCallWithToken); ok {
+			return c.HandleContractCallWithToken(evt)
+		}
+		return fmt.Errorf("cannot parse event %s: %T to %T", eventName, event, (*contracts.IScalarGatewayContractCallWithToken)(nil))
+	// case config.EVENT_EVM_CONTRACT_CALL_APPROVED:
+	// 	if evt, ok := event.(*contracts.IScalarGatewayContractCallApproved); ok {
+	// 		return c.HandleContractCallApproved(evt)
+	// 	}
+	// 	return fmt.Errorf("cannot parse event %s: %T to %T", eventName, event, (*contracts.IScalarGatewayContractCallApproved)(nil))
+	case EVENT_EVM_COMMAND_EXECUTED:
+		if evt, ok := event.(*contracts.IScalarGatewayExecuted); ok {
+			return c.HandleCommandExecuted(evt)
+		}
+		return fmt.Errorf("cannot parse event %s: %T to %T", eventName, event, (*contracts.IScalarGatewayExecuted)(nil))
+	case EVENT_EVM_SWITCHED_PHASE:
+		if evt, ok := event.(*contracts.IScalarGatewaySwitchPhase); ok {
+			return c.HandleSwitchPhase(evt)
+		}
+		return fmt.Errorf("cannot parse event %s: %T to %T", eventName, event, (*contracts.IScalarGatewaySwitchPhase)(nil))
+	case EVENT_EVM_REDEEM_TOKEN:
+		if evt, ok := event.(*contracts.IScalarGatewayRedeemToken); ok {
+			return c.HandleRedeemToken(evt)
+		}
+		return fmt.Errorf("cannot parse event %s: %T to %T", eventName, event, (*contracts.IScalarGatewayRedeemToken)(nil))
+	}
+	return fmt.Errorf("invalid event type for %s: %T", eventName, event)
+}
+
 // func (c *EvmClient) VerifyDeployTokens(ctx context.Context) error {
 // 	return nil
 // }
@@ -385,212 +569,6 @@ func (c *EvmClient) SetAuth(auth *bind.TransactOpts) {
 // 		Any("missingEventsCount", len(result)).
 // 		Msg("[EvmClient] [GetMissingEvents]")
 // 	return result, nil
-// }
-
-// func (c *EvmClient) ListenToEvents(ctx context.Context) error {
-// 	c.retryInterval = RETRY_INTERVAL
-
-// 	events := []struct {
-// 		name  string
-// 		watch func(context.Context) error
-// 	}{
-// 		// {events.EVENT_EVM_CONTRACT_CALL, func(ctx context.Context) error {
-// 		// 	return WatchForEvent[*contracts.IScalarGatewayContractCall](c, ctx, events.EVENT_EVM_CONTRACT_CALL)
-// 		// }},
-// 		{config.EVENT_EVM_TOKEN_SENT, func(ctx context.Context) error {
-// 			return WatchForEvent[*contracts.IScalarGatewayTokenSent](c, ctx, config.EVENT_EVM_TOKEN_SENT)
-// 		}},
-// 		{config.EVENT_EVM_CONTRACT_CALL_WITH_TOKEN, func(ctx context.Context) error {
-// 			return WatchForEvent[*contracts.IScalarGatewayContractCallWithToken](c, ctx, config.EVENT_EVM_CONTRACT_CALL_WITH_TOKEN)
-// 		}},
-// 		{config.EVENT_EVM_CONTRACT_CALL_APPROVED, func(ctx context.Context) error {
-// 			return WatchForEvent[*contracts.IScalarGatewayContractCallApproved](c, ctx, config.EVENT_EVM_CONTRACT_CALL_APPROVED)
-// 		}},
-// 		{config.EVENT_EVM_COMMAND_EXECUTED, func(ctx context.Context) error {
-// 			return WatchForEvent[*contracts.IScalarGatewayExecuted](c, ctx, config.EVENT_EVM_COMMAND_EXECUTED)
-// 		}},
-// 		// {config.EVENT_EVM_TOKEN_DEPLOYED, func(ctx context.Context) error {
-// 		// 	return WatchForEvent[*contracts.IScalarGatewayTokenDeployed](c, ctx, config.EVENT_EVM_TOKEN_DEPLOYED)
-// 		// }},
-// 		{config.EVENT_EVM_SWITCHED_PHASE, func(ctx context.Context) error {
-// 			return WatchForEvent[*contracts.IScalarGatewaySwitchPhase](c, ctx, config.EVENT_EVM_SWITCHED_PHASE)
-// 		}},
-// 		{config.EVENT_EVM_REDEEM_TOKEN, func(ctx context.Context) error {
-// 			return WatchForEvent[*contracts.IScalarGatewayRedeemToken](c, ctx, config.EVENT_EVM_REDEEM_TOKEN)
-// 		}},
-// 	}
-
-// 	for _, event := range events {
-// 		go func(e struct {
-// 			name  string
-// 			watch func(context.Context) error
-// 		}) {
-// 			if err := e.watch(ctx); err != nil {
-// 				log.Error().Err(err).Any("Config", c.EvmConfig).Msgf("[EvmClient] [ListenToEvents] failed to watch for event: %s", e.name)
-// 			}
-// 		}(event)
-// 	}
-
-// 	<-ctx.Done()
-// 	return nil
-// }
-
-// type ValidWatchEvent interface {
-// 	*contracts.IScalarGatewayTokenSent |
-// 		*contracts.IScalarGatewayContractCallWithToken |
-// 		// *contracts.IScalarGatewayContractCall |
-// 		*contracts.IScalarGatewayContractCallApproved |
-// 		*contracts.IScalarGatewayExecuted |
-// 		*contracts.IScalarGatewayTokenDeployed |
-// 		*contracts.IScalarGatewaySwitchPhase |
-// 		*contracts.IScalarGatewayRedeemToken
-// }
-
-// const (
-// 	baseDelay    = 5 * time.Second
-// 	maxDelay     = 2 * time.Minute
-// 	maxAttempts  = math.MaxUint64
-// 	jitterFactor = 0.2 // 20% jitter
-// )
-
-// func WatchForEvent[T ValidWatchEvent](c *EvmClient, ctx context.Context, eventName string) error {
-
-// 	lastCheckpoint, err := c.dbAdapter.GetLastEventCheckPoint(c.EvmConfig.GetId(), eventName, c.EvmConfig.StartBlock)
-// 	if err != nil {
-// 		log.Warn().Str("chainId", c.EvmConfig.GetId()).
-// 			Str("eventName", eventName).
-// 			Msg("[EvmClient] [getLastCheckpoint] using default value")
-// 	}
-
-// 	watchOpts := bind.WatchOpts{Start: &lastCheckpoint.BlockNumber, Context: ctx}
-
-// 	sink := make(chan T)
-
-// 	subscription, err := setupSubscription(c, &watchOpts, sink, eventName)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	defer subscription.Unsubscribe()
-
-// 	log.Info().Msgf("[EvmClient] [watchEVMTokenSent] success. Listening to %s", eventName)
-
-// 	for {
-// 		select {
-// 		case err := <-subscription.Err():
-// 			log.Error().Err(err).Msgf("[EvmClient] [WatchForEvent] error with subscription for %s, attempting reconnect", eventName)
-
-// 			subscription, err = reconnectWithBackoff(c, &watchOpts, sink, eventName)
-// 			if err != nil {
-// 				return fmt.Errorf("failed to reconnect: %w", err)
-// 			}
-
-// 		case <-watchOpts.Context.Done():
-// 			return nil
-
-// 		case event := <-sink:
-// 			err := handleEvent(c, eventName, event)
-// 			if err != nil {
-// 				log.Error().Err(err).Msgf("[EvmClient] [WatchForEvent] error handling %s event", eventName)
-// 			} else {
-// 				log.Info().Any("event", event).Msgf("[EvmClient] [WatchForEvent] handled %s event", eventName)
-// 			}
-// 		}
-// 	}
-// }
-
-// func reconnectWithBackoff[T ValidWatchEvent](c *EvmClient, watchOpts *bind.WatchOpts, sink chan T, eventName string) (ethereum.Subscription, error) {
-// 	delay := baseDelay
-// 	for attempt := uint64(1); attempt <= maxAttempts; attempt++ {
-// 		jitter := time.Duration(rand.Float64() * float64(delay) * jitterFactor)
-// 		retryDelay := delay + jitter
-
-// 		log.Info().
-// 			Uint64("attempt", attempt).
-// 			Dur("delay", retryDelay).
-// 			Msgf("[EvmClient] [WatchForEvent] attempting reconnection for %s", eventName)
-
-// 		select {
-// 		case <-watchOpts.Context.Done():
-// 			return nil, watchOpts.Context.Err()
-// 		case <-time.After(retryDelay):
-// 			subscription, err := setupSubscription(c, watchOpts, sink, eventName)
-// 			if err == nil {
-// 				log.Info().Msgf("[EvmClient] [WatchForEvent] successfully reconnected for %s", eventName)
-// 				return subscription, nil
-// 			}
-
-// 			log.Error().
-// 				Err(err).
-// 				Uint64("attempt", attempt).
-// 				Msgf("[EvmClient] [WatchForEvent] reconnection failed for %s", eventName)
-
-// 			delay = time.Duration(float64(delay) * 2)
-// 			if delay > maxDelay {
-// 				delay = maxDelay
-// 			}
-// 		}
-// 	}
-
-// 	return nil, fmt.Errorf("failed to reconnect after %d attempts", uint64(maxAttempts))
-// }
-
-// func setupSubscription[T ValidWatchEvent](c *EvmClient, watchOpts *bind.WatchOpts, sink chan T, eventName string) (ethereum.Subscription, error) {
-// 	sinkInterface := any(sink)
-
-// 	switch eventName {
-// 	case config.EVENT_EVM_TOKEN_SENT:
-// 		return c.Gateway.WatchTokenSent(watchOpts, sinkInterface.(chan *contracts.IScalarGatewayTokenSent), nil)
-// 	case config.EVENT_EVM_CONTRACT_CALL_WITH_TOKEN:
-// 		return c.Gateway.WatchContractCallWithToken(watchOpts, sinkInterface.(chan *contracts.IScalarGatewayContractCallWithToken), nil, nil)
-// 	case config.EVENT_EVM_CONTRACT_CALL_APPROVED:
-// 		return c.Gateway.WatchContractCallApproved(watchOpts, sinkInterface.(chan *contracts.IScalarGatewayContractCallApproved), nil, nil, nil)
-// 	case config.EVENT_EVM_COMMAND_EXECUTED:
-// 		return c.Gateway.WatchExecuted(watchOpts, sinkInterface.(chan *contracts.IScalarGatewayExecuted), nil)
-// 	case config.EVENT_EVM_SWITCHED_PHASE:
-// 		return c.Gateway.WatchSwitchPhase(watchOpts, sinkInterface.(chan *contracts.IScalarGatewaySwitchPhase), nil, nil)
-// 	// case config.EVENT_EVM_TOKEN_DEPLOYED:
-// 	// 	return c.Gateway.WatchTokenDeployed(watchOpts, sinkInterface.(chan *contracts.IScalarGatewayTokenDeployed))
-// 	case config.EVENT_EVM_REDEEM_TOKEN:
-// 		return c.Gateway.WatchRedeemToken(watchOpts, sinkInterface.(chan *contracts.IScalarGatewayRedeemToken), nil, nil, nil)
-// 	default:
-// 		return nil, fmt.Errorf("[EvmClient] [setupSubscription] unsupported event type for %s, event: %v", eventName, (*T)(nil))
-// 	}
-// }
-
-// func handleEvent(c *EvmClient, eventName string, event any) error {
-// 	switch eventName {
-// 	case config.EVENT_EVM_TOKEN_SENT:
-// 		if evt, ok := event.(*contracts.IScalarGatewayTokenSent); ok {
-// 			return c.HandleTokenSent(evt)
-// 		}
-// 		return fmt.Errorf("cannot parse event %s: %T to %T", eventName, event, (*contracts.IScalarGatewayTokenSent)(nil))
-// 	case config.EVENT_EVM_CONTRACT_CALL_WITH_TOKEN:
-// 		if evt, ok := event.(*contracts.IScalarGatewayContractCallWithToken); ok {
-// 			return c.HandleContractCallWithToken(evt)
-// 		}
-// 		return fmt.Errorf("cannot parse event %s: %T to %T", eventName, event, (*contracts.IScalarGatewayContractCallWithToken)(nil))
-// 	case config.EVENT_EVM_CONTRACT_CALL_APPROVED:
-// 		if evt, ok := event.(*contracts.IScalarGatewayContractCallApproved); ok {
-// 			return c.HandleContractCallApproved(evt)
-// 		}
-// 		return fmt.Errorf("cannot parse event %s: %T to %T", eventName, event, (*contracts.IScalarGatewayContractCallApproved)(nil))
-// 	case config.EVENT_EVM_COMMAND_EXECUTED:
-// 		if evt, ok := event.(*contracts.IScalarGatewayExecuted); ok {
-// 			return c.HandleCommandExecuted(evt)
-// 		}
-// 		return fmt.Errorf("cannot parse event %s: %T to %T", eventName, event, (*contracts.IScalarGatewayExecuted)(nil))
-// 	case config.EVENT_EVM_SWITCHED_PHASE:
-// 		if evt, ok := event.(*contracts.IScalarGatewaySwitchPhase); ok {
-// 			return c.HandleSwitchPhase(evt)
-// 		}
-// 		return fmt.Errorf("cannot parse event %s: %T to %T", eventName, event, (*contracts.IScalarGatewaySwitchPhase)(nil))
-// 	case config.EVENT_EVM_REDEEM_TOKEN:
-// 		if evt, ok := event.(*contracts.IScalarGatewayRedeemToken); ok {
-// 			return c.HandleRedeemToken(evt)
-// 		}
-// 		return fmt.Errorf("cannot parse event %s: %T to %T", eventName, event, (*contracts.IScalarGatewayRedeemToken)(nil))
-// 	}
-// 	return fmt.Errorf("invalid event type for %s: %T", eventName, event)
 // }
 
 // func (c *EvmClient) handleEventLog(event abi.Event, txLog types.Log) error {

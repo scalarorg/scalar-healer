@@ -3,6 +3,7 @@ package evm
 import (
 	"encoding/hex"
 	"fmt"
+	"math"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -13,6 +14,24 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/scalarorg/bitcoin-vault/go-utils/types"
 	contracts "github.com/scalarorg/scalar-healer/pkg/evm/contracts/generated"
+)
+
+type ValidWatchEvent interface {
+	*contracts.IScalarGatewayTokenSent |
+		*contracts.IScalarGatewayContractCallWithToken |
+		*contracts.IScalarGatewayExecuted |
+		*contracts.IScalarGatewaySwitchPhase |
+		*contracts.IScalarGatewayRedeemToken
+	//*contracts.IScalarGatewayContractCall |
+	//*contracts.IScalarGatewayContractCallApproved |
+	//*contracts.IScalarGatewayTokenDeployed
+}
+
+const (
+	baseDelay    = 5 * time.Second
+	maxDelay     = 2 * time.Minute
+	maxAttempts  = math.MaxUint64
+	jitterFactor = 0.2 // 20% jitter
 )
 
 type ExecuteParams struct {

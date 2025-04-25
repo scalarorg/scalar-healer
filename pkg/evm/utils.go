@@ -5,38 +5,9 @@ import (
 	"fmt"
 	"math/big"
 
-	ethabi "github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/rs/zerolog/log"
 )
-
-func AbiUnpack(data []byte, types ...string) ([]interface{}, error) {
-	var arguments ethabi.Arguments
-	for _, t := range types {
-		typ, err := ethabi.NewType(t, t, nil)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create type: %w", err)
-		}
-		arguments = append(arguments, ethabi.Argument{Type: typ})
-	}
-	args, err := arguments.Unpack(data)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get arguments: %w", err)
-	}
-	return args, nil
-}
-
-func AbiUnpackIntoMap(v map[string]interface{}, data []byte, types ...byte) error {
-	var arguments ethabi.Arguments
-	for _, t := range types {
-		arguments = append(arguments, ethabi.Argument{Type: ethabi.Type{T: t}})
-	}
-	err := arguments.UnpackIntoMap(v, data)
-	if err != nil {
-		return fmt.Errorf("failed to get arguments: %w", err)
-	}
-	return nil
-}
 
 func DecodeExecuteData(executeData string) (*DecodedExecuteData, error) {
 	executeDataBytes, err := hex.DecodeString(executeData)

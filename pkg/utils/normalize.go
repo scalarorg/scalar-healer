@@ -2,6 +2,7 @@ package utils
 
 import (
 	"bytes"
+	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"strings"
@@ -71,4 +72,14 @@ func CalculateDestinationAddress(payload []byte, chainInfoBytes *chain.ChainInfo
 	}
 
 	return "", fmt.Errorf("invalid payload: %v", decodedPayload)
+}
+
+func ConvertUint64ToChainInfo(n uint64) (*chain.ChainInfo, error) {
+	buf := make([]byte, 8)
+	binary.BigEndian.PutUint64(buf, n)
+	chainInfo := chain.NewChainInfoFromBytes(buf)
+	if chainInfo == nil {
+		return nil, fmt.Errorf("invalid destination chain: %d", n)
+	}
+	return chainInfo, nil
 }

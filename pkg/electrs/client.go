@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/rs/zerolog/log"
+	"github.com/scalarorg/bitcoin-vault/go-utils/chain"
 	"github.com/scalarorg/data-models/scalarnet"
 	"github.com/scalarorg/go-electrum/electrum"
 	"github.com/scalarorg/scalar-healer/config"
@@ -66,14 +67,14 @@ func (c *Client) Start(ctx context.Context) error {
 		params = append(params, c.electrumConfig.LastVaultTx)
 	}
 	log.Debug().Msg("[ElectrumClient] [Start] Subscribing to new block event for request to confirm if vault transaction is get enought confirmation")
-	// c.Electrs.BlockchainHeaderSubscribe(ctx, c.BlockchainHeaderHandler)
-	// log.Debug().Msgf("[ElectrumClient] [Start] Subscribing to vault transactions with params: %v", params)
-	// c.Electrs.VaultTransactionSubscribe(ctx, c.VaultTxMessageHandler, params...)
+	c.Electrs.BlockchainHeaderSubscribe(ctx, c.BlockchainHeaderHandler)
+	log.Debug().Msgf("[ElectrumClient] [Start] Subscribing to vault transactions with params: %v", params)
+	c.Electrs.VaultTransactionSubscribe(ctx, c.VaultTxMessageHandler, params...)
 
 	return nil
 }
 
-func (c *Client) GetSymbol(chainId string, tokenAddress string) (string, error) {
+func (c *Client) GetSymbol(chainInfo *chain.ChainInfo, tokenAddress string) (string, error) {
 	//TODO: implement this
 	return "", nil
 }

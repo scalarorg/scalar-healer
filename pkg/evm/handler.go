@@ -11,9 +11,144 @@ import (
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/rs/zerolog/log"
 	"github.com/scalarorg/data-models/chains"
-	"github.com/scalarorg/scalar-healer/config"
 	contracts "github.com/scalarorg/scalar-healer/pkg/evm/contracts/generated"
 )
+
+func (ec *EvmClient) HandleContractCallWithToken(event *contracts.IScalarGatewayContractCallWithToken) error {
+	//0. Preprocess the event
+	ec.preprocessContractCallWithToken(event)
+	//1. Convert into a RelayData instance then store to the db
+	contractCallWithToken, err := ec.ContractCallWithToken2Model(event)
+	if err != nil {
+		return fmt.Errorf("failed to convert ContractCallEvent to ContractCallWithToken: %w", err)
+	}
+	//2. update last checkpoint
+	lastCheckpoint, err := ec.dbAdapter.GetLastEventCheckPoint(ec.EvmConfig.GetId(), EVENT_EVM_CONTRACT_CALL_WITH_TOKEN, ec.EvmConfig.StartBlock)
+	if err != nil {
+		log.Debug().Str("chainId", ec.EvmConfig.GetId()).
+			Str("eventName", EVENT_EVM_CONTRACT_CALL_WITH_TOKEN).
+			Msg("[EvmClient] [handleContractCallWithToken] Get event from begining")
+	}
+	if event.Raw.BlockNumber > lastCheckpoint.BlockNumber ||
+		(event.Raw.BlockNumber == lastCheckpoint.BlockNumber && event.Raw.TxIndex > lastCheckpoint.LogIndex) {
+		lastCheckpoint.BlockNumber = event.Raw.BlockNumber
+		lastCheckpoint.TxHash = event.Raw.TxHash.String()
+		lastCheckpoint.LogIndex = event.Raw.Index
+		lastCheckpoint.EventKey = fmt.Sprintf("%s-%d-%d", event.Raw.TxHash.String(), event.Raw.BlockNumber, event.Raw.Index)
+	}
+	//3. store relay data to the db, update last checkpoint
+	err = ec.dbAdapter.SaveContractCallWithToken(&contractCallWithToken, lastCheckpoint)
+	if err != nil {
+		return fmt.Errorf("failed to create evm contract call: %w", err)
+	}
+	return ec.AddContractCallWithTokenToEvmBatchCommand(event)
+}
+func (ec *EvmClient) AddContractCallWithTokenToEvmBatchCommand(event *contracts.IScalarGatewayContractCallWithToken) error {
+	//TODO: implement this
+	return nil
+}
+func (ec *EvmClient) HandleRedeemToken(event *contracts.IScalarGatewayRedeemToken) error {
+	//0. Preprocess the event
+	log.Info().Str("Chain", ec.EvmConfig.ID).Any("event", event).Msg("[EvmClient] [HandleRedeemToken] Start processing evm redeem token")
+	//1. Convert into a RelayData instance then store to the db
+	redeemToken, err := ec.RedeemTokenEvent2Model(event)
+	if err != nil {
+		return fmt.Errorf("failed to convert ContractCallEvent to ContractCallWithToken: %w", err)
+	}
+	//2. update last checkpoint
+	lastCheckpoint, err := ec.dbAdapter.GetLastEventCheckPoint(ec.EvmConfig.GetId(), EVENT_EVM_REDEEM_TOKEN, ec.EvmConfig.StartBlock)
+	if err != nil {
+		log.Debug().Str("chainId", ec.EvmConfig.GetId()).
+			Str("eventName", EVENT_EVM_CONTRACT_CALL_WITH_TOKEN).
+			Msg("[EvmClient] [handleContractCallWithToken] Get event from begining")
+	}
+	if event.Raw.BlockNumber > lastCheckpoint.BlockNumber ||
+		(event.Raw.BlockNumber == lastCheckpoint.BlockNumber && event.Raw.TxIndex > lastCheckpoint.LogIndex) {
+		lastCheckpoint.BlockNumber = event.Raw.BlockNumber
+		lastCheckpoint.TxHash = event.Raw.TxHash.String()
+		lastCheckpoint.LogIndex = event.Raw.Index
+		lastCheckpoint.EventKey = fmt.Sprintf("%s-%d-%d", event.Raw.TxHash.String(), event.Raw.BlockNumber, event.Raw.Index)
+	}
+	//3. store relay data to the db, update last checkpoint
+	err = ec.dbAdapter.SaveContractCallWithToken(&redeemToken, lastCheckpoint)
+	if err != nil {
+		return fmt.Errorf("failed to create evm contract call: %w", err)
+	}
+	return ec.AddRedeemTokenToRedeemBatchPsbt(event)
+}
+func (ec *EvmClient) AddRedeemTokenToRedeemBatchPsbt(event *contracts.IScalarGatewayRedeemToken) error {
+	//TODO: implement this
+	return nil
+}
+func (ec *EvmClient) preprocessContractCallWithToken(event *contracts.IScalarGatewayContractCallWithToken) error {
+	log.Info().
+		Str("sender", event.Sender.Hex()).
+		Str("destinationChain", event.DestinationChain).
+		Str("destinationContractAddress", event.DestinationContractAddress).
+		Str("payloadHash", hex.EncodeToString(event.PayloadHash[:])).
+		Str("Symbol", event.Symbol).
+		Uint64("Amount", event.Amount.Uint64()).
+		Str("txHash", event.Raw.TxHash.String()).
+		Uint("logIndex", event.Raw.Index).
+		Uint("txIndex", event.Raw.TxIndex).
+		Str("logData", hex.EncodeToString(event.Raw.Data)).
+		Msg("[EvmClient] [preprocessContractCallWithToken] Start handle Contract call with token")
+	//Todo: validate the event
+	return nil
+}
+
+func (ec *EvmClient) HandleTokenSent(event *contracts.IScalarGatewayTokenSent) error {
+	//0. Preprocess the event
+	ec.preprocessTokenSent(event)
+	//1. Convert into a RelayData instance then store to the db
+	tokenSent, err := ec.TokenSentEvent2Model(event)
+	if err != nil {
+		log.Error().Err(err).Msg("[EvmClient] [HandleTokenSent] failed to convert TokenSentEvent to model data")
+		return err
+	}
+	//For evm, the token sent is verified immediately by the scalarnet
+	tokenSent.Status = chains.TokenSentStatusVerifying
+	//2. update last checkpoint
+	lastCheckpoint, err := ec.dbAdapter.GetLastEventCheckPoint(ec.EvmConfig.GetId(), EVENT_EVM_TOKEN_SENT, ec.EvmConfig.StartBlock)
+	if err != nil {
+		log.Debug().Str("chainId", ec.EvmConfig.GetId()).
+			Str("eventName", EVENT_EVM_TOKEN_SENT).
+			Msg("[EvmClient] [handleTokenSent] Get event from begining")
+	}
+	if event.Raw.BlockNumber > lastCheckpoint.BlockNumber ||
+		(event.Raw.BlockNumber == lastCheckpoint.BlockNumber && event.Raw.TxIndex > lastCheckpoint.LogIndex) {
+		lastCheckpoint.BlockNumber = event.Raw.BlockNumber
+		lastCheckpoint.TxHash = event.Raw.TxHash.String()
+		lastCheckpoint.LogIndex = event.Raw.Index
+		lastCheckpoint.EventKey = fmt.Sprintf("%s-%d-%d", event.Raw.TxHash.String(), event.Raw.BlockNumber, event.Raw.Index)
+	}
+	//3. store relay data to the db, update last checkpoint
+	err = ec.dbAdapter.SaveTokenSent(&tokenSent, lastCheckpoint)
+	if err != nil {
+		return fmt.Errorf("failed to create evm token send: %w", err)
+	}
+	return ec.AddTokenSentToEvmBatchCommand(event)
+}
+
+func (ec *EvmClient) AddTokenSentToEvmBatchCommand(event *contracts.IScalarGatewayTokenSent) error {
+	//TODO: implement this
+	return nil
+}
+func (ec *EvmClient) preprocessTokenSent(event *contracts.IScalarGatewayTokenSent) error {
+	log.Info().
+		Str("sender", event.Sender.Hex()).
+		Str("destinationChain", event.DestinationChain).
+		Str("destinationAddress", event.DestinationAddress).
+		Str("txHash", event.Raw.TxHash.String()).
+		Str("symbol", event.Symbol).
+		Uint64("amount", event.Amount.Uint64()).
+		Uint("logIndex", event.Raw.Index).
+		Uint("txIndex", event.Raw.TxIndex).
+		Str("logData", hex.EncodeToString(event.Raw.Data)).
+		Msg("[EvmClient] [preprocessTokenSent] Start handle TokenSent")
+	//Todo: validate the event
+	return nil
+}
 
 // func (ec *EvmClient) handleContractCall(event *contracts.IScalarGatewayContractCall) error {
 // 	//0. Preprocess the event
@@ -72,142 +207,6 @@ import (
 // 	//Todo: validate the event
 // 	return nil
 // }
-
-func (ec *EvmClient) HandleContractCallWithToken(event *contracts.IScalarGatewayContractCallWithToken) error {
-	//0. Preprocess the event
-	ec.preprocessContractCallWithToken(event)
-	//1. Convert into a RelayData instance then store to the db
-	contractCallWithToken, err := ec.ContractCallWithToken2Model(event)
-	if err != nil {
-		return fmt.Errorf("failed to convert ContractCallEvent to ContractCallWithToken: %w", err)
-	}
-	//2. update last checkpoint
-	lastCheckpoint, err := ec.dbAdapter.GetLastEventCheckPoint(ec.EvmConfig.GetId(), config.EVENT_EVM_CONTRACT_CALL_WITH_TOKEN, ec.EvmConfig.StartBlock)
-	if err != nil {
-		log.Debug().Str("chainId", ec.EvmConfig.GetId()).
-			Str("eventName", config.EVENT_EVM_CONTRACT_CALL_WITH_TOKEN).
-			Msg("[EvmClient] [handleContractCallWithToken] Get event from begining")
-	}
-	if event.Raw.BlockNumber > lastCheckpoint.BlockNumber ||
-		(event.Raw.BlockNumber == lastCheckpoint.BlockNumber && event.Raw.TxIndex > lastCheckpoint.LogIndex) {
-		lastCheckpoint.BlockNumber = event.Raw.BlockNumber
-		lastCheckpoint.TxHash = event.Raw.TxHash.String()
-		lastCheckpoint.LogIndex = event.Raw.Index
-		lastCheckpoint.EventKey = fmt.Sprintf("%s-%d-%d", event.Raw.TxHash.String(), event.Raw.BlockNumber, event.Raw.Index)
-	}
-	//3. store relay data to the db, update last checkpoint
-	err = ec.dbAdapter.SaveContractCallWithToken(&contractCallWithToken, lastCheckpoint)
-	if err != nil {
-		return fmt.Errorf("failed to create evm contract call: %w", err)
-	}
-	return ec.AddContractCallWithTokenToEvmBatchCommand(event)
-}
-func (ec *EvmClient) AddContractCallWithTokenToEvmBatchCommand(event *contracts.IScalarGatewayContractCallWithToken) error {
-	//TODO: implement this
-	return nil
-}
-func (ec *EvmClient) HandleRedeemToken(event *contracts.IScalarGatewayRedeemToken) error {
-	//0. Preprocess the event
-	log.Info().Str("Chain", ec.EvmConfig.ID).Any("event", event).Msg("[EvmClient] [HandleRedeemToken] Start processing evm redeem token")
-	//1. Convert into a RelayData instance then store to the db
-	redeemToken, err := ec.RedeemTokenEvent2Model(event)
-	if err != nil {
-		return fmt.Errorf("failed to convert ContractCallEvent to ContractCallWithToken: %w", err)
-	}
-	//2. update last checkpoint
-	lastCheckpoint, err := ec.dbAdapter.GetLastEventCheckPoint(ec.EvmConfig.GetId(), config.EVENT_EVM_REDEEM_TOKEN, ec.EvmConfig.StartBlock)
-	if err != nil {
-		log.Debug().Str("chainId", ec.EvmConfig.GetId()).
-			Str("eventName", config.EVENT_EVM_CONTRACT_CALL_WITH_TOKEN).
-			Msg("[EvmClient] [handleContractCallWithToken] Get event from begining")
-	}
-	if event.Raw.BlockNumber > lastCheckpoint.BlockNumber ||
-		(event.Raw.BlockNumber == lastCheckpoint.BlockNumber && event.Raw.TxIndex > lastCheckpoint.LogIndex) {
-		lastCheckpoint.BlockNumber = event.Raw.BlockNumber
-		lastCheckpoint.TxHash = event.Raw.TxHash.String()
-		lastCheckpoint.LogIndex = event.Raw.Index
-		lastCheckpoint.EventKey = fmt.Sprintf("%s-%d-%d", event.Raw.TxHash.String(), event.Raw.BlockNumber, event.Raw.Index)
-	}
-	//3. store relay data to the db, update last checkpoint
-	err = ec.dbAdapter.SaveContractCallWithToken(&redeemToken, lastCheckpoint)
-	if err != nil {
-		return fmt.Errorf("failed to create evm contract call: %w", err)
-	}
-	return ec.AddRedeemTokenToRedeemBatchPsbt(event)
-}
-func (ec *EvmClient) AddRedeemTokenToRedeemBatchPsbt(event *contracts.IScalarGatewayRedeemToken) error {
-	//TODO: implement this
-	return nil
-}
-func (ec *EvmClient) preprocessContractCallWithToken(event *contracts.IScalarGatewayContractCallWithToken) error {
-	log.Info().
-		Str("sender", event.Sender.Hex()).
-		Str("destinationChain", event.DestinationChain).
-		Str("destinationContractAddress", event.DestinationContractAddress).
-		Str("payloadHash", hex.EncodeToString(event.PayloadHash[:])).
-		Str("Symbol", event.Symbol).
-		Uint64("Amount", event.Amount.Uint64()).
-		Str("txHash", event.Raw.TxHash.String()).
-		Uint("logIndex", event.Raw.Index).
-		Uint("txIndex", event.Raw.TxIndex).
-		Str("logData", hex.EncodeToString(event.Raw.Data)).
-		Msg("[EvmClient] [preprocessContractCallWithToken] Start handle Contract call with token")
-	//Todo: validate the event
-	return nil
-}
-
-func (ec *EvmClient) HandleTokenSent(event *contracts.IScalarGatewayTokenSent) error {
-	//0. Preprocess the event
-	ec.preprocessTokenSent(event)
-	//1. Convert into a RelayData instance then store to the db
-	tokenSent, err := ec.TokenSentEvent2Model(event)
-	if err != nil {
-		log.Error().Err(err).Msg("[EvmClient] [HandleTokenSent] failed to convert TokenSentEvent to model data")
-		return err
-	}
-	//For evm, the token sent is verified immediately by the scalarnet
-	tokenSent.Status = chains.TokenSentStatusVerifying
-	//2. update last checkpoint
-	lastCheckpoint, err := ec.dbAdapter.GetLastEventCheckPoint(ec.EvmConfig.GetId(), config.EVENT_EVM_TOKEN_SENT, ec.EvmConfig.StartBlock)
-	if err != nil {
-		log.Debug().Str("chainId", ec.EvmConfig.GetId()).
-			Str("eventName", config.EVENT_EVM_TOKEN_SENT).
-			Msg("[EvmClient] [handleTokenSent] Get event from begining")
-	}
-	if event.Raw.BlockNumber > lastCheckpoint.BlockNumber ||
-		(event.Raw.BlockNumber == lastCheckpoint.BlockNumber && event.Raw.TxIndex > lastCheckpoint.LogIndex) {
-		lastCheckpoint.BlockNumber = event.Raw.BlockNumber
-		lastCheckpoint.TxHash = event.Raw.TxHash.String()
-		lastCheckpoint.LogIndex = event.Raw.Index
-		lastCheckpoint.EventKey = fmt.Sprintf("%s-%d-%d", event.Raw.TxHash.String(), event.Raw.BlockNumber, event.Raw.Index)
-	}
-	//3. store relay data to the db, update last checkpoint
-	err = ec.dbAdapter.SaveTokenSent(&tokenSent, lastCheckpoint)
-	if err != nil {
-		return fmt.Errorf("failed to create evm token send: %w", err)
-	}
-	return ec.AddTokenSentToEvmBatchCommand(event)
-}
-
-func (ec *EvmClient) AddTokenSentToEvmBatchCommand(event *contracts.IScalarGatewayTokenSent) error {
-	//TODO: implement this
-	return nil
-}
-func (ec *EvmClient) preprocessTokenSent(event *contracts.IScalarGatewayTokenSent) error {
-	log.Info().
-		Str("sender", event.Sender.Hex()).
-		Str("destinationChain", event.DestinationChain).
-		Str("destinationAddress", event.DestinationAddress).
-		Str("txHash", event.Raw.TxHash.String()).
-		Str("symbol", event.Symbol).
-		Uint64("amount", event.Amount.Uint64()).
-		Uint("logIndex", event.Raw.Index).
-		Uint("txIndex", event.Raw.TxIndex).
-		Str("logData", hex.EncodeToString(event.Raw.Data)).
-		Msg("[EvmClient] [preprocessTokenSent] Start handle TokenSent")
-	//Todo: validate the event
-	return nil
-}
 
 //	func (ec *EvmClient) HandleContractCallApproved(event *contracts.IScalarGatewayContractCallApproved) error {
 //		//0. Preprocess the event
@@ -327,25 +326,17 @@ func (ec *EvmClient) preprocessContractCallApproved(event *contracts.IScalarGate
 	return nil
 }
 
-// func (ec *EvmClient) HandleCommandExecuted(event *contracts.IScalarGatewayExecuted) error {
-// 	//0. Preprocess the event
-// 	ec.preprocessCommandExecuted(event)
-// 	//1. Convert into a RelayData instance then store to the db
-// 	cmdExecuted := ec.CommandExecutedEvent2Model(event)
-// 	//Get commandId from scalarnet
-// 	if ec.ScalarClient != nil {
-// 		command, err := ec.ScalarClient.GetCommand(cmdExecuted.SourceChain, cmdExecuted.CommandID)
-// 		if err != nil {
-// 			log.Warn().Err(err).Msgf("[EvmClient] [HandleCommandExecuted] failed to get commandId from scalarnet")
-// 		} else if command != nil {
-// 			log.Info().Any("command", command).Msg("[EvmClient] [HandleCommandExecuted] get command from scalarnet")
-// 		} else {
-// 			log.Warn().Any("command", command).Msg("[EvmClient] [HandleCommandExecuted] command not found in scalarnet")
-// 		}
-
-// 	}
-// 	return nil
-// }
+func (ec *EvmClient) HandleCommandExecuted(event *contracts.IScalarGatewayExecuted) error {
+	//0. Preprocess the event
+	ec.preprocessCommandExecuted(event)
+	//1. Convert into a RelayData instance then store to the db
+	cmdExecuted := ec.CommandExecutedEvent2Model(event)
+	err := ec.dbAdapter.UpdateEvmCommandExecuted(&cmdExecuted)
+	if err != nil {
+		log.Error().Err(err).Msg("[EvmClient] HandleCommandExecuted failed")
+	}
+	return nil
+}
 
 func (ec *EvmClient) preprocessCommandExecuted(event *contracts.IScalarGatewayExecuted) error {
 	log.Info().Any("event", event).Msg("[EvmClient] [ExecutedHandler] Start processing evm command executed")
