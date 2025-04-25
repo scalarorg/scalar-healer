@@ -1,6 +1,9 @@
 package db
 
 import (
+	"math/big"
+
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/scalarorg/data-models/chains"
 	"github.com/scalarorg/data-models/scalarnet"
 	"github.com/scalarorg/scalar-healer/pkg/db/models"
@@ -12,7 +15,7 @@ type DbAdapter interface {
 	GetTokenSymbolByAddress(chainType string, chainId uint64, tokenAddress string) (string, error)
 	GetLastEventCheckPoint(chainName, eventName string, fromBlock uint64) (*scalarnet.EventCheckPoint, error)
 	UpdateLastEventCheckPoint(lastCheckPoint *scalarnet.EventCheckPoint) error
-	GetRedeemSession(chainId string, groupUid string) models.RedeemSession
+	GetRedeemSession(chainId string, groupUid string) *models.RedeemSession
 	SaveSwitchPhaseValue(event *chains.SwitchedPhase) error
 	SaveTokenSent(tokenSent *chains.TokenSent, eventCheckPoint *scalarnet.EventCheckPoint) error
 	SaveTokenSents(tokenSents []*chains.TokenSent) error
@@ -22,8 +25,7 @@ type DbAdapter interface {
 	UpdateRedeemExecutedCommands(chainId string, txHashes []string) error
 	SaveContractCallWithToken(contractCallWithToken *chains.ContractCallWithToken, eventCheckPoint *scalarnet.EventCheckPoint) error
 	UpdateEvmCommandExecuted(cmdExecuted *chains.CommandExecuted) error
-}
-
-func NewDbAdapter(connectionString *string) (DbAdapter, error) {
-	return nil, nil
+	GetRedeemNonce(address common.Address) uint64
+	SaveRedeemRequest(address common.Address, signature []byte, amount *big.Int, symbol string, nonce uint64) error
+	Close()
 }

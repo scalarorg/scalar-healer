@@ -3,10 +3,11 @@ package server
 import (
 	"github.com/labstack/echo/v4"
 	"github.com/scalarorg/scalar-healer/internal/health"
+	"github.com/scalarorg/scalar-healer/internal/redeem"
 )
 
 func setupRoute(e *echo.Echo) {
 	health.Route(e, "/health")
 	api := e.Group("/api")
-	_ = api
+	redeem.Route(api, "/redeem")
 }
