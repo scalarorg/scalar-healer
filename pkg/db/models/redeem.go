@@ -38,3 +38,15 @@ func (s *Session) Cmp(other *Session) int64 {
 
 type RedeemSession struct {
 }
+
+type RedeemRequest struct {
+	Address   string `json:"address" validate:"eth_addr"`
+	Signature string `json:"signature" validate:"hexadecimal"` // not need to validte length
+	ChainID   uint64 `json:"chain_id" validate:"required,gte=0"`
+	Symbol    string `json:"symbol" validate:"required"`
+	Amount    string `json:"amount" validate:"required"` // bigint format
+	Nonce     uint64 `json:"nonce" validate:"required"`
+
+	CreatedAt uint64 `json:"created_at"`
+	UpdatedAt uint64 `json:"updated_at"`
+}

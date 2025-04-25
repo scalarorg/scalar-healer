@@ -39,6 +39,10 @@ func (m *MongoRepository) SaveRedeemRequest(chainId uint64, address common.Addre
 	return nil
 }
 
+func (m *MongoRepository) ListRedeemRequests(address common.Address, page, size int) ([]*models.RedeemRequest, error) {
+	return nil, nil
+}
+
 func (m *MongoRepository) FindPendingBtcTokenSent(chainId string, expectedConfirmBlock int) ([]*chains.TokenSent, error) {
 	return nil, nil
 }

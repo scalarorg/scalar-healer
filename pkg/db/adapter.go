@@ -29,5 +29,6 @@ type DbAdapter interface {
 	UpdateEvmCommandExecuted(cmdExecuted *chains.CommandExecuted) error
 	GetRedeemNonce(address common.Address) uint64
 	SaveRedeemRequest(chainId uint64, address common.Address, signature []byte, amount *big.Int, symbol string, nonce uint64) error
+	ListRedeemRequests(address common.Address, page, size int) ([]*models.RedeemRequest, error)
 	Close()
 }
