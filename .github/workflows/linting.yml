@@ -25,6 +25,26 @@ jobs:
         run: |
           echo "deb http://th.archive.ubuntu.com/ubuntu noble main universe" | sudo tee -a /etc/apt/sources.list
           go mod download
+
+      - name: Setup environment
+        run: |
+          echo "ENV=development" >> .env
+          echo "PORT=12345" >>.env
+
+          echo "APP_NAME=scalar_healer" >>.env
+          echo "API_HOST=0.0.0.0" >>.env
+
+          echo "OPENOBSERVE_ENDPOINT=http://localhost:5080" >>.env
+          echo "OPENOBSERVE_CREDENTIAL=pwd12333" >>.env
+
+          echo "MONGODB_URI=mongodb://root:helloworld@localhost:27017" >>.env
+          echo "MONGODB_DATABASE=healer" >>.env
+
+          echo "CLIENTS_CONFIG_PATH=data" >>.env
+      - name: Setup mongodb
+        run: |
+          docker run -d --name mongo -p 27017:27017 -e MONGO_INITDB_ROOT_USERNAME=root -e MONGO_INITDB_ROOT_PASSWORD=helloworld mongo:latest
+
       - name: Test
         run: go test -v ./internal/...
 
