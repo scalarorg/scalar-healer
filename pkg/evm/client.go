@@ -258,7 +258,7 @@ func (c *EvmClient) ListenToEvents(ctx context.Context) error {
 
 func WatchForEvent[T ValidWatchEvent](c *EvmClient, ctx context.Context, eventName string) error {
 
-	lastCheckpoint, err := c.dbAdapter.GetLastEventCheckPoint(c.EvmConfig.GetId(), eventName, c.EvmConfig.StartBlock)
+	lastCheckpoint, err := c.dbAdapter.GetLastEventCheckPoint(ctx, c.EvmConfig.GetId(), eventName, c.EvmConfig.StartBlock)
 	if err != nil {
 		log.Warn().Str("chainId", c.EvmConfig.GetId()).
 			Str("eventName", eventName).
@@ -291,7 +291,7 @@ func WatchForEvent[T ValidWatchEvent](c *EvmClient, ctx context.Context, eventNa
 			return nil
 
 		case event := <-sink:
-			err := handleEvent(c, eventName, event)
+			err := handleEvent(ctx, c, eventName, event)
 			if err != nil {
 				log.Error().Err(err).Msgf("[EvmClient] [WatchForEvent] error handling %s event", eventName)
 			} else {
@@ -360,16 +360,16 @@ func reconnectWithBackoff[T ValidWatchEvent](c *EvmClient, watchOpts *bind.Watch
 	return nil, fmt.Errorf("failed to reconnect after %d attempts", uint64(maxAttempts))
 }
 
-func handleEvent(c *EvmClient, eventName string, event any) error {
+func handleEvent(ctx context.Context, c *EvmClient, eventName string, event any) error {
 	switch eventName {
 	case EVENT_EVM_TOKEN_SENT:
 		if evt, ok := event.(*contracts.IScalarGatewayTokenSent); ok {
-			return c.HandleTokenSent(evt)
+			return c.HandleTokenSent(ctx, evt)
 		}
 		return fmt.Errorf("cannot parse event %s: %T to %T", eventName, event, (*contracts.IScalarGatewayTokenSent)(nil))
 	case EVENT_EVM_CONTRACT_CALL_WITH_TOKEN:
 		if evt, ok := event.(*contracts.IScalarGatewayContractCallWithToken); ok {
-			return c.HandleContractCallWithToken(evt)
+			return c.HandleContractCallWithToken(ctx, evt)
 		}
 		return fmt.Errorf("cannot parse event %s: %T to %T", eventName, event, (*contracts.IScalarGatewayContractCallWithToken)(nil))
 	// case config.EVENT_EVM_CONTRACT_CALL_APPROVED:
@@ -379,17 +379,17 @@ func handleEvent(c *EvmClient, eventName string, event any) error {
 	// 	return fmt.Errorf("cannot parse event %s: %T to %T", eventName, event, (*contracts.IScalarGatewayContractCallApproved)(nil))
 	case EVENT_EVM_COMMAND_EXECUTED:
 		if evt, ok := event.(*contracts.IScalarGatewayExecuted); ok {
-			return c.HandleCommandExecuted(evt)
+			return c.HandleCommandExecuted(ctx, evt)
 		}
 		return fmt.Errorf("cannot parse event %s: %T to %T", eventName, event, (*contracts.IScalarGatewayExecuted)(nil))
 	case EVENT_EVM_SWITCHED_PHASE:
 		if evt, ok := event.(*contracts.IScalarGatewaySwitchPhase); ok {
-			return c.HandleSwitchPhase(evt)
+			return c.HandleSwitchPhase(ctx, evt)
 		}
 		return fmt.Errorf("cannot parse event %s: %T to %T", eventName, event, (*contracts.IScalarGatewaySwitchPhase)(nil))
 	case EVENT_EVM_REDEEM_TOKEN:
 		if evt, ok := event.(*contracts.IScalarGatewayRedeemToken); ok {
-			return c.HandleRedeemToken(evt)
+			return c.HandleRedeemToken(ctx, evt)
 		}
 		return fmt.Errorf("cannot parse event %s: %T to %T", eventName, event, (*contracts.IScalarGatewayRedeemToken)(nil))
 	}

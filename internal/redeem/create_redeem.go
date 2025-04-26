@@ -1,6 +1,7 @@
 package redeem
 
 import (
+	"fmt"
 	"math/big"
 	"net/http"
 
@@ -18,7 +19,7 @@ type CreateRedeemRequest struct {
 	ChainID   uint64 `json:"chain_id" validate:"required,gte=0"`
 	Symbol    string `json:"symbol" validate:"required"`
 	Amount    string `json:"amount" validate:"required"` // bigint format
-	Nonce     uint64 `json:"nonce" validate:"required,gte=0"`
+	Nonce     uint64 `json:"nonce" validate:"gte=0"`
 }
 
 // RedeemRequestTypes defines the EIP-712 type structure for order signing
@@ -44,21 +45,23 @@ func CreateRedeem(c echo.Context) error {
 		return err
 	}
 
+	ctx := c.Request().Context()
+
 	db := mongo.GetRepositoryFromContext(c)
 
-	gatewayAddress := db.GetGatewayAddress(body.ChainID)
+	gatewayAddress := db.GetGatewayAddress(ctx, body.ChainID)
 	if gatewayAddress == nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid chain_id")
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("not found gateway address for chain id: %d", body.ChainID))
 	}
 
 	address := common.HexToAddress(body.Address)
 
-	nonce := db.GetRedeemNonce(address)
+	nonce := db.GetRedeemNonce(ctx, address)
 	if nonce != body.Nonce {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid nonce")
 	}
 
-	if !db.CheckTokenExists(body.Symbol) {
+	if !db.CheckTokenExists(ctx, body.Symbol) {
 		return echo.NewHTTPError(http.StatusBadRequest, "token not exists")
 	}
 
@@ -80,11 +83,11 @@ func CreateRedeem(c echo.Context) error {
 	// Verify the signature
 	err := eip712.VerifySignTypedData(typedData, address, common.FromHex(body.Signature))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid signature")
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("invalid signature: %s", err.Error()))
 	}
 
 	// Save redeem request
-	err = db.SaveRedeemRequest(body.ChainID, address, common.FromHex(body.Signature), amountz, body.Symbol, nonce)
+	err = db.SaveRedeemRequest(ctx, body.ChainID, address, common.FromHex(body.Signature), amountz, body.Symbol, nonce)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to save redeem request")
 	}

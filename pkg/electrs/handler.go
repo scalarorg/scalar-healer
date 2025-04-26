@@ -1,6 +1,7 @@
 package electrs
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/rs/zerolog/log"
@@ -8,37 +9,39 @@ import (
 	"github.com/scalarorg/go-electrum/electrum/types"
 )
 
-func (c *Client) BlockchainHeaderHandler(header *types.BlockchainHeader, err error) error {
-	if err != nil {
-		log.Error().Err(err).Msg("[ElectrumClient] [BlockchainHeaderHandler] Failed to receive block chain header")
-		return fmt.Errorf("failed to parse block chain header: %w", err)
-	}
-	if header == nil {
-		log.Debug().Msg("[ElectrumClient] [BlockchainHeaderHandler] No blockchain header received")
+func (c *Client) BlockchainHeaderHandler(ctx context.Context) func(header *types.BlockchainHeader, err error) error {
+	return func(header *types.BlockchainHeader, err error) error {
+		if err != nil {
+			log.Error().Err(err).Msg("[ElectrumClient] [BlockchainHeaderHandler] Failed to receive block chain header")
+			return fmt.Errorf("failed to parse block chain header: %w", err)
+		}
+		if header == nil {
+			log.Debug().Msg("[ElectrumClient] [BlockchainHeaderHandler] No blockchain header received")
+			return nil
+		}
+
+		c.currentHeight = header.Height
+
+		err = c.tryConfirmTokenSents(ctx, header.Height)
+		if err != nil {
+			log.Error().Err(err).Msg("[ElectrumClient] [BlockchainHeaderHandler] Failed to handle token sents")
+			return fmt.Errorf("failed to handle token sents: %w", err)
+		}
+
+		err = c.tryHandleRedeemsTransaction(ctx, header.Height)
+		if err != nil {
+			log.Error().Err(err).Msg("[ElectrumClient] [BlockchainHeaderHandler] Failed to handle redeem transaction")
+			return fmt.Errorf("failed to handle redeem transaction: %w", err)
+		}
 		return nil
 	}
-
-	c.currentHeight = header.Height
-
-	err = c.tryConfirmTokenSents(header.Height)
-	if err != nil {
-		log.Error().Err(err).Msg("[ElectrumClient] [BlockchainHeaderHandler] Failed to handle token sents")
-		return fmt.Errorf("failed to handle token sents: %w", err)
-	}
-
-	err = c.tryHandleRedeemsTransaction(header.Height)
-	if err != nil {
-		log.Error().Err(err).Msg("[ElectrumClient] [BlockchainHeaderHandler] Failed to handle redeem transaction")
-		return fmt.Errorf("failed to handle redeem transaction: %w", err)
-	}
-	return nil
 }
 
-func (c *Client) tryConfirmTokenSents(blockHeight int) error {
+func (c *Client) tryConfirmTokenSents(ctx context.Context, blockHeight int) error {
 	// Check pending vault transactions in the relayer db, if the confirmation is enough, send to the event bus
 	lastConfirmedBlockNumber := blockHeight - c.electrumConfig.Confirmations + 1
 
-	tokenSents, err := c.dbAdapter.FindPendingBtcTokenSent(c.electrumConfig.SourceChain, lastConfirmedBlockNumber)
+	tokenSents, err := c.dbAdapter.FindPendingBtcTokenSent(ctx, c.electrumConfig.SourceChain, lastConfirmedBlockNumber)
 	if err != nil {
 		log.Error().Err(err).Msg("[ElectrumClient] [tryConfirmTokenSents] Failed to get pending vault transactions from db")
 		return fmt.Errorf("failed to get pending vault transactions from db: %w", err)
@@ -51,17 +54,17 @@ func (c *Client) tryConfirmTokenSents(blockHeight int) error {
 	for _, tokenSent := range tokenSents {
 		tokenSent.Status = chains.TokenSentStatusVerifying
 	}
-	err = c.dbAdapter.SaveTokenSents(tokenSents)
+	err = c.dbAdapter.SaveTokenSents(ctx, tokenSents)
 	if err != nil {
 		log.Error().Err(err).Msg("[ElectrumClient] [tryConfirmTokenSents] Failed to save token sents")
 		return fmt.Errorf("failed to save token sents: %w", err)
 	}
 	return nil
 }
-func (c *Client) tryHandleRedeemsTransaction(blockHeight int) error {
+func (c *Client) tryHandleRedeemsTransaction(ctx context.Context, blockHeight int) error {
 	// Check pending redeem transactions in the relayer db, if the confirmation is enough, send to the event bus
 	lastConfirmedBlockNumber := blockHeight - c.electrumConfig.Confirmations + 1
-	redeemTxs, err := c.dbAdapter.FindPendingRedeemsTransaction(c.electrumConfig.SourceChain, lastConfirmedBlockNumber)
+	redeemTxs, err := c.dbAdapter.FindPendingRedeemsTransaction(ctx, c.electrumConfig.SourceChain, lastConfirmedBlockNumber)
 	if err != nil {
 		log.Error().Err(err).Msg("[ElectrumClient] [tryHandleRedeemTransaction] Failed to get pending redeem transactions from db")
 		return fmt.Errorf("failed to get pending redeem transactions from db: %w", err)
@@ -76,7 +79,7 @@ func (c *Client) tryHandleRedeemsTransaction(blockHeight int) error {
 		txHashes[i] = redeemTx.TxHash
 		redeemTx.Status = string(chains.RedeemStatusVerifying)
 	}
-	err = c.dbAdapter.SaveRedeemTxs(redeemTxs)
+	err = c.dbAdapter.SaveRedeemTxs(ctx, redeemTxs)
 	if err != nil {
 		log.Error().Err(err).Msg("[ElectrumClient] [tryHandleRedeemTransaction] Failed to save redeem transactions")
 		return fmt.Errorf("failed to save redeem transactions: %w", err)
@@ -86,53 +89,55 @@ func (c *Client) tryHandleRedeemsTransaction(blockHeight int) error {
 
 // Handle vault messages
 // Todo: Add some logging, metric and error handling if needed
-func (c *Client) VaultTxMessageHandler(vaultTxs []types.VaultTransaction, err error) error {
-	if err != nil {
-		log.Warn().Msgf("[ElectrumClient] [vaultTxMessageHandler] Failed to receive vault transaction: %v", err)
-		return fmt.Errorf("failed to receive vault transaction: %w", err)
-	}
-	if len(vaultTxs) == 0 {
-		log.Debug().Msg("[ElectrumClient] [vaultTxMessageHandler] No vault transactions received")
+func (c *Client) VaultTxMessageHandler(ctx context.Context) func(vaultTxs []types.VaultTransaction, err error) error {
+	return func(vaultTxs []types.VaultTransaction, err error) error {
+		if err != nil {
+			log.Warn().Msgf("[ElectrumClient] [vaultTxMessageHandler] Failed to receive vault transaction: %v", err)
+			return fmt.Errorf("failed to receive vault transaction: %w", err)
+		}
+		if len(vaultTxs) == 0 {
+			log.Debug().Msg("[ElectrumClient] [vaultTxMessageHandler] No vault transactions received")
+			return nil
+		}
+		c.PreProcessVaultsMessages(vaultTxs)
+		//1. parse vault transactions to token sent and unstaked vault txs
+		tokenSents, redeemTxs := c.CategorizeVaultTxs(ctx, vaultTxs)
+		//2. update last checkpoint
+		lastCheckpoint := c.getLastCheckpoint(ctx)
+		for _, tx := range vaultTxs {
+			if uint64(tx.Height) > lastCheckpoint.BlockNumber ||
+				(uint64(tx.Height) == lastCheckpoint.BlockNumber && uint(tx.TxPosition) > lastCheckpoint.LogIndex) {
+				lastCheckpoint.BlockNumber = uint64(tx.Height)
+				lastCheckpoint.TxHash = tx.TxHash
+				lastCheckpoint.LogIndex = uint(tx.TxPosition)
+				lastCheckpoint.EventKey = tx.Key
+			}
+		}
+		err = c.dbAdapter.UpdateLastEventCheckPoint(ctx, lastCheckpoint)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to update last event checkpoint")
+		}
+		if len(tokenSents) == 0 {
+			log.Warn().Msg("No Valid vault transactions to convert to relay data")
+		} else {
+			log.Debug().Int("CurrentHeight", c.currentHeight).Msgf("[ElectrumClient] [VaultTxMessageHandler] Received %d validvault transactions", len(tokenSents))
+		}
+		// Redeem transaction
+		if len(redeemTxs) > 0 {
+			err = c.handleRedeemTxs(ctx, redeemTxs)
+			if err != nil {
+				log.Error().Err(err).Msg("Failed to update unstaked vault transactions")
+			}
+		}
+		if len(tokenSents) > 0 {
+			err := c.handleTokenSents(ctx, tokenSents)
+			if err != nil {
+				log.Error().Err(err).Msg("Failed to handle token sents")
+			}
+			return err
+		}
 		return nil
 	}
-	c.PreProcessVaultsMessages(vaultTxs)
-	//1. parse vault transactions to token sent and unstaked vault txs
-	tokenSents, redeemTxs := c.CategorizeVaultTxs(vaultTxs)
-	//2. update last checkpoint
-	lastCheckpoint := c.getLastCheckpoint()
-	for _, tx := range vaultTxs {
-		if uint64(tx.Height) > lastCheckpoint.BlockNumber ||
-			(uint64(tx.Height) == lastCheckpoint.BlockNumber && uint(tx.TxPosition) > lastCheckpoint.LogIndex) {
-			lastCheckpoint.BlockNumber = uint64(tx.Height)
-			lastCheckpoint.TxHash = tx.TxHash
-			lastCheckpoint.LogIndex = uint(tx.TxPosition)
-			lastCheckpoint.EventKey = tx.Key
-		}
-	}
-	err = c.dbAdapter.UpdateLastEventCheckPoint(lastCheckpoint)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to update last event checkpoint")
-	}
-	if len(tokenSents) == 0 {
-		log.Warn().Msg("No Valid vault transactions to convert to relay data")
-	} else {
-		log.Debug().Int("CurrentHeight", c.currentHeight).Msgf("[ElectrumClient] [VaultTxMessageHandler] Received %d validvault transactions", len(tokenSents))
-	}
-	// Redeem transaction
-	if len(redeemTxs) > 0 {
-		err = c.handleRedeemTxs(redeemTxs)
-		if err != nil {
-			log.Error().Err(err).Msg("Failed to update unstaked vault transactions")
-		}
-	}
-	if len(tokenSents) > 0 {
-		err := c.handleTokenSents(tokenSents)
-		if err != nil {
-			log.Error().Err(err).Msg("Failed to handle token sents")
-		}
-		return err
-	}
-	return nil
 }
 
 // Todo: Log and validate incomming message
@@ -144,7 +149,7 @@ func (c *Client) PreProcessVaultsMessages(vaultTxs []types.VaultTransaction) err
 	return nil
 }
 
-func (c *Client) handleTokenSents(tokenSents []*chains.TokenSent) error {
+func (c *Client) handleTokenSents(ctx context.Context, tokenSents []*chains.TokenSent) error {
 	log.Debug().Int("CurrentHeight", c.currentHeight).Msgf("[ElectrumClient] [handleTokenSents] Received %d token sent transactions", len(tokenSents))
 	//If confirmations is 1, send to the event bus with destination chain is scalar for confirmation
 	//If confirmations is greater than 1, wait for the next blocks to get more confirmations before broadcasting to the scalar network
@@ -158,7 +163,7 @@ func (c *Client) handleTokenSents(tokenSents []*chains.TokenSent) error {
 	}
 
 	//3. store relay data to the db, update last checkpoint
-	err := c.dbAdapter.SaveTokenSents(tokenSents)
+	err := c.dbAdapter.SaveTokenSents(ctx, tokenSents)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to store relay data to the db")
 		return fmt.Errorf("failed to store relay data to the db: %w", err)
@@ -167,10 +172,10 @@ func (c *Client) handleTokenSents(tokenSents []*chains.TokenSent) error {
 }
 
 // Todo: update ContractCallWithToken status with execution confirmation from bitcoin network
-func (c *Client) handleRedeemTxs(redeemTxs []*chains.RedeemTx) error {
+func (c *Client) handleRedeemTxs(ctx context.Context, redeemTxs []*chains.RedeemTx) error {
 	log.Debug().Int("CurrentHeight", c.currentHeight).Msgf("[ElectrumClient] [handleRedeemTxs] Received %d redeem transactions", len(redeemTxs))
 	//1. Store redeem transactions to the db
-	err := c.dbAdapter.SaveRedeemTxs(redeemTxs)
+	err := c.dbAdapter.SaveRedeemTxs(ctx, redeemTxs)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to store redeem transactions to the db")
 		return fmt.Errorf("failed to store redeem transactions to the db: %w", err)
@@ -180,7 +185,7 @@ func (c *Client) handleRedeemTxs(redeemTxs []*chains.RedeemTx) error {
 	for i, tx := range redeemTxs {
 		txHashes[i] = tx.TxHash
 	}
-	c.dbAdapter.UpdateRedeemExecutedCommands(c.electrumConfig.SourceChain, txHashes)
+	c.dbAdapter.UpdateRedeemExecutedCommands(ctx, c.electrumConfig.SourceChain, txHashes)
 
 	return nil
 }

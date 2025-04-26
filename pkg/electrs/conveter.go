@@ -1,6 +1,7 @@
 package electrs
 
 import (
+	"context"
 	"encoding/hex"
 	"fmt"
 	"strings"
@@ -13,13 +14,13 @@ import (
 	"gorm.io/gorm"
 )
 
-func (c *Client) CategorizeVaultTxs(vaultTxs []types.VaultTransaction) ([]*chains.TokenSent, []*chains.RedeemTx) {
+func (c *Client) CategorizeVaultTxs(ctx context.Context, vaultTxs []types.VaultTransaction) ([]*chains.TokenSent, []*chains.RedeemTx) {
 	tokenSents := []*chains.TokenSent{}
 	redeemTxs := []*chains.RedeemTx{}
 	for _, vaultTx := range vaultTxs {
 		if vaultTx.VaultTxType == 1 {
 			//1.Staking
-			tokenSent, err := c.CreateTokenSent(vaultTx)
+			tokenSent, err := c.CreateTokenSent(ctx, vaultTx)
 			if err != nil {
 				log.Error().Err(err).Any("BridgeTx", vaultTx).Msg("[ElectrumClient] [CreateTokenSents] failed to create token sent")
 			} else if tokenSent.Symbol == "" {
@@ -37,7 +38,7 @@ func (c *Client) CategorizeVaultTxs(vaultTxs []types.VaultTransaction) ([]*chain
 	return tokenSents, redeemTxs
 }
 
-func (c *Client) CreateTokenSent(vaultTx types.VaultTransaction) (*chains.TokenSent, error) {
+func (c *Client) CreateTokenSent(ctx context.Context, vaultTx types.VaultTransaction) (*chains.TokenSent, error) {
 	//For btc vault tx, the log index is tx position in the block
 	index := vaultTx.TxPosition
 	eventId := fmt.Sprintf("%s-%d", utils.NormalizeHash(vaultTx.TxHash), index)
@@ -48,12 +49,12 @@ func (c *Client) CreateTokenSent(vaultTx types.VaultTransaction) (*chains.TokenS
 	}
 	//parse chain id to chain name
 
-	destinationChainName, err := c.dbAdapter.GetChainName(chainInfo.ChainType.String(), chainInfo.ChainID)
+	destinationChainName, err := c.dbAdapter.GetChainName(ctx, chainInfo.ChainType.String(), chainInfo.ChainID)
 	if err != nil {
 		return nil, fmt.Errorf("chain not found for input chainId: %v, %w	", chainInfo, err)
 	}
 
-	symbol, err := c.dbAdapter.GetTokenSymbolByAddress(chainInfo.ChainType.String(), chainInfo.ChainID, vaultTx.DestTokenAddress)
+	symbol, err := c.dbAdapter.GetTokenSymbolByAddress(ctx, chainInfo.ChainType.String(), chainInfo.ChainID, vaultTx.DestTokenAddress)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get symbol: %w", err)
 	}

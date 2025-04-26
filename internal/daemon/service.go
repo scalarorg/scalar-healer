@@ -43,11 +43,11 @@ func (s *Service) Start(ctx context.Context) error {
 	//Start electrum clients. This client can get all vault transactions from last checkpoint of begining if no checkpoint is found
 	go s.ElectrClient.Start(ctx)
 
-	groups, err := s.DbAdapter.GetAllCustodianGroups()
+	groups, err := s.DbAdapter.GetAllCustodianGroups(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("[DaemonService] Cannot get custodian groups")
 	}
-	err = s.RecoverEvmSessions(groups)
+	err = s.RecoverEvmSessions(ctx, groups)
 	if err != nil {
 		log.Warn().Err(err).Msgf("[DaemonService] cannot recover evm sessions")
 		panic(err)

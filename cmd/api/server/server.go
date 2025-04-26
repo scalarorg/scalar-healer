@@ -16,9 +16,9 @@ import (
 
 type Server struct {
 	Raw           *echo.Echo
+	DB            db.DbAdapter
 	traceProvider *sdktrace.TracerProvider
 	scheduler     worker.Worker
-	db            db.DbAdapter
 }
 
 func New() *Server {
@@ -46,7 +46,7 @@ func New() *Server {
 	setupValidator(e)
 	s := setupWorkers()
 
-	return &Server{e, tp, s, db}
+	return &Server{e, db, tp, s}
 }
 
 func (s *Server) Start() error {
@@ -56,7 +56,7 @@ func (s *Server) Start() error {
 }
 
 func (s *Server) Close() {
-	s.db.Close()
+	s.DB.Close()
 
 	s.scheduler.Shutdown()
 

@@ -65,7 +65,7 @@ func (c *Client) Start(ctx context.Context) error {
 	//Set batch size from config or default value
 	params = append(params, c.electrumConfig.BatchSize)
 
-	lastCheckpoint := c.getLastCheckpoint()
+	lastCheckpoint := c.getLastCheckpoint(ctx)
 	log.Debug().Msgf("[ElectrumClient] [Start] Last checkpoint: %v", lastCheckpoint)
 	if lastCheckpoint.EventKey != "" {
 		params = append(params, lastCheckpoint.EventKey)
@@ -73,9 +73,9 @@ func (c *Client) Start(ctx context.Context) error {
 		params = append(params, c.electrumConfig.LastVaultTx)
 	}
 	log.Debug().Msg("[ElectrumClient] [Start] Subscribing to new block event for request to confirm if vault transaction is get enought confirmation")
-	c.Electrs.BlockchainHeaderSubscribe(ctx, c.BlockchainHeaderHandler)
+	c.Electrs.BlockchainHeaderSubscribe(ctx, c.BlockchainHeaderHandler(ctx))
 	log.Debug().Msgf("[ElectrumClient] [Start] Subscribing to vault transactions with params: %v", params)
-	c.Electrs.VaultTransactionSubscribe(ctx, c.VaultTxMessageHandler, params...)
+	c.Electrs.VaultTransactionSubscribe(ctx, c.VaultTxMessageHandler(ctx), params...)
 
 	return nil
 }
@@ -86,9 +86,9 @@ func (c *Client) GetSymbol(chainInfo *chain.ChainInfo, tokenAddress string) (str
 }
 
 // Get lastcheck point from db, return default value if not found
-func (c *Client) getLastCheckpoint() *scalarnet.EventCheckPoint {
+func (c *Client) getLastCheckpoint(ctx context.Context) *scalarnet.EventCheckPoint {
 	sourceChain := c.electrumConfig.SourceChain
-	lastCheckpoint, err := c.dbAdapter.GetLastEventCheckPoint(sourceChain, config.EVENT_ELECTRS_VAULT_TRANSACTION, 0)
+	lastCheckpoint, err := c.dbAdapter.GetLastEventCheckPoint(ctx, sourceChain, config.EVENT_ELECTRS_VAULT_TRANSACTION, 0)
 	if err != nil {
 		log.Warn().Str("chainId", sourceChain).
 			Str("eventName", config.EVENT_ELECTRS_VAULT_TRANSACTION).

@@ -1,6 +1,7 @@
 package daemon
 
 import (
+	"context"
 	"encoding/hex"
 	"fmt"
 	"sync"
@@ -12,7 +13,7 @@ import (
 	contracts "github.com/scalarorg/scalar-healer/pkg/evm/contracts/generated"
 )
 
-func (s *Service) RecoverEvmSessions(groups []string) error {
+func (s *Service) RecoverEvmSessions(ctx context.Context, groups []string) error {
 	wg := sync.WaitGroup{}
 	recoverSessions := CustodiansRecoverRedeemSessions{}
 	for _, client := range s.EvmClients {
@@ -47,12 +48,12 @@ func (s *Service) RecoverEvmSessions(groups []string) error {
 				//Any("redeemTokenEvents", groupRedeemSessions.RedeemTokenEvents).
 				Msg("[Relayer] [RecoverEvmSessions] recovered redeem session for each group")
 			if groupRedeemSessions.MaxSession.Phase == models.Executing {
-				err := s.processRecoverExecutingPhase(groupUid, groupRedeemSessions)
+				err := s.processRecoverExecutingPhase(ctx, groupUid, groupRedeemSessions)
 				if err != nil {
 					log.Warn().Err(err).Msgf("[Relayer] [RecoverEvmSessions] cannot process recover executing phase for group %s", groupUid)
 				}
 			} else if groupRedeemSessions.MaxSession.Phase == models.Preparing {
-				err := s.processRecoverPreparingPhase(groupUid, groupRedeemSessions)
+				err := s.processRecoverPreparingPhase(ctx, groupUid, groupRedeemSessions)
 				if err != nil {
 					log.Warn().Err(err).Msgf("[Relayer] [RecoverEvmSessions] cannot process recover preparing phase for group %s", groupUid)
 				}
@@ -63,7 +64,7 @@ func (s *Service) RecoverEvmSessions(groups []string) error {
 	log.Info().Msgf("[Relayer] [RecoverEvmSessions] finished RecoverEvmSessions")
 	return nil
 }
-func (s *Service) processRecoverExecutingPhase(groupUid string, groupRedeemSessions *GroupRedeemSessions) error {
+func (s *Service) processRecoverExecutingPhase(ctx context.Context, groupUid string, groupRedeemSessions *GroupRedeemSessions) error {
 	log.Info().Str("groupUid", groupUid).
 		Msg("[Relayer] [RecoverEvmSessions] processRecoverExecutingPhase")
 	//0. Check if the redeem session is broadcasted to bitcoin network
@@ -76,7 +77,7 @@ func (s *Service) processRecoverExecutingPhase(groupUid string, groupRedeemSessi
 		log.Info().Msgf("[Relayer] [processRecoverExecutingPhase] redeem session is not broadcasted to bitcoin network")
 
 		//1. Replay all switch to preparing phase event,
-		expectedPhase, evmCounter, hasDifferentPhase := s.replaySwitchPhaseEvents(groupRedeemSessions.SwitchPhaseEvents, 0)
+		expectedPhase, evmCounter, hasDifferentPhase := s.replaySwitchPhaseEvents(ctx, groupRedeemSessions.SwitchPhaseEvents, 0)
 		log.Info().Int32("evmCounter", evmCounter).
 			Any("ExpectedPhase", expectedPhase).
 			Bool("hasDifferentPhase", hasDifferentPhase).
@@ -91,7 +92,7 @@ func (s *Service) processRecoverExecutingPhase(groupUid string, groupRedeemSessi
 			panic("[Relayer] [processRecoverExecutingPhase] by design, recover first event switch to Preparing for all evm chains")
 		}
 
-		mapTxHashes, err := s.replayRedeemTransactions(groupUid, groupRedeemSessions.RedeemTokenEvents)
+		mapTxHashes, err := s.replayRedeemTransactions(ctx, groupUid, groupRedeemSessions.RedeemTokenEvents)
 		if err != nil {
 			log.Warn().Err(err).Msgf("[Relayer] [processRecoverExecutionPhase] cannot replay redeem transactions")
 			return err
@@ -99,7 +100,7 @@ func (s *Service) processRecoverExecutingPhase(groupUid string, groupRedeemSessi
 		log.Info().Any("mapTxHashes", mapTxHashes).Msg("[Relayer] [processRecoverExecutionPhase] finished replay redeem transactions")
 	}
 	//5. Replay all switch to executing phase events
-	expectedPhase, evmCounter, hasDifferentPhase := s.replaySwitchPhaseEvents(groupRedeemSessions.SwitchPhaseEvents, 1)
+	expectedPhase, evmCounter, hasDifferentPhase := s.replaySwitchPhaseEvents(ctx, groupRedeemSessions.SwitchPhaseEvents, 1)
 	log.Info().Int32("evmCounter", evmCounter).
 		Any("ExpectedPhase", expectedPhase).
 		Bool("hasDifferentPhase", hasDifferentPhase).
@@ -123,11 +124,11 @@ func (s *Service) processRecoverExecutingPhase(groupUid string, groupRedeemSessi
 	}
 	return nil
 }
-func (s *Service) processRecoverPreparingPhase(groupUid string, groupRedeemSessions *GroupRedeemSessions) error {
+func (s *Service) processRecoverPreparingPhase(ctx context.Context, groupUid string, groupRedeemSessions *GroupRedeemSessions) error {
 	log.Info().Str("groupUid", groupUid).
 		Msg("[Relayer] [RecoverEvmSessions] processRecoverPreparingPhase")
 	//1. For each evm chain, replay last switch event. It can be Preparing or executing from previous session
-	expectedPhase, evmCounter, hasDifferentPhase := s.replaySwitchPhaseEvents(groupRedeemSessions.SwitchPhaseEvents, 0)
+	expectedPhase, evmCounter, hasDifferentPhase := s.replaySwitchPhaseEvents(ctx, groupRedeemSessions.SwitchPhaseEvents, 0)
 	if hasDifferentPhase {
 		panic("[Relayer] [processRecoverPreparingPhase] cannot recover all evm switch phase events")
 	}
@@ -137,7 +138,7 @@ func (s *Service) processRecoverPreparingPhase(groupUid string, groupRedeemSessi
 
 	if expectedPhase == int32(models.Preparing) {
 		//3. Replay all redeem transactions
-		mapTxHashes, err := s.replayRedeemTransactions(groupUid, groupRedeemSessions.RedeemTokenEvents)
+		mapTxHashes, err := s.replayRedeemTransactions(ctx, groupUid, groupRedeemSessions.RedeemTokenEvents)
 		if err != nil {
 			log.Warn().Err(err).Msgf("[Relayer] [processRecoverPreparingPhase] cannot replay redeem transactions")
 			return err
@@ -193,7 +194,7 @@ func (s *Service) isRedeemSessionBroadcasted(mapRedeemTokenEvents map[string][]*
 	return false, nil
 }
 
-func (s *Service) replaySwitchPhaseEvents(mapSwitchPhaseEvents map[string][]*contracts.IScalarGatewaySwitchPhase, index int) (int32, int32, bool) {
+func (s *Service) replaySwitchPhaseEvents(ctx context.Context, mapSwitchPhaseEvents map[string][]*contracts.IScalarGatewaySwitchPhase, index int) (int32, int32, bool) {
 	wg := sync.WaitGroup{}
 	var hasDifferentPhase atomic.Bool
 	var expectedPhase atomic.Int32
@@ -225,7 +226,7 @@ func (s *Service) replaySwitchPhaseEvents(mapSwitchPhaseEvents map[string][]*con
 				hasDifferentPhase.Store(true)
 				return
 			}
-			err := evmClient.HandleSwitchPhase(switchPhaseEvent)
+			err := evmClient.HandleSwitchPhase(ctx, switchPhaseEvent)
 			if err != nil {
 				log.Warn().Err(err).Msgf("[Relayer] [processRecoverPreparingPhase] cannot handle switch phase event for evm client %s", chainId)
 			} else {
@@ -237,7 +238,7 @@ func (s *Service) replaySwitchPhaseEvents(mapSwitchPhaseEvents map[string][]*con
 	return expectedPhase.Load(), evmCounter.Load(), hasDifferentPhase.Load()
 }
 
-func (s *Service) replayRedeemTransactions(groupUid string, mapRedeemTokenEvents map[string][]*contracts.IScalarGatewayRedeemToken) (map[string][]string, error) {
+func (s *Service) replayRedeemTransactions(ctx context.Context, groupUid string, mapRedeemTokenEvents map[string][]*contracts.IScalarGatewayRedeemToken) (map[string][]string, error) {
 	mapTxHashes := sync.Map{}
 	wg := sync.WaitGroup{}
 	for _, evmClient := range s.EvmClients {
@@ -252,7 +253,7 @@ func (s *Service) replayRedeemTransactions(groupUid string, mapRedeemTokenEvents
 			}
 			// Scalar network will utxoSnapshot request on each confirm RedeemToken event
 			for _, redeemTokenEvent := range redeemTokenEvents {
-				err := evmClient.HandleRedeemToken(redeemTokenEvent)
+				err := evmClient.HandleRedeemToken(ctx, redeemTokenEvent)
 				if err != nil {
 					log.Warn().
 						Str("chainId", chainId).

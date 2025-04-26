@@ -16,9 +16,9 @@ import (
 
 var mockAddress = common.HexToAddress("0x24a1dB57Fa3ecAFcbaD91d6Ef068439acEeAe090")
 var mockMessage = map[string]interface{}{
-	"symbol": "sbtc",
+	"symbol": "ETH",
 	"amount": big.NewInt(123456),
-	"nonce":  big.NewInt(1),
+	"nonce":  big.NewInt(0),
 }
 var mockTypedData = eip712.CreateTypedData(apitypes.Types{
 	"EIP712Domain": []apitypes.Type{

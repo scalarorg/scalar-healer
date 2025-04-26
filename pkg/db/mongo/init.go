@@ -12,8 +12,11 @@ import (
 )
 
 type MongoRepository struct {
-	client *mongo.Client
-	DB     *mongo.Database
+	client           *mongo.Client
+	DB               *mongo.Database
+	GatewayAddresses *mongo.Collection
+	Tokens           *mongo.Collection
+	RedeemRequests   *mongo.Collection
 }
 
 var _ db.DbAdapter = (*MongoRepository)(nil)
@@ -36,8 +39,11 @@ func NewMongoRepository() *MongoRepository {
 	DB := client.Database(config.Env.MONGODB_DATABASE)
 
 	m := &MongoRepository{
-		client: client,
-		DB:     DB,
+		client:           client,
+		DB:               DB,
+		GatewayAddresses: DB.Collection("gateway_addresses"),
+		Tokens:           DB.Collection("tokens"),
+		RedeemRequests:   DB.Collection("redeem_requests"),
 	}
 
 	m.initIndexes()

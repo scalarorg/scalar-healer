@@ -7,6 +7,7 @@ WORKDIR /app
 COPY . .
 RUN go mod download
 RUN go build -o dist/main cmd/api/main.go
+RUN go build -o dist/daemon cmd/daemon/main.go
 
 # Use the scratch image as the base image for a small and secure image
 FROM debian:12.5-slim
@@ -18,4 +19,4 @@ ENV PORT=12345
 EXPOSE $PORT
 ENV GIN_MODE=release
 
-CMD ["/app/main"]
+CMD ["/app/main" && "/app/daemon"]

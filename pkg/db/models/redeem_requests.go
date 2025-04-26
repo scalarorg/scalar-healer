@@ -40,13 +40,13 @@ type RedeemSession struct {
 }
 
 type RedeemRequest struct {
-	Address   string `json:"address" validate:"eth_addr"`
-	Signature string `json:"signature" validate:"hexadecimal"` // not need to validte length
-	ChainID   uint64 `json:"chain_id" validate:"required,gte=0"`
-	Symbol    string `json:"symbol" validate:"required"`
-	Amount    string `json:"amount" validate:"required"` // bigint format
-	Nonce     uint64 `json:"nonce" validate:"required"`
+	Address   []byte `json:"address" bson:"address"`
+	Signature []byte `json:"signature" bson:"signature"` // not need to validte length
+	ChainID   uint64 `json:"chain_id" bson:"chain_id"`
+	Symbol    string `json:"symbol" bson:"symbol"`
+	Amount    string `json:"amount" bson:"amount"` // bigint format
+	Nonce     uint64 `json:"nonce" bson:"nonce"`
 
-	CreatedAt uint64 `json:"created_at"`
-	UpdatedAt uint64 `json:"updated_at"`
+	CreatedAt int64 `json:"created_at" bson:"created_at"`
+	UpdatedAt int64 `json:"updated_at" bson:"updated_at"`
 }
