@@ -108,7 +108,7 @@ func (m *MongoRepository) CheckTokenExists(ctx context.Context, symbol string) b
 	return result.Err() == nil
 }
 
-func (m *MongoRepository) GetGatewayAddress(ctx context.Context, chainId uint64) *common.Address {
+func (m *MongoRepository) GetGatewayAddress(ctx context.Context, chainId uint64) (*common.Address, error) {
 	var data struct {
 		Address []byte `bson:"address"`
 	}
@@ -116,9 +116,13 @@ func (m *MongoRepository) GetGatewayAddress(ctx context.Context, chainId uint64)
 	opts := options.FindOne().SetProjection(bson.M{
 		"address": 1,
 	})
-	m.GatewayAddresses.FindOne(ctx, map[string]interface{}{
+	err := m.GatewayAddresses.FindOne(ctx, map[string]interface{}{
 		"chain_id": chainId,
 	}, opts).Decode(&data)
+	if err != nil {
+		return nil, err
+	}
+
 	add := common.BytesToAddress(data.Address)
-	return &add
+	return &add, nil
 }

@@ -8,6 +8,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/signer/core/apitypes"
 	"github.com/labstack/echo/v4"
+	"github.com/rs/zerolog/log"
 	"github.com/scalarorg/scalar-healer/pkg/crypto/eip712"
 	"github.com/scalarorg/scalar-healer/pkg/db/mongo"
 	"github.com/scalarorg/scalar-healer/pkg/utils"
@@ -49,10 +50,12 @@ func CreateRedeem(c echo.Context) error {
 
 	db := mongo.GetRepositoryFromContext(c)
 
-	gatewayAddress := db.GetGatewayAddress(ctx, body.ChainID)
-	if gatewayAddress == nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("not found gateway address for chain id: %d", body.ChainID))
+	gatewayAddress, err := db.GetGatewayAddress(ctx, body.ChainID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("not found gateway address for chain: %d", body.ChainID))
+
 	}
+	log.Info().Interface("gatewayAddress", gatewayAddress).Msg("gatewayAddress")
 
 	address := common.HexToAddress(body.Address)
 
@@ -81,9 +84,9 @@ func CreateRedeem(c echo.Context) error {
 	typedData := eip712.CreateTypedData(RedeemRequestTypes, primaryType, getDomain(*gatewayAddress), message)
 
 	// Verify the signature
-	err := eip712.VerifySignTypedData(typedData, address, common.FromHex(body.Signature))
+	err = eip712.VerifySignTypedData(typedData, address, common.FromHex(body.Signature))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("invalid signature: %s", err.Error()))
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("failed to verify signature: %s", err.Error()))
 	}
 
 	// Save redeem request

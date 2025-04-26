@@ -11,7 +11,7 @@ import (
 )
 
 type DbAdapter interface {
-	GetGatewayAddress(ctx context.Context, chainId uint64) *common.Address
+	GetGatewayAddress(ctx context.Context, chainId uint64) (*common.Address, error)
 	GetAllCustodianGroups(ctx context.Context) ([]string, error)
 	GetChainName(ctx context.Context, chainType string, chainId uint64) (string, error)
 	CheckTokenExists(ctx context.Context, symbol string) bool
