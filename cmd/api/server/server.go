@@ -22,8 +22,6 @@ type Server struct {
 }
 
 func New() *Server {
-	config.LoadEnv()
-
 	appName := config.Env.APP_NAME
 	openobserve.Init(openobserve.OpenObserveConfig{
 		Endpoint:    config.Env.OPENOBSERVE_ENDPOINT,

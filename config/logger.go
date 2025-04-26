@@ -10,6 +10,11 @@ import (
 )
 
 func InitLogger() {
+	if Env.ENV == "test" {
+		zerolog.SetGlobalLevel(zerolog.Disabled)
+	} else {
+		zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	}
 
 	zerolog.TimeFieldFormat = zerolog.TimestampFieldName
 

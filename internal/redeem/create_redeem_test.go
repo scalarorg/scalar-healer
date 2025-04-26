@@ -6,16 +6,11 @@ import (
 	"testing"
 
 	"github.com/scalarorg/scalar-healer/internal/redeem"
-	"github.com/scalarorg/scalar-healer/pkg/db/mongo"
 	"github.com/scalarorg/scalar-healer/pkg/utils"
 	"github.com/zeebo/assert"
 )
 
 func TestCreateRedeem(t *testing.T) {
-	server := setup(t)
-	db := (server.DB).(*mongo.MongoRepository)
-	defer cleanupTestDB(t, db)
-
 	tests := []struct {
 		name           string
 		request        redeem.CreateRedeemRequest
@@ -71,9 +66,7 @@ func TestCreateRedeem(t *testing.T) {
 				Body:   tc.request,
 			})
 
-			server.Raw.ServeHTTP(rec, req)
-
-			t.Logf("rec: %+v", rec)
+			testServer.Raw.ServeHTTP(rec, req)
 
 			if tc.expectedError != "" {
 				assert.Equal(t, tc.expectedStatus, rec.Code)

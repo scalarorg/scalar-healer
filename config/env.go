@@ -27,12 +27,12 @@ type ServerEnv struct {
 	CLIENTS_CONFIG_PATH string `validate:"min=1"`
 }
 
-var Env ServerEnv
+var Env *ServerEnv
 
 func LoadEnvWithPath(path string) {
 	err := godotenv.Load(os.ExpandEnv(path))
 	if err != nil {
-		log.Fatalf("Error loading %s file: %s", path, err)
+		log.Fatalf("LoadEnvWithPath: Error loading %s file: %s", path, err)
 	}
 
 	loadEnv()
@@ -43,12 +43,12 @@ func LoadEnv() {
 		os.Setenv("ENV", "development")
 		err := godotenv.Load(os.ExpandEnv(".env"))
 		if err != nil {
-			log.Fatalln("Error loading .env file: ", err)
+			log.Fatalln("LoadEnv: Error loading .env file: ", err)
 		}
 	} else if os.Getenv("ENV") == "test" {
 		err := godotenv.Load(os.ExpandEnv(".env.test"))
 		if err != nil {
-			log.Fatalln("Error loading .env.test file: ", err)
+			log.Fatalln("LoadEnv: Error loading .env.test file: ", err)
 		}
 	}
 
@@ -73,7 +73,7 @@ func loadEnv() {
 
 	env := os.Getenv("ENV")
 
-	Env = ServerEnv{
+	Env = &ServerEnv{
 		ENV:             env,
 		CORS_WHITE_LIST: corsWhiteList,
 
