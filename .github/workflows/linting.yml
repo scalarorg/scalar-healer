@@ -1,6 +1,10 @@
-name: PR Check
+name: Linting 
 on:
   pull_request:
+    branches:
+      - main
+      - staging
+  push:
     branches:
       - main
       - staging
