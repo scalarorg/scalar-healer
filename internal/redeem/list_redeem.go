@@ -22,9 +22,9 @@ func ListRedeem(c echo.Context) error {
 		return err
 	}
 
+	db := mongo.GetRepositoryFromContext(c)
 	ctx := c.Request().Context()
 
-	db := mongo.GetRepositoryFromContext(c)
 	redeemRequests, err := db.ListRedeemRequests(ctx, common.HexToAddress(body.Address), body.Page, body.Size)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get redeem requests")

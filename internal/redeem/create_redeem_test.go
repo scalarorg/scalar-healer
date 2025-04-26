@@ -1,6 +1,7 @@
 package redeem_test
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"testing"
@@ -8,6 +9,7 @@ import (
 	"github.com/scalarorg/scalar-healer/internal/redeem"
 	"github.com/scalarorg/scalar-healer/pkg/utils"
 	"github.com/zeebo/assert"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 func TestCreateRedeem(t *testing.T) {
@@ -129,6 +131,8 @@ func TestCreateRedeem(t *testing.T) {
 			} else {
 				assert.Equal(t, tc.expectedStatus, rec.Code)
 			}
+
+			db.DB.Collection("redeem_requests").DeleteMany(context.Background(), bson.M{})
 		})
 	}
 }

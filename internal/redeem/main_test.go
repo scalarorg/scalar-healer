@@ -80,6 +80,6 @@ func cleanupTestDB() {
 func TestMain(m *testing.M) {
 	setup()
 	code := m.Run()
-	cleanupTestDB()
+	// cleanupTestDB()
 	os.Exit(code)
 }

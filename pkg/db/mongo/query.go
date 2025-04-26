@@ -59,7 +59,21 @@ func (m *MongoRepository) SaveRedeemRequest(ctx context.Context, chainId uint64,
 }
 
 func (m *MongoRepository) ListRedeemRequests(ctx context.Context, address common.Address, page, size int) ([]*models.RedeemRequest, error) {
-	return nil, nil
+
+	filter := bson.D{{Key: "address", Value: address.Bytes()}}
+
+	var redeemRequests []*models.RedeemRequest
+	opts := options.Find().SetSkip(int64(page * size)).SetLimit(int64(size))
+	cursor, err := m.RedeemRequests.Find(ctx, filter, opts)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+	if err = cursor.All(ctx, &redeemRequests); err != nil {
+		return nil, err
+	}
+
+	return redeemRequests, nil
 }
 
 func (m *MongoRepository) FindPendingBtcTokenSent(ctx context.Context, chainId string, expectedConfirmBlock int) ([]*chains.TokenSent, error) {

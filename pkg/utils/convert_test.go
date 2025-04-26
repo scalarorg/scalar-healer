@@ -12,3 +12,8 @@ func TestStringToBigInt(t *testing.T) {
 	require.False(t, ok)
 	require.Nil(t, result)
 }
+
+func TestIntToString(t *testing.T) {
+	result := utils.IntToString(1)
+	require.Equal(t, "1", result)
+}
