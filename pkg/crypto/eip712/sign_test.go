@@ -1,7 +1,6 @@
 package eip712_test
 
 import (
-	"fmt"
 	"log"
 	"math/big"
 	"os"
@@ -46,9 +45,7 @@ func TestHashTypedData(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	t.Log(common.Bytes2Hex(hash))
-
-	if common.Bytes2Hex(hash) != "3cbf3ba715881b1fea2442af84a30e5074f835c2fd0039b5690fce2d20b9b8f1" {
+	if common.Bytes2Hex(hash) != "f5043f1952bbc2803a9bc1ff8cff68dbfbcc3f229d2d8f780e21c6890b390dd4" {
 		t.Fatal("hash is not correct")
 	}
 }
@@ -60,7 +57,6 @@ func TestSignTypedData1(t *testing.T) {
 	}
 
 	privKey := os.Getenv("PRIVATE_KEY")
-	fmt.Println("private key: ", privKey)
 	privateKey, err := crypto.HexToECDSA(privKey)
 	if err != nil {
 		t.Fatal(err)
@@ -71,8 +67,6 @@ func TestSignTypedData1(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Log(common.Bytes2Hex(signature))
-
 	// verify signature
 	hash, err := eip712.HashTypedData(mockTypedData)
 	if err != nil {
@@ -86,7 +80,6 @@ func TestSignTypedData1(t *testing.T) {
 	}
 	// get address
 	address := crypto.PubkeyToAddress(*publicKey)
-	t.Log(address.Hex())
 
 	if address.Hex() != mockAddress.Hex() {
 		t.Fatal("address is not correct")

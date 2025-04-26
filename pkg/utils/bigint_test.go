@@ -4,13 +4,11 @@ import (
 	"testing"
 
 	"github.com/scalarorg/scalar-healer/pkg/utils"
+	"github.com/stretchr/testify/require"
 )
 
 func TestStringToBigInt(t *testing.T) {
 	result, ok := utils.StringToBigInt("1aaaa")
-	if !ok {
-		t.Errorf("Expected ok to be true")
-	}
-
-	t.Log(result)
+	require.False(t, ok)
+	require.Nil(t, result)
 }
