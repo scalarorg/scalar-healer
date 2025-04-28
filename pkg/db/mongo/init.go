@@ -11,6 +11,13 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+const (
+	COLLECTION_PROTOCOLS         = "protocols"
+	COLLECTION_GATEWAY_ADDRESSES = "gateway_addresses"
+	COLLECTION_TOKENS            = "tokens"
+	COLLECTION_REDEEM_REQUESTS   = "redeem_requests"
+)
+
 type MongoRepository struct {
 	client           *mongo.Client
 	DB               *mongo.Database
@@ -41,9 +48,9 @@ func NewMongoRepository() *MongoRepository {
 	m := &MongoRepository{
 		client:           client,
 		DB:               DB,
-		GatewayAddresses: DB.Collection("gateway_addresses"),
-		Tokens:           DB.Collection("tokens"),
-		RedeemRequests:   DB.Collection("redeem_requests"),
+		GatewayAddresses: DB.Collection(COLLECTION_GATEWAY_ADDRESSES),
+		Tokens:           DB.Collection(COLLECTION_TOKENS),
+		RedeemRequests:   DB.Collection(COLLECTION_REDEEM_REQUESTS),
 	}
 
 	m.initIndexes()

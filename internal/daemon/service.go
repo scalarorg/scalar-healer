@@ -11,13 +11,14 @@ import (
 )
 
 type Service struct {
+	ConfigPath   string
 	DbAdapter    db.DbAdapter
 	ElectrClient *electrs.Client
 	BtcClient    *btc.BtcClient
 	EvmClients   []*evm.EvmClient
 }
 
-func NewService(configPath string, dbAdapter db.DbAdapter) *Service {
+func NewService(configPath string, evmPrivKey string, dbAdapter db.DbAdapter) *Service {
 	electrsClient, err := electrs.NewElectrumClient(configPath, dbAdapter)
 	if err != nil {
 		panic(err)
@@ -26,11 +27,12 @@ func NewService(configPath string, dbAdapter db.DbAdapter) *Service {
 	if err != nil {
 		panic(err)
 	}
-	evmClients, err := evm.NewEvmClients(configPath, dbAdapter)
+	evmClients, err := evm.NewEvmClients(configPath, evmPrivKey, dbAdapter)
 	if err != nil {
 		panic(err)
 	}
 	return &Service{
+		ConfigPath:   configPath,
 		DbAdapter:    dbAdapter,
 		ElectrClient: electrsClient,
 		BtcClient:    btcClient,
@@ -39,7 +41,8 @@ func NewService(configPath string, dbAdapter db.DbAdapter) *Service {
 }
 
 func (s *Service) Start(ctx context.Context) error {
-	log.Debug().Msg("[Service] start")
+	s.initGenesis(ctx)
+	log.Debug().Msg("[Service] starting")
 	//Start electrum clients. This client can get all vault transactions from last checkpoint of begining if no checkpoint is found
 	go s.ElectrClient.Start(ctx)
 

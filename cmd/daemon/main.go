@@ -24,12 +24,10 @@ func main() {
 	config.InitLogger()
 
 	db := mongo.NewMongoRepository()
-	service := daemon.NewService(config.Env.CLIENTS_CONFIG_PATH, db)
-	go func() {
-		err := service.Start(context.Background())
-		if err != nil {
-			log.Error().Err(err).Msg("Cannot start daemon service")
-			panic(err)
-		}
-	}()
+	service := daemon.NewService(config.Env.CLIENTS_CONFIG_PATH, config.Env.EVM_PRIVATE_KEY, db)
+	err := service.Start(context.Background())
+	if err != nil {
+		log.Error().Err(err).Msg("Cannot start daemon service")
+		panic(err)
+	}
 }

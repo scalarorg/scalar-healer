@@ -16,10 +16,14 @@ import (
 
 func NewBtcClient(configPath string) (*BtcClient, error) {
 	btcConfigPath := fmt.Sprintf("%s/btc.json", configPath)
-	btcConfig, err := config.ReadJsonConfig[BtcNetworkConfig](btcConfigPath)
+	btcConfigs, err := config.ReadJsonArrayConfig[BtcNetworkConfig](btcConfigPath)
 	if err != nil {
 		panic(err)
 	}
+	if len(btcConfigs) == 0 {
+		panic("no btc config found")
+	}
+	btcConfig := btcConfigs[0]
 	if btcConfig.MempoolUrl == "" {
 		panic(fmt.Sprintf("mempool url is not set for %s", btcConfig.Name))
 	}
@@ -41,7 +45,7 @@ func NewBtcClient(configPath string) (*BtcClient, error) {
 		return nil, fmt.Errorf("failed to create BTC client for network %s: %w", btcConfig.Network, err)
 	}
 	btcClient := &BtcClient{
-		btcConfig: btcConfig,
+		btcConfig: &btcConfig,
 		client:    client,
 	}
 	return btcClient, nil

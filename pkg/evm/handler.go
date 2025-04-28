@@ -300,7 +300,7 @@ func (ec *EvmClient) preprocessTokenSent(event *contracts.IScalarGatewayTokenSen
 
 // Check if ContractCall is already executed
 func (ec *EvmClient) isContractCallExecuted(event *contracts.IScalarGatewayContractCallApproved) (bool, error) {
-	if ec.auth == nil {
+	if ec.transactOpts == nil {
 		log.Error().
 			Str("commandId", hex.EncodeToString(event.CommandId[:])).
 			Str("sourceChain", event.SourceChain).
@@ -310,7 +310,7 @@ func (ec *EvmClient) isContractCallExecuted(event *contracts.IScalarGatewayContr
 		return false, fmt.Errorf("auth is nil")
 	}
 	callOpt := &bind.CallOpts{
-		From:    ec.auth.From,
+		From:    ec.transactOpts.From,
 		Context: context.Background(),
 	}
 	approved, err := ec.Gateway.IsContractCallApproved(callOpt, event.CommandId, event.SourceChain, event.SourceAddress, event.ContractAddress, event.PayloadHash)
@@ -378,7 +378,7 @@ func (ec *EvmClient) SubmitTx(signedTx *ethtypes.Transaction, retryAttempt int) 
 		log.Error().
 			Err(err).
 			Str("rpcUrl", ec.EvmConfig.RPCUrl).
-			Str("walletAddress", ec.auth.From.String()).
+			Str("walletAddress", ec.transactOpts.From.String()).
 			Str("to", signedTx.To().String()).
 			Str("data", hex.EncodeToString(signedTx.Data())).
 			Msg("[EvmClient.SubmitTx] Failed to submit transaction")

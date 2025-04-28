@@ -2,6 +2,7 @@ package mongo
 
 import (
 	"context"
+	"encoding/hex"
 	"math/big"
 	"time"
 
@@ -14,6 +15,38 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+func (m *MongoRepository) SaveProtocols(ctx context.Context, protocols []models.Protocol) error {
+	protocolDocs := make([]interface{}, len(protocols))
+	protocolNames := bson.A{}
+	for i, protocol := range protocols {
+		protocolDocs[i] = protocol
+		protocolNames = append(protocolNames, protocol.Name)
+	}
+	filter := bson.M{
+		"name": bson.M{
+			"$in": protocolNames,
+		},
+	}
+	collection := m.DB.Collection(COLLECTION_PROTOCOLS)
+	collection.DeleteMany(ctx, filter)
+	_, err := collection.InsertMany(ctx, protocolDocs)
+	return err
+}
+func (m *MongoRepository) SaveTokenInfos(ctx context.Context, tokens []models.Token) error {
+	tokenDocs := make([]interface{}, len(tokens))
+	tokenSymbols := bson.A{}
+	for i, token := range tokens {
+		tokenDocs[i] = token
+		tokenSymbols = append(tokenSymbols, token.Symbol)
+	}
+	_, err := m.Tokens.DeleteMany(ctx, bson.M{
+		"symbol": bson.M{
+			"$in": tokenSymbols,
+		},
+	})
+	_, err = m.Tokens.InsertMany(ctx, tokenDocs)
+	return err
+}
 func (m *MongoRepository) GetLastEventCheckPoint(ctx context.Context,
 	chainName, eventName string, fromBlock uint64) (*scalarnet.EventCheckPoint, error) {
 	return nil, nil
@@ -87,7 +120,24 @@ func (m *MongoRepository) UpdateRedeemExecutedCommands(ctx context.Context, chai
 }
 
 func (m *MongoRepository) GetAllCustodianGroups(ctx context.Context) ([]string, error) {
-	return nil, nil
+	protocolCollection := m.DB.Collection(COLLECTION_PROTOCOLS)
+	cursor, err := protocolCollection.Find(ctx, bson.M{})
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+	var result []string
+	for cursor.Next(ctx) {
+		var d struct {
+			CustodianGroupUid [32]byte `bson:"custodian_group_uid"`
+		}
+		err := cursor.Decode(&d)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, hex.EncodeToString(d.CustodianGroupUid[:]))
+	}
+	return result, nil
 }
 
 func (m *MongoRepository) GetChainName(ctx context.Context, chainType string, chainId uint64) (string, error) {
@@ -109,10 +159,43 @@ func (m *MongoRepository) UpdateEvmCommandExecuted(ctx context.Context, cmdExecu
 	return nil
 }
 
-func (m *MongoRepository) GetTokenSymbolByAddress(ctx context.Context, chainType string, chainId uint64, tokenAddress string) (string, error) {
-	return "", nil
+func (m *MongoRepository) GetTokenSymbolByAddress(ctx context.Context, chainId uint64, tokenAddress common.Address) (string, error) {
+
+	filter := bson.M{
+		"chain_id": chainId,
+		"address":  tokenAddress.Bytes(),
+	}
+	var data struct {
+		Symbol string `bson:"symbol"`
+	}
+	opts := options.FindOne().SetProjection(bson.M{
+		"symbol": 1,
+	})
+	err := m.Tokens.FindOne(ctx, filter, opts).Decode(&data)
+	if err != nil {
+		return "", err
+	}
+	return data.Symbol, nil
 }
 
+func (m *MongoRepository) GetTokenAddressBySymbol(ctx context.Context, chainId uint64, tokenSymbol string) (*common.Address, error) {
+	filter := bson.M{
+		"chain_id": chainId,
+		"symbol":   tokenSymbol,
+	}
+	var data struct {
+		Address []byte `bson:"address"`
+	}
+	opts := options.FindOne().SetProjection(bson.M{
+		"address": 1,
+	})
+	err := m.Tokens.FindOne(ctx, filter, opts).Decode(&data)
+	if err != nil {
+		return nil, err
+	}
+	add := common.BytesToAddress(data.Address)
+	return &add, nil
+}
 func (m *MongoRepository) CheckTokenExists(ctx context.Context, symbol string) bool {
 	result := m.Tokens.FindOne(ctx, map[string]interface{}{
 		"symbol": symbol,

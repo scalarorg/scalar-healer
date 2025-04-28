@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/rs/zerolog/log"
 	"github.com/scalarorg/data-models/chains"
 	"github.com/scalarorg/go-electrum/electrum/types"
@@ -47,6 +48,12 @@ func (c *Client) CreateTokenSent(ctx context.Context, vaultTx types.VaultTransac
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert uint64 to chain info: %w", err)
 	}
+
+	tokenAddress := common.HexToAddress(strings.TrimPrefix(vaultTx.DestTokenAddress, "0x"))
+	symbol, err := c.dbAdapter.GetTokenSymbolByAddress(ctx, chainInfo.ChainID, tokenAddress)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get symbol: %w", err)
+	}
 	//parse chain id to chain name
 
 	destinationChainName, err := c.dbAdapter.GetChainName(ctx, chainInfo.ChainType.String(), chainInfo.ChainID)
@@ -54,10 +61,6 @@ func (c *Client) CreateTokenSent(ctx context.Context, vaultTx types.VaultTransac
 		return nil, fmt.Errorf("chain not found for input chainId: %v, %w	", chainInfo, err)
 	}
 
-	symbol, err := c.dbAdapter.GetTokenSymbolByAddress(ctx, chainInfo.ChainType.String(), chainInfo.ChainID, vaultTx.DestTokenAddress)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get symbol: %w", err)
-	}
 	destAddress := utils.NormalizeAddress(vaultTx.DestRecipientAddress, chainInfo.ChainType)
 
 	tokenSent := chains.TokenSent{

@@ -23,10 +23,11 @@ type Client struct {
 
 func NewElectrumClient(configPath string, dbAdapter db.DbAdapter) (*Client, error) {
 	electrumCfgPath := fmt.Sprintf("%s/electrum.json", configPath)
-	config, err := config.ReadJsonConfig[ElectrsConfig](electrumCfgPath)
-	if err != nil {
+	configs, err := config.ReadJsonArrayConfig[ElectrsConfig](electrumCfgPath)
+	if err != nil || len(configs) == 0 {
 		return nil, fmt.Errorf("failed to read electrum configs: %w", err)
 	}
+	config := configs[0]
 	if config.Host == "" {
 		return nil, fmt.Errorf("electrum rpc host is required")
 	}
@@ -53,7 +54,7 @@ func NewElectrumClient(configPath string, dbAdapter db.DbAdapter) (*Client, erro
 		return nil, err
 	}
 	return &Client{
-		electrumConfig: config,
+		electrumConfig: &config,
 		Electrs:        electrs,
 		dbAdapter:      dbAdapter,
 	}, nil
@@ -88,11 +89,22 @@ func (c *Client) GetSymbol(chainInfo *chain.ChainInfo, tokenAddress string) (str
 // Get lastcheck point from db, return default value if not found
 func (c *Client) getLastCheckpoint(ctx context.Context) *scalarnet.EventCheckPoint {
 	sourceChain := c.electrumConfig.SourceChain
-	lastCheckpoint, err := c.dbAdapter.GetLastEventCheckPoint(ctx, sourceChain, config.EVENT_ELECTRS_VAULT_TRANSACTION, 0)
+	eventName := config.EVENT_ELECTRS_VAULT_TRANSACTION
+	lastCheckpoint, err := c.dbAdapter.GetLastEventCheckPoint(ctx, sourceChain, eventName, 0)
 	if err != nil {
 		log.Warn().Str("chainId", sourceChain).
-			Str("eventName", config.EVENT_ELECTRS_VAULT_TRANSACTION).
+			Str("eventName", eventName).
 			Msg("[ElectrumClient] [getLastCheckpoint] using default value")
+	}
+	if lastCheckpoint == nil {
+		lastCheckpoint = &scalarnet.EventCheckPoint{
+			ChainName:   sourceChain,
+			EventName:   eventName,
+			BlockNumber: 0,
+			TxHash:      "",
+			LogIndex:    0,
+			EventKey:    "",
+		}
 	}
 	return lastCheckpoint
 }

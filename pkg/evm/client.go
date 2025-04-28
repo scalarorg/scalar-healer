@@ -26,7 +26,7 @@ type EvmClient struct {
 	ChainName      string
 	GatewayAddress common.Address
 	Gateway        *contracts.IScalarGateway
-	auth           *bind.TransactOpts
+	transactOpts   *bind.TransactOpts
 	dbAdapter      db.DbAdapter
 	MissingLogs    MissingLogs
 	// pendingTxs     pending.PendingTxs //Transactions sent to Gateway for approval, waiting for event from EVM chain.
@@ -38,7 +38,7 @@ type EvmClient struct {
 // format: wss:// -> https://
 // Todo: Improve this implementation
 
-func NewEvmClients(configPath string, dbAdapter db.DbAdapter) ([]*EvmClient, error) {
+func NewEvmClients(configPath string, evmPrivKey string, dbAdapter db.DbAdapter) ([]*EvmClient, error) {
 	evmCfgPath := fmt.Sprintf("%s/evm.json", configPath)
 	configs, err := config.ReadJsonArrayConfig[EvmNetworkConfig](evmCfgPath)
 	if err != nil {
@@ -48,7 +48,7 @@ func NewEvmClients(configPath string, dbAdapter db.DbAdapter) ([]*EvmClient, err
 	evmClients := make([]*EvmClient, 0, len(configs))
 	for _, evmConfig := range configs {
 		//Inject evm private keys
-		preparePrivateKey(&evmConfig)
+		evmConfig.PrivateKey = evmPrivKey
 		//Set default value for block time if is not set
 		if evmConfig.BlockTime == 0 {
 			evmConfig.BlockTime = 12 * time.Second
@@ -98,7 +98,7 @@ func NewEvmClient(evmConfig *EvmNetworkConfig, dbAdapter db.DbAdapter) (*EvmClie
 		Client:         client,
 		GatewayAddress: *gatewayAddress,
 		Gateway:        gateway,
-		auth:           auth,
+		transactOpts:   auth,
 		dbAdapter:      dbAdapter,
 		MissingLogs: MissingLogs{
 			chainId:   evmConfig.GetId(),
@@ -129,17 +129,17 @@ func CreateTransactOpts(evmConfig *EvmNetworkConfig) (*bind.TransactOpts, error)
 		return nil, fmt.Errorf("failed to parse private key for network %s: %w", evmConfig.Name, err)
 	}
 	chainID := big.NewInt(int64(evmConfig.ChainID))
-	auth, err := bind.NewKeyedTransactorWithChainID(privateKey, chainID)
+	transactOpts, err := bind.NewKeyedTransactorWithChainID(privateKey, chainID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create auth for network %s: %w", evmConfig.Name, err)
 	}
-	auth.GasLimit = evmConfig.GasLimit
-	return auth, nil
+	transactOpts.GasLimit = evmConfig.GasLimit
+	return transactOpts, nil
 }
 
 func (ec *EvmClient) CreateCallOpts() (*bind.CallOpts, error) {
 	callOpt := &bind.CallOpts{
-		From:    ec.auth.From,
+		From:    ec.transactOpts.From,
 		Context: context.Background(),
 	}
 	return callOpt, nil
@@ -147,8 +147,8 @@ func (ec *EvmClient) CreateCallOpts() (*bind.CallOpts, error) {
 
 func (ec *EvmClient) gatewayExecute(input []byte) (*types.Transaction, error) {
 	//ec.auth.NoSend = false
-	log.Info().Bool("NoSend", ec.auth.NoSend).Msgf("[EvmClient] [gatewayExecute] sending transaction")
-	signedTx, err := ec.Gateway.Execute(ec.auth, input)
+	log.Info().Bool("NoSend", ec.transactOpts.NoSend).Msgf("[EvmClient] [gatewayExecute] sending transaction")
+	signedTx, err := ec.Gateway.Execute(ec.transactOpts, input)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send transaction: %w", err)
 	}
@@ -158,12 +158,9 @@ func (ec *EvmClient) gatewayExecute(input []byte) (*types.Transaction, error) {
 	// }
 	return signedTx, nil
 }
-func preparePrivateKey(evmCfg *EvmNetworkConfig) error {
-	//TODO: set evm private key for broadcast txs
-	return nil
-}
+
 func (c *EvmClient) SetAuth(auth *bind.TransactOpts) {
-	c.auth = auth
+	c.transactOpts = auth
 }
 
 func (c *EvmClient) Start(ctx context.Context) error {

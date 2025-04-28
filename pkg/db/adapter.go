@@ -11,11 +11,14 @@ import (
 )
 
 type DbAdapter interface {
+	SaveProtocols(ctx context.Context, protocols []models.Protocol) error
+	SaveTokenInfos(ctx context.Context, tokens []models.Token) error
+	GetTokenAddressBySymbol(ctx context.Context, chainId uint64, symbol string) (*common.Address, error)
+	GetTokenSymbolByAddress(ctx context.Context, chainId uint64, tokenAddress common.Address) (string, error)
 	GetGatewayAddress(ctx context.Context, chainId uint64) (*common.Address, error)
 	GetAllCustodianGroups(ctx context.Context) ([]string, error)
 	GetChainName(ctx context.Context, chainType string, chainId uint64) (string, error)
 	CheckTokenExists(ctx context.Context, symbol string) bool
-	GetTokenSymbolByAddress(ctx context.Context, chainType string, chainId uint64, tokenAddress string) (string, error)
 	GetLastEventCheckPoint(ctx context.Context, chainName, eventName string, fromBlock uint64) (*scalarnet.EventCheckPoint, error)
 	UpdateLastEventCheckPoint(ctx context.Context, lastCheckPoint *scalarnet.EventCheckPoint) error
 	GetRedeemSession(ctx context.Context, chainId string, groupUid string) *models.RedeemSession

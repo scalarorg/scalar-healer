@@ -1,6 +1,7 @@
 package evm
 
 import (
+	"context"
 	"encoding/hex"
 	"fmt"
 	"strings"
@@ -130,6 +131,10 @@ func (c *EvmClient) TokenSentEvent2Model(event *contracts.IScalarGatewayTokenSen
 	normalizedTxHash := utils.NormalizeHash(event.Raw.TxHash.String())
 	eventId := fmt.Sprintf("%s-%d", normalizedTxHash, event.Raw.Index)
 	senderAddress := event.Sender.String()
+	tokenContractAddress, err := c.dbAdapter.GetTokenAddressBySymbol(context.Background(), c.EvmConfig.GetChainId(), event.Symbol)
+	if err != nil {
+		return chains.TokenSent{}, fmt.Errorf("failed to get token address by symbol: %w", err)
+	}
 	tokenSent := chains.TokenSent{
 		EventID:     eventId,
 		SourceChain: c.EvmConfig.GetId(),
@@ -141,17 +146,13 @@ func (c *EvmClient) TokenSentEvent2Model(event *contracts.IScalarGatewayTokenSen
 		DestinationChain:     event.DestinationChain,
 		DestinationAddress:   strings.ToLower(event.DestinationAddress),
 		Symbol:               event.Symbol,
-		TokenContractAddress: c.GetTokenContractAddressFromSymbol(c.EvmConfig.GetId(), event.Symbol),
+		TokenContractAddress: tokenContractAddress.Hex(),
 		Amount:               event.Amount.Uint64(),
 		Status:               chains.TokenSentStatusPending,
 	}
 	return tokenSent, nil
 }
 
-func (c *EvmClient) GetTokenContractAddressFromSymbol(chainId string, symbol string) string {
-	//TODO: implement this
-	return ""
-}
 func (c *EvmClient) ContractCallApprovedEvent2Model(event *contracts.IScalarGatewayContractCallApproved) (scalarnet.ContractCallApproved, error) {
 	txHash := event.Raw.TxHash.String()
 	eventId := strings.ToLower(fmt.Sprintf("%s-%d-%d", txHash, event.SourceEventIndex, event.Raw.Index))
