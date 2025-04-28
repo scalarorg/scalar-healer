@@ -16,12 +16,15 @@ func (m *MongoRepository) SaveTokenInfos(ctx context.Context, tokens []models.To
 		tokenDocs[i] = token
 		tokenSymbols = append(tokenSymbols, token.Symbol)
 	}
-	_, err := m.Tokens.DeleteMany(ctx, bson.M{
+
+	options := options.Update().SetUpsert(true)
+
+	_, err := m.Tokens.UpdateMany(ctx, bson.M{
 		"symbol": bson.M{
 			"$in": tokenSymbols,
 		},
-	})
-	_, err = m.Tokens.InsertMany(ctx, tokenDocs)
+	}, tokenDocs, options)
+
 	return err
 }
 
