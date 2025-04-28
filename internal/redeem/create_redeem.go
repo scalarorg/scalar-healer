@@ -2,7 +2,6 @@ package redeem
 
 import (
 	"fmt"
-	"math/big"
 	"net/http"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -59,29 +58,25 @@ func CreateRedeem(c echo.Context) error {
 
 	address := common.HexToAddress(body.Address)
 
-	nonce := db.GetRedeemNonce(ctx, address)
+	nonce := db.GetNonce(ctx, address)
 	if nonce != body.Nonce {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid nonce")
 	}
 
-	if !db.CheckTokenExists(ctx, body.Symbol) {
+	_, err = db.GetTokenAddressBySymbol(ctx, body.ChainID, body.Symbol)
+	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "token not exists")
 	}
 
+	// TODO: validate the balance on evm network
 	amountz, ok := utils.StringToBigInt(body.Amount)
 	if !ok {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid amount")
 	}
 
-	// Create message data for EIP-712 signing
-	message := map[string]interface{}{
-		"symbol": body.Symbol,
-		"amount": amountz,
-		"nonce":  big.NewInt(int64(nonce)),
-	}
-
-	// Create EIP-712 typed data
-	typedData := eip712.CreateTypedData(RedeemRequestTypes, primaryType, getDomain(*gatewayAddress), message)
+	// Create and convert message to EIP-712 typed data
+	message := eip712.NewRedeemRequestMessage(body.Symbol, amountz, nonce)
+	typedData := message.ToTypedData(*gatewayAddress, body.ChainID)
 
 	// Verify the signature
 	err = eip712.VerifySignTypedData(typedData, address, common.FromHex(body.Signature))
@@ -96,13 +91,4 @@ func CreateRedeem(c echo.Context) error {
 	}
 
 	return c.NoContent(http.StatusOK)
-}
-
-func getDomain(gatewayAddress common.Address) *eip712.TypedDataDomain {
-	return &eip712.TypedDataDomain{
-		Name:              "ScalarGateway",
-		Version:           "1",
-		ChainId:           1,
-		VerifyingContract: gatewayAddress,
-	}
 }

@@ -132,7 +132,7 @@ func TestCreateRedeem(t *testing.T) {
 				assert.Equal(t, tc.expectedStatus, rec.Code)
 			}
 
-			db.DB.Collection("redeem_requests").DeleteMany(context.Background(), bson.M{})
+			db.RedeemRequests.DeleteMany(context.Background(), bson.M{})
 		})
 	}
 }

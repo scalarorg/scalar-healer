@@ -6,25 +6,26 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/scalarorg/scalar-healer/pkg/db/models"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 func (m *MongoRepository) SaveTokenInfos(ctx context.Context, tokens []models.Token) error {
-	tokenDocs := make([]interface{}, len(tokens))
-	tokenSymbols := bson.A{}
-	for i, token := range tokens {
-		tokenDocs[i] = token
-		tokenSymbols = append(tokenSymbols, token.Symbol)
+	if len(tokens) == 0 {
+		return nil
 	}
 
-	options := options.Update().SetUpsert(true)
+	models := make([]mongo.WriteModel, len(tokens))
+	for i, token := range tokens {
+		filter := bson.M{"symbol": token.Symbol}
+		update := bson.M{"$set": token}
+		models[i] = mongo.NewUpdateOneModel().
+			SetFilter(filter).
+			SetUpdate(update).
+			SetUpsert(true)
+	}
 
-	_, err := m.Tokens.UpdateMany(ctx, bson.M{
-		"symbol": bson.M{
-			"$in": tokenSymbols,
-		},
-	}, tokenDocs, options)
-
+	_, err := m.Tokens.BulkWrite(ctx, models)
 	return err
 }
 
