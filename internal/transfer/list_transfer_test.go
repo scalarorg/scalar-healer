@@ -1,4 +1,4 @@
-package bridge_test
+package transfer_test
 
 import (
 	"context"
@@ -13,9 +13,18 @@ import (
 	"github.com/scalarorg/scalar-healer/pkg/db/models"
 	"github.com/scalarorg/scalar-healer/pkg/utils"
 	"github.com/zeebo/assert"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
-func TestListRedeem(t *testing.T) {
+func TestListTransfer(t *testing.T) {
+	chainId := uint64(1)
+	address := common.HexToAddress("0x24a1dB57Fa3ecAFcbaD91d6Ef068439acEeAe090")
+	signature, _ := hex.DecodeString("f6c5691b0cd1120058f8a4ed75cd67065a8cdcefaa34ff55678ce1fcab07e0c91357e525c94b97e78b558e3cfe44eb66e3de28cc0d65a6c11c910fff0fabad0100")
+	amount, _ := utils.StringToBigInt("123456")
+	symbol := "ETH"
+	nonce := uint64(0) // First request should have nonce 0
+	destChain := "evm|11155111"
+	destAddress := common.MaxAddress
 	tests := []struct {
 		name          string
 		address       string
@@ -26,34 +35,28 @@ func TestListRedeem(t *testing.T) {
 	}{
 		{
 			name:    "valid request",
-			address: "0x24a1dB57Fa3ecAFcbaD91d6Ef068439acEeAe090",
+			address: address.Hex(),
 			page:    0,
 			size:    10,
 			setup: func(t *testing.T) {
-				chainId := uint64(1)
-				address := common.HexToAddress("0x24a1dB57Fa3ecAFcbaD91d6Ef068439acEeAe090")
-				signature, _ := hex.DecodeString("8e3bad2520fc46b7f78653a92745812c046df00dee0b29e0a01d670f6de9351a2e6bdd1bd471e95e0a94fd6b4262d173eb50fcc7e6fb3ea3b27823c2d893476b00")
-				nonce := uint64(0)
-				txHash := common.HexToAddress("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
-
-				err := db.SaveBridgeRequest(context.Background(), chainId, address, signature, txHash.Bytes(), nonce)
+				err := db.SaveTransferRequest(context.Background(), chainId, address, signature, amount, destChain, &destAddress, symbol, nonce)
 				assert.NoError(t, err)
 			},
 			checkResponse: func(recoder *httptest.ResponseRecorder) {
 				assert.Equal(t, http.StatusOK, recoder.Code)
 				data, err := io.ReadAll(recoder.Body)
 				assert.NoError(t, err)
-				var list []*models.BridgeRequest
+				var list []*models.TransferRequest
 				json.Unmarshal(data, &list)
 				assert.Equal(t, 1, len(list))
-				address := common.HexToAddress("0x24a1dB57Fa3ecAFcbaD91d6Ef068439acEeAe090")
-				signature, _ := hex.DecodeString("8e3bad2520fc46b7f78653a92745812c046df00dee0b29e0a01d670f6de9351a2e6bdd1bd471e95e0a94fd6b4262d173eb50fcc7e6fb3ea3b27823c2d893476b00")
-				txHash := common.HexToAddress("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
-				nonce := uint64(0) // First request should have nonce 0
+
 				assert.Equal(t, address, common.BytesToAddress(list[0].Address))
 				assert.Equal(t, signature, list[0].Signature)
 				assert.Equal(t, nonce, list[0].Nonce)
-				assert.Equal(t, txHash.Bytes(), list[0].TxHash)
+				assert.Equal(t, amount.String(), list[0].Amount)
+				assert.Equal(t, symbol, list[0].Symbol)
+				assert.Equal(t, destChain, list[0].DestinationChain)
+				assert.Equal(t, destAddress.Bytes(), list[0].DestinationAddress)
 			},
 		},
 		{
@@ -94,7 +97,7 @@ func TestListRedeem(t *testing.T) {
 			tc.setup(t)
 			req, rec := utils.Request(&utils.RequestOption{
 				Method: http.MethodGet,
-				URL:    "/api/bridge/" + tc.address,
+				URL:    "/api/transfer/" + tc.address,
 				QueryParams: map[string]string{
 					"page": utils.IntToString(tc.page),
 					"size": utils.IntToString(tc.size),
@@ -102,6 +105,7 @@ func TestListRedeem(t *testing.T) {
 			})
 			testServer.Raw.ServeHTTP(rec, req)
 			tc.checkResponse(rec)
+			db.TransferRequests.DeleteMany(context.Background(), bson.M{})
 		})
 	}
 }

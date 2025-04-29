@@ -13,7 +13,6 @@ import (
 	"github.com/scalarorg/scalar-healer/pkg/db/models"
 	"github.com/scalarorg/scalar-healer/pkg/utils"
 	"github.com/zeebo/assert"
-	"go.mongodb.org/mongo-driver/bson"
 )
 
 func TestListRedeem(t *testing.T) {
@@ -106,7 +105,6 @@ func TestListRedeem(t *testing.T) {
 			})
 			testServer.Raw.ServeHTTP(rec, req)
 			tc.checkResponse(rec)
-			db.DB.Collection("redeem_requests").DeleteMany(context.Background(), bson.M{})
 		})
 	}
 }

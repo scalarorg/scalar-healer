@@ -1,4 +1,4 @@
-package redeem_test
+package transfer_test
 
 import (
 	"context"
@@ -49,7 +49,6 @@ func setup() {
 			ChainID: uint64(1),
 		},
 	})
-
 	if err != nil {
 		panic(err)
 	}
@@ -59,8 +58,7 @@ func setup() {
 }
 
 func cleanupTestDB() {
-	// Drop test collections
-	_, err := db.RedeemRequests.DeleteMany(context.Background(), bson.M{})
+	_, err := db.TransferRequests.DeleteMany(context.Background(), bson.M{})
 	if err != nil {
 		panic(err)
 	}

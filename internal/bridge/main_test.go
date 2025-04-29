@@ -8,6 +8,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/scalarorg/scalar-healer/cmd/api/server"
 	"github.com/scalarorg/scalar-healer/config"
+	"github.com/scalarorg/scalar-healer/pkg/db/models"
 	"github.com/scalarorg/scalar-healer/pkg/db/mongo"
 	"go.mongodb.org/mongo-driver/bson"
 )
@@ -42,9 +43,11 @@ func setup() {
 		panic(err)
 	}
 
-	_, err = repo.DB.Collection("tokens").InsertOne(context.Background(), bson.M{
-		"symbol": "ETH",
-		"active": true,
+	err = repo.SaveTokenInfos(context.Background(), []models.Token{
+		{
+			Symbol:  "ETH",
+			ChainID: uint64(1),
+		},
 	})
 
 	if err != nil {
@@ -57,7 +60,7 @@ func setup() {
 
 func cleanupTestDB() {
 	// Drop test collections
-	_, err := db.RedeemRequests.DeleteMany(context.Background(), bson.M{})
+	_, err := db.BridgeRequests.DeleteMany(context.Background(), bson.M{})
 	if err != nil {
 		panic(err)
 	}

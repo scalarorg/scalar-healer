@@ -1,9 +1,9 @@
-package redeem
+package transfer
 
 import "github.com/labstack/echo/v4"
 
 func Route(g *echo.Group, path string) {
 	gr := g.Group(path)
-	gr.POST("", CreateRedeem)
-	gr.GET("/:address", ListRedeem)
+	gr.POST("", CreateTransfer)
+	gr.GET("/:address", ListTransfer)
 }

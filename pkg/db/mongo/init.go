@@ -17,6 +17,7 @@ const (
 	COLLECTION_TOKENS            = "tokens"
 	COLLECTION_REDEEM_REQUESTS   = "redeem_requests"
 	COLLECTION_BRIDGE_REQUESTS   = "bridge_requests"
+	COLLECTION_TRANSFER_REQUESTS = "transfer_requests"
 )
 
 type MongoRepository struct {
@@ -26,6 +27,7 @@ type MongoRepository struct {
 	Tokens           *mongo.Collection
 	RedeemRequests   *mongo.Collection
 	BridgeRequests   *mongo.Collection
+	TransferRequests *mongo.Collection
 }
 
 var _ db.DbAdapter = (*MongoRepository)(nil)
@@ -54,6 +56,7 @@ func NewMongoRepository() *MongoRepository {
 		Tokens:           DB.Collection(COLLECTION_TOKENS),
 		RedeemRequests:   DB.Collection(COLLECTION_REDEEM_REQUESTS),
 		BridgeRequests:   DB.Collection(COLLECTION_BRIDGE_REQUESTS),
+		TransferRequests: DB.Collection(COLLECTION_TRANSFER_REQUESTS),
 	}
 
 	m.initIndexes()

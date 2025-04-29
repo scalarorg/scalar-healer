@@ -70,6 +70,18 @@ func TestSignTypedData(t *testing.T) {
 			}, common.MaxHash),
 			want: mockAddress.Hex(),
 		},
+		{
+			data: eip712.NewTransferRequestMessage(&eip712.BaseRequest{
+				Nonce:   0,
+				ChainID: 1,
+			},
+				"evm|11155111",
+				&common.MaxAddress,
+				"ETH",
+				big.NewInt(123456),
+			),
+			want: mockAddress.Hex(),
+		},
 	}
 
 	for _, tt := range suites {

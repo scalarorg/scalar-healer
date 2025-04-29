@@ -24,8 +24,8 @@ var BridgeRequestTypes = apitypes.Types{
 		{Name: "verifyingContract", Type: "address"},
 	},
 	BridgeRequestDomainName: []apitypes.Type{
-		{Name: "chain_id", Type: "uint64"},
 		{Name: "tx_hash", Type: "bytes32"},
+		{Name: "nonce", Type: "uint64"},
 	},
 }
 
@@ -38,8 +38,8 @@ func NewBridgeRequestMessage(baseRequest *BaseRequest, txHash common.Hash) *Brid
 		BridgeRequestTypes,
 		BridgeRequestDomainName,
 		map[string]interface{}{
-			"chain_id": big.NewInt(int64(baseRequest.ChainID)),
-			"tx_hash":  msg.TxHash,
+			"tx_hash": msg.TxHash,
+			"nonce":   big.NewInt(int64(baseRequest.Nonce)),
 		},
 		baseRequest,
 	)
