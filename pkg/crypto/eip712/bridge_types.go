@@ -1,14 +1,17 @@
 package eip712
 
 import (
+	"math/big"
+
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/signer/core/apitypes"
 )
 
 // CreateBridgeMessage represents the message data for EIP-712 signing
 type CreateBridgeMessage struct {
 	BaseMessage
-	ChainID uint64 `json:"chain_id"`
-	TxHash  string `json:"tx_hash"`
+	ChainID *big.Int    `json:"chain_id"`
+	TxHash  common.Hash `json:"tx_hash"`
 }
 
 // CreateBridgeTypes defines the EIP-712 type structure for bridge request signing
@@ -21,12 +24,12 @@ var CreateBridgeTypes = apitypes.Types{
 	},
 	"CreateBridgeRequest": []apitypes.Type{
 		{Name: "chain_id", Type: "uint64"},
-		{Name: "tx_hash", Type: "string"},
+		{Name: "tx_hash", Type: "bytes32"},
 	},
 }
 
 // NewCreateBridgeMessage creates a new CreateBridgeMessage instance
-func NewCreateBridgeMessage(chainID uint64, txHash string) *CreateBridgeMessage {
+func NewCreateBridgeMessage(chainID *big.Int, txHash common.Hash) *CreateBridgeMessage {
 	msg := &CreateBridgeMessage{
 		ChainID: chainID,
 		TxHash:  txHash,

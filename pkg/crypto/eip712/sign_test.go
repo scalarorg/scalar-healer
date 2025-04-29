@@ -1,6 +1,7 @@
 package eip712_test
 
 import (
+	"fmt"
 	"log"
 	"math/big"
 	"os"
@@ -20,10 +21,11 @@ type suite struct {
 }
 
 func TestHashTypedData(t *testing.T) {
-
 	tests := []suite{
 		{
-			data: eip712.NewRedeemRequestMessage("ETH", big.NewInt(123456), 0),
+			data: eip712.NewRedeemRequestMessage("ETH", big.NewInt(123456), &eip712.BaseRequest{
+				Nonce: uint64(0),
+			}),
 			want: "f5043f1952bbc2803a9bc1ff8cff68dbfbcc3f229d2d8f780e21c6890b390dd4",
 		},
 	}
@@ -54,7 +56,13 @@ func TestSignTypedData(t *testing.T) {
 
 	suites := []suite{
 		{
-			data: eip712.NewRedeemRequestMessage("ETH", big.NewInt(123456), 0),
+			data: eip712.NewRedeemRequestMessage("ETH", big.NewInt(123456), &eip712.BaseRequest{
+				Nonce: 0,
+			}),
+			want: mockAddress.Hex(),
+		},
+		{
+			data: eip712.NewCreateBridgeMessage(big.NewInt(1), common.MaxHash),
 			want: mockAddress.Hex(),
 		},
 	}
@@ -65,6 +73,7 @@ func TestSignTypedData(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		fmt.Println("Signature: ", common.Bytes2Hex(signature))
 		// verify signature
 		hash, err := eip712.HashTypedData(typedData)
 		if err != nil {

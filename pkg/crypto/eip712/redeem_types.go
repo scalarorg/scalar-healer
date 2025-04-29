@@ -1,20 +1,24 @@
 package eip712
 
 import (
+	"context"
+	"fmt"
 	"math/big"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/signer/core/apitypes"
+	"github.com/scalarorg/scalar-healer/pkg/db"
 )
 
 // RedeemRequestMessage represents the message data for EIP-712 signing
 type RedeemRequestMessage struct {
-	BaseMessage
+	*BaseMessage
+	*BaseRequest
 	Symbol string   `json:"symbol"`
 	Amount *big.Int `json:"amount"`
-	Nonce  *big.Int `json:"nonce"`
 }
 
-var _ EIP712Message = &RedeemRequestMessage{}
+const RedeemRequestDomainName = "RedeemRequest"
 
 // RedeemRequestTypes defines the EIP-712 type structure for redeem request signing
 var RedeemRequestTypes = apitypes.Types{
@@ -24,7 +28,7 @@ var RedeemRequestTypes = apitypes.Types{
 		{Name: "chainId", Type: "uint256"},
 		{Name: "verifyingContract", Type: "address"},
 	},
-	"RedeemRequest": []apitypes.Type{
+	RedeemRequestDomainName: []apitypes.Type{
 		{Name: "symbol", Type: "string"},
 		{Name: "amount", Type: "uint256"},
 		{Name: "nonce", Type: "uint64"},
@@ -32,20 +36,38 @@ var RedeemRequestTypes = apitypes.Types{
 }
 
 // NewRedeemRequestMessage creates a new RedeemRequestMessage instance
-func NewRedeemRequestMessage(symbol string, amount *big.Int, nonce uint64) *RedeemRequestMessage {
+func NewRedeemRequestMessage(symbol string, amount *big.Int, baseRequest *BaseRequest) *RedeemRequestMessage {
 	msg := &RedeemRequestMessage{
-		Symbol: symbol,
-		Amount: amount,
-		Nonce:  big.NewInt(int64(nonce)),
+		Symbol:      symbol,
+		Amount:      amount,
+		BaseRequest: baseRequest,
 	}
-	msg.BaseMessage = *NewBaseMessage(
+	msg.BaseMessage = NewBaseMessage(
 		RedeemRequestTypes,
-		"RedeemRequest",
+		RedeemRequestDomainName,
 		map[string]interface{}{
 			"symbol": msg.Symbol,
 			"amount": msg.Amount,
-			"nonce":  msg.Nonce,
+			"nonce":  big.NewInt(int64(baseRequest.Nonce)),
 		},
 	)
 	return msg
+}
+
+func (m *RedeemRequestMessage) Validate(ctx context.Context, db db.DbAdapter, contractAddress *common.Address) error {
+	address := common.HexToAddress(m.Address)
+	nonce := db.GetNonce(ctx, address)
+	if nonce != m.Nonce {
+		return fmt.Errorf("invalid nonce")
+	}
+
+	// Create and convert message to EIP-712 typed data
+	typedData := m.ToTypedData(*contractAddress, m.ChainID)
+
+	// Verify the signature
+	err := VerifySignTypedData(typedData, address, common.FromHex(m.Signature))
+	if err != nil {
+		return err
+	}
+	return nil
 }
