@@ -41,6 +41,8 @@ type DbAdapter interface {
 	SaveTokenSent(ctx context.Context, tokenSent *chains.TokenSent, eventCheckPoint *scalarnet.EventCheckPoint) error
 	SaveTokenSents(ctx context.Context, tokenSents []*chains.TokenSent) error
 	FindPendingBtcTokenSent(ctx context.Context, chainId string, expectedConfirmBlock int) ([]*chains.TokenSent, error)
+	SaveBridgeRequest(ctx context.Context, chainId uint64, address common.Address, signature []byte, txHash []byte, nonce uint64) error
+	ListBridgeRequests(ctx context.Context, address common.Address, page, size int) ([]*models.BridgeRequest, error)
 
 	// redeem
 	SaveRedeemTxs(ctx context.Context, redeemTxs []*chains.RedeemTx) error

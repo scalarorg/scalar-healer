@@ -10,35 +10,35 @@ import (
 // BridgeRequestMessage represents the message data for EIP-712 signing
 type BridgeRequestMessage struct {
 	*BaseMessage
-	ChainID *big.Int    `json:"chain_id"`
-	TxHash  common.Hash `json:"tx_hash"`
+	TxHash common.Hash `json:"tx_hash"`
 }
 
-// CreateBridgeTypes defines the EIP-712 type structure for bridge request signing
-var CreateBridgeTypes = apitypes.Types{
+const BridgeRequestDomainName = "BridgeRequest"
+
+// BridgeRequestTypes defines the EIP-712 type structure for bridge request signing
+var BridgeRequestTypes = apitypes.Types{
 	"EIP712Domain": []apitypes.Type{
 		{Name: "name", Type: "string"},
 		{Name: "version", Type: "string"},
 		{Name: "chainId", Type: "uint256"},
 		{Name: "verifyingContract", Type: "address"},
 	},
-	"CreateBridgeRequest": []apitypes.Type{
+	BridgeRequestDomainName: []apitypes.Type{
 		{Name: "chain_id", Type: "uint64"},
 		{Name: "tx_hash", Type: "bytes32"},
 	},
 }
 
 // NewBridgeRequestMessage creates a new BridgeRequestMessage instance
-func NewBridgeRequestMessage(baseRequest *BaseRequest, chainID *big.Int, txHash common.Hash) *BridgeRequestMessage {
+func NewBridgeRequestMessage(baseRequest *BaseRequest, txHash common.Hash) *BridgeRequestMessage {
 	msg := &BridgeRequestMessage{
-		ChainID: chainID,
-		TxHash:  txHash,
+		TxHash: txHash,
 	}
 	msg.BaseMessage = NewBaseMessage(
-		CreateBridgeTypes,
-		"CreateBridgeRequest",
+		BridgeRequestTypes,
+		BridgeRequestDomainName,
 		map[string]interface{}{
-			"chain_id": msg.ChainID,
+			"chain_id": big.NewInt(int64(baseRequest.ChainID)),
 			"tx_hash":  msg.TxHash,
 		},
 		baseRequest,

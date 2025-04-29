@@ -65,66 +65,66 @@ func TestCreateRedeem(t *testing.T) {
 			expectedStatus: http.StatusBadRequest,
 			expectedError:  "invalid nonce",
 		},
-		// {
-		// 	name: "bind error",
-		// 	request: redeem.CreateRedeemRequest{
-		// 		BaseRequest: eip712.BaseRequest{
-		// 			Address:   "D91d6Ef068439acEeAe090",
-		// 			Signature: "aaaa",
-		// 			Nonce:     0,
-		// 			ChainID:   1,
-		// 		},
-		// 		Symbol: "ETH",
-		// 		Amount: "1000000000000000000",
-		// 	},
-		// 	expectedStatus: http.StatusBadRequest,
-		// 	expectedError:  "",
-		// },
-		// {
-		// 	name: "invalid token",
-		// 	request: redeem.CreateRedeemRequest{
-		// 		BaseRequest: eip712.BaseRequest{
-		// 			Address:   "0x1234567890123456789012345678901234567890",
-		// 			Signature: "0xf6c5691b0cd112005",
-		// 			Nonce:     0,
-		// 			ChainID:   1,
-		// 		},
-		// 		Symbol: "BTC",
-		// 		Amount: "100",
-		// 	},
-		// 	expectedStatus: http.StatusBadRequest,
-		// 	expectedError:  "token not exists",
-		// },
-		// {
-		// 	name: "invalid amount",
-		// 	request: redeem.CreateRedeemRequest{
-		// 		BaseRequest: eip712.BaseRequest{
-		// 			Address:   "0x1234567890123456789012345678901234567890",
-		// 			Signature: "0xf6c5691b0cd112005",
-		// 			Nonce:     0,
-		// 			ChainID:   1,
-		// 		},
-		// 		Symbol: "ETH",
-		// 		Amount: "12312321aaaa",
-		// 	},
-		// 	expectedStatus: http.StatusBadRequest,
-		// 	expectedError:  "invalid amount",
-		// },
-		// {
-		// 	name: "invalid signature",
-		// 	request: redeem.CreateRedeemRequest{
-		// 		BaseRequest: eip712.BaseRequest{
-		// 			Address:   "0x24a1dB57Fa3ecAFcbaD91d6Ef068439acEeAe090",
-		// 			Signature: "0xf6c5691b0cd1120058f8a4ed75cd67065a8cdcefaa34ff55678ce1fcab07e0c91357e525c94b97e78b558e3cfe44eb66e3de28cc0d65a6c11c910fff0fabad0101",
-		// 			Nonce:     0, // First request should have nonce 0
-		// 			ChainID:   1,
-		// 		},
-		// 		Symbol: "ETH",
-		// 		Amount: "123456",
-		// 	},
-		// 	expectedStatus: http.StatusBadRequest,
-		// 	expectedError:  "failed to verify signature: invalid signature",
-		// },
+		{
+			name: "bind error",
+			request: redeem.CreateRedeemRequest{
+				BaseRequest: eip712.BaseRequest{
+					Address:   "D91d6Ef068439acEeAe090",
+					Signature: "aaaa",
+					Nonce:     0,
+					ChainID:   1,
+				},
+				Symbol: "ETH",
+				Amount: "1000000000000000000",
+			},
+			expectedStatus: http.StatusBadRequest,
+			expectedError:  "",
+		},
+		{
+			name: "invalid token",
+			request: redeem.CreateRedeemRequest{
+				BaseRequest: eip712.BaseRequest{
+					Address:   "0x1234567890123456789012345678901234567890",
+					Signature: "0xf6c5691b0cd112005",
+					Nonce:     0,
+					ChainID:   1,
+				},
+				Symbol: "BTC",
+				Amount: "100",
+			},
+			expectedStatus: http.StatusBadRequest,
+			expectedError:  "token not exists",
+		},
+		{
+			name: "invalid amount",
+			request: redeem.CreateRedeemRequest{
+				BaseRequest: eip712.BaseRequest{
+					Address:   "0x1234567890123456789012345678901234567890",
+					Signature: "0xf6c5691b0cd112005",
+					Nonce:     0,
+					ChainID:   1,
+				},
+				Symbol: "ETH",
+				Amount: "12312321aaaa",
+			},
+			expectedStatus: http.StatusBadRequest,
+			expectedError:  "invalid amount",
+		},
+		{
+			name: "invalid signature",
+			request: redeem.CreateRedeemRequest{
+				BaseRequest: eip712.BaseRequest{
+					Address:   "0x24a1dB57Fa3ecAFcbaD91d6Ef068439acEeAe090",
+					Signature: "0xf6c5691b0cd1120058f8a4ed75cd67065a8cdcefaa34ff55678ce1fcab07e0c91357e525c94b97e78b558e3cfe44eb66e3de28cc0d65a6c11c910fff0fabad0101",
+					Nonce:     0, // First request should have nonce 0
+					ChainID:   1,
+				},
+				Symbol: "ETH",
+				Amount: "123456",
+			},
+			expectedStatus: http.StatusBadRequest,
+			expectedError:  "invalid signature",
+		},
 	}
 
 	for _, tc := range tests {

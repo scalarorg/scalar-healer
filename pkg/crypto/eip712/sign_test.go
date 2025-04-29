@@ -24,14 +24,15 @@ func TestHashTypedData(t *testing.T) {
 	tests := []suite{
 		{
 			data: eip712.NewRedeemRequestMessage(&eip712.BaseRequest{
-				Nonce: uint64(0),
+				Nonce:   uint64(0),
+				ChainID: 1,
 			}, "ETH", big.NewInt(123456)),
 			want: "f5043f1952bbc2803a9bc1ff8cff68dbfbcc3f229d2d8f780e21c6890b390dd4",
 		},
 	}
 
 	for _, tt := range tests {
-		hash, err := eip712.HashTypedData(tt.data.ToTypedData(mockAddress, 1))
+		hash, err := eip712.HashTypedData(tt.data.ToTypedData(mockAddress))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -57,20 +58,22 @@ func TestSignTypedData(t *testing.T) {
 	suites := []suite{
 		{
 			data: eip712.NewRedeemRequestMessage(&eip712.BaseRequest{
-				Nonce: 0,
+				Nonce:   0,
+				ChainID: 1,
 			}, "ETH", big.NewInt(123456)),
 			want: mockAddress.Hex(),
 		},
 		{
 			data: eip712.NewBridgeRequestMessage(&eip712.BaseRequest{
-				Nonce: 0,
-			}, big.NewInt(1), common.MaxHash),
+				Nonce:   0,
+				ChainID: 1,
+			}, common.MaxHash),
 			want: mockAddress.Hex(),
 		},
 	}
 
 	for _, tt := range suites {
-		typedData := tt.data.ToTypedData(mockAddress, 1)
+		typedData := tt.data.ToTypedData(mockAddress)
 		signature, err := eip712.SignTypedData(typedData, privateKey)
 		if err != nil {
 			t.Fatal(err)

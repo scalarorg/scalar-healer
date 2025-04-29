@@ -12,7 +12,7 @@ import (
 // EIP712Message defines the interface for EIP-712 message types
 type EIP712Message interface {
 	// ToTypedData converts the message to EIP-712 typed data
-	ToTypedData(gatewayAddress common.Address, chainId uint64) apitypes.TypedData
+	ToTypedData(contractAddress common.Address) apitypes.TypedData
 	Validate(ctx context.Context, db db.DbAdapter, contractAddress *common.Address) error
 }
 
@@ -45,14 +45,14 @@ func NewBaseMessage(types apitypes.Types, primaryType string, message map[string
 }
 
 // ToTypedData converts the BaseMessage to EIP-712 typed data
-func (m *BaseMessage) ToTypedData(gatewayAddress common.Address, chainId uint64) apitypes.TypedData {
+func (m *BaseMessage) ToTypedData(gatewayAddress common.Address) apitypes.TypedData {
 	return CreateTypedData(
 		m.Types,
 		m.PrimaryType,
 		&TypedDataDomain{
 			Name:              "ScalarGateway",
 			Version:           "1",
-			ChainId:           chainId,
+			ChainId:           m.ChainID,
 			VerifyingContract: gatewayAddress,
 		},
 		m.Message,
@@ -67,7 +67,7 @@ func (m *BaseMessage) Validate(ctx context.Context, db db.DbAdapter, contractAdd
 	}
 
 	// Create and convert message to EIP-712 typed data
-	typedData := m.ToTypedData(*contractAddress, m.ChainID)
+	typedData := m.ToTypedData(*contractAddress)
 
 	// Verify the signature
 	err := VerifySignTypedData(typedData, address, common.FromHex(m.Signature))
