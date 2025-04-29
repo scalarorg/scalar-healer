@@ -7,9 +7,9 @@ import (
 	"github.com/ethereum/go-ethereum/signer/core/apitypes"
 )
 
-// CreateBridgeMessage represents the message data for EIP-712 signing
-type CreateBridgeMessage struct {
-	BaseMessage
+// BridgeRequestMessage represents the message data for EIP-712 signing
+type BridgeRequestMessage struct {
+	*BaseMessage
 	ChainID *big.Int    `json:"chain_id"`
 	TxHash  common.Hash `json:"tx_hash"`
 }
@@ -28,19 +28,20 @@ var CreateBridgeTypes = apitypes.Types{
 	},
 }
 
-// NewCreateBridgeMessage creates a new CreateBridgeMessage instance
-func NewCreateBridgeMessage(chainID *big.Int, txHash common.Hash) *CreateBridgeMessage {
-	msg := &CreateBridgeMessage{
+// NewBridgeRequestMessage creates a new BridgeRequestMessage instance
+func NewBridgeRequestMessage(baseRequest *BaseRequest, chainID *big.Int, txHash common.Hash) *BridgeRequestMessage {
+	msg := &BridgeRequestMessage{
 		ChainID: chainID,
 		TxHash:  txHash,
 	}
-	msg.BaseMessage = *NewBaseMessage(
+	msg.BaseMessage = NewBaseMessage(
 		CreateBridgeTypes,
 		"CreateBridgeRequest",
 		map[string]interface{}{
 			"chain_id": msg.ChainID,
 			"tx_hash":  msg.TxHash,
 		},
+		baseRequest,
 	)
 	return msg
 }

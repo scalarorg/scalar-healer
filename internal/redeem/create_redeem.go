@@ -43,7 +43,7 @@ func CreateRedeem(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid amount")
 	}
 
-	message := eip712.NewRedeemRequestMessage(body.Symbol, amountz, &body.BaseRequest)
+	message := eip712.NewRedeemRequestMessage(&body.BaseRequest, body.Symbol, amountz)
 	err = message.Validate(ctx, db, gatewayAddress)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())

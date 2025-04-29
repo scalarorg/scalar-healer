@@ -1,13 +1,9 @@
 package eip712
 
 import (
-	"context"
-	"fmt"
 	"math/big"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/signer/core/apitypes"
-	"github.com/scalarorg/scalar-healer/pkg/db"
 )
 
 // RedeemRequestMessage represents the message data for EIP-712 signing
@@ -36,7 +32,7 @@ var RedeemRequestTypes = apitypes.Types{
 }
 
 // NewRedeemRequestMessage creates a new RedeemRequestMessage instance
-func NewRedeemRequestMessage(symbol string, amount *big.Int, baseRequest *BaseRequest) *RedeemRequestMessage {
+func NewRedeemRequestMessage(baseRequest *BaseRequest, symbol string, amount *big.Int) *RedeemRequestMessage {
 	msg := &RedeemRequestMessage{
 		Symbol:      symbol,
 		Amount:      amount,
@@ -50,24 +46,7 @@ func NewRedeemRequestMessage(symbol string, amount *big.Int, baseRequest *BaseRe
 			"amount": msg.Amount,
 			"nonce":  big.NewInt(int64(baseRequest.Nonce)),
 		},
+		baseRequest,
 	)
 	return msg
-}
-
-func (m *RedeemRequestMessage) Validate(ctx context.Context, db db.DbAdapter, contractAddress *common.Address) error {
-	address := common.HexToAddress(m.Address)
-	nonce := db.GetNonce(ctx, address)
-	if nonce != m.Nonce {
-		return fmt.Errorf("invalid nonce")
-	}
-
-	// Create and convert message to EIP-712 typed data
-	typedData := m.ToTypedData(*contractAddress, m.ChainID)
-
-	// Verify the signature
-	err := VerifySignTypedData(typedData, address, common.FromHex(m.Signature))
-	if err != nil {
-		return err
-	}
-	return nil
 }

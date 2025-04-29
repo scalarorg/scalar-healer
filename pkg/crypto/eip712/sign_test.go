@@ -23,9 +23,9 @@ type suite struct {
 func TestHashTypedData(t *testing.T) {
 	tests := []suite{
 		{
-			data: eip712.NewRedeemRequestMessage("ETH", big.NewInt(123456), &eip712.BaseRequest{
+			data: eip712.NewRedeemRequestMessage(&eip712.BaseRequest{
 				Nonce: uint64(0),
-			}),
+			}, "ETH", big.NewInt(123456)),
 			want: "f5043f1952bbc2803a9bc1ff8cff68dbfbcc3f229d2d8f780e21c6890b390dd4",
 		},
 	}
@@ -56,13 +56,15 @@ func TestSignTypedData(t *testing.T) {
 
 	suites := []suite{
 		{
-			data: eip712.NewRedeemRequestMessage("ETH", big.NewInt(123456), &eip712.BaseRequest{
+			data: eip712.NewRedeemRequestMessage(&eip712.BaseRequest{
 				Nonce: 0,
-			}),
+			}, "ETH", big.NewInt(123456)),
 			want: mockAddress.Hex(),
 		},
 		{
-			data: eip712.NewCreateBridgeMessage(big.NewInt(1), common.MaxHash),
+			data: eip712.NewBridgeRequestMessage(&eip712.BaseRequest{
+				Nonce: 0,
+			}, big.NewInt(1), common.MaxHash),
 			want: mockAddress.Hex(),
 		},
 	}
