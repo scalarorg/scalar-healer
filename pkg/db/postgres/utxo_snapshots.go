@@ -1,12 +1,12 @@
-package mongo
+package postgres
 
 import (
 	"context"
 
-	"github.com/scalarorg/scalar-healer/pkg/db/models"
+	"github.com/scalarorg/scalar-healer/pkg/db"
 )
 
-func (m *MongoRepository) SaveUtxoSnapshot(ctx context.Context, utxoSnapshot *models.UTXOSnapshot) error {
+func (m *PostgresRepository) SaveUtxoSnapshot(ctx context.Context, utxoSnapshot *db.UTXOSnapshot) error {
 	// filter := bson.M{"custodian_group_uid": utxoSnapshot.CustodianGroupUID}
 
 	// update := mongo.Pipeline{

@@ -3,6 +3,7 @@ package config
 import (
 	"log"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/go-playground/validator/v10"
@@ -21,8 +22,13 @@ type ServerEnv struct {
 	OPENOBSERVE_ENDPOINT   string `validate:"url"`
 	OPENOBSERVE_CREDENTIAL string `validate:"min=1"`
 
-	MONGODB_URI      string `validate:"uri"`
-	MONGODB_DATABASE string `validate:"min=1"`
+	POSTGRES_USER     string `validate:"min=1"`
+	POSTGRES_PASSWORD string `validate:"min=1"`
+	POSTGRES_DB       string `validate:"min=1"`
+	POSTGRES_HOST     string `validate:"min=1"`
+	POSTGRES_PORT     int    `validate:"min=1"`
+
+	MIGRATION_URL string `validate:"url"`
 
 	CLIENTS_CONFIG_PATH string `validate:"min=1"`
 	EVM_PRIVATE_KEY     string `validate:"min=1"`
@@ -74,6 +80,11 @@ func loadEnv() {
 
 	env := os.Getenv("ENV")
 
+	postgresPort, err := strconv.Atoi(os.Getenv("POSTGRES_PORT"))
+	if err != nil {
+		panic(err)
+	}
+
 	Env = &ServerEnv{
 		ENV:             env,
 		CORS_WHITE_LIST: corsWhiteList,
@@ -85,17 +96,21 @@ func loadEnv() {
 		OPENOBSERVE_ENDPOINT:   os.Getenv("OPENOBSERVE_ENDPOINT"),
 		OPENOBSERVE_CREDENTIAL: os.Getenv("OPENOBSERVE_CREDENTIAL"),
 
-		MONGODB_URI:      os.Getenv("MONGODB_URI"),
-		MONGODB_DATABASE: os.Getenv("MONGODB_DATABASE"),
+		POSTGRES_USER:     os.Getenv("POSTGRES_USER"),
+		POSTGRES_PASSWORD: os.Getenv("POSTGRES_PASSWORD"),
+		POSTGRES_DB:       os.Getenv("POSTGRES_DB"),
+		POSTGRES_HOST:     os.Getenv("POSTGRES_HOST"),
+		POSTGRES_PORT:     postgresPort,
+		MIGRATION_URL:     os.Getenv("MIGRATION_URL"),
 
 		CLIENTS_CONFIG_PATH: os.Getenv("CLIENTS_CONFIG_PATH"),
 		EVM_PRIVATE_KEY:     os.Getenv("EVM_PRIVATE_KEY"),
 	}
 
 	validate := validator.New()
-	err := validate.Struct(Env)
-
+	err = validate.Struct(Env)
 	if err != nil {
 		panic(err)
 	}
+
 }

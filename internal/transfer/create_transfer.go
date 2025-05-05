@@ -7,7 +7,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/labstack/echo/v4"
 	"github.com/scalarorg/scalar-healer/pkg/crypto/eip712"
-	"github.com/scalarorg/scalar-healer/pkg/db/mongo"
+	"github.com/scalarorg/scalar-healer/pkg/db"
 	"github.com/scalarorg/scalar-healer/pkg/utils"
 )
 
@@ -27,7 +27,7 @@ func CreateTransfer(c echo.Context) error {
 
 	ctx := c.Request().Context()
 
-	db := mongo.GetRepositoryFromContext(c)
+	db := db.GetRepositoryFromContext(c)
 
 	gatewayAddress, err := db.GetGatewayAddress(ctx, body.ChainID)
 	if err != nil {

@@ -4,7 +4,7 @@ import (
 	"math"
 
 	"github.com/rs/zerolog/log"
-	"github.com/scalarorg/scalar-healer/pkg/db/models"
+	"github.com/scalarorg/scalar-healer/pkg/db"
 	"github.com/scalarorg/scalar-healer/pkg/evm"
 	contracts "github.com/scalarorg/scalar-healer/pkg/evm/contracts/generated"
 )
@@ -13,8 +13,8 @@ import (
 // with the first element is switch to Preparing phase
 type GroupRedeemSessions struct {
 	GroupUid          string
-	MaxSession        models.Session
-	MinSession        models.Session
+	MaxSession        db.Session
+	MinSession        db.Session
 	SwitchPhaseEvents map[string][]*contracts.IScalarGatewaySwitchPhase //Map by chainId
 	RedeemTokenEvents map[string][]*contracts.IScalarGatewayRedeemToken
 }
@@ -29,15 +29,15 @@ func (s *GroupRedeemSessions) Construct() {
 		lastEvent := switchPhaseEvent[len(switchPhaseEvent)-1]
 		if s.MaxSession.Sequence < lastEvent.Sequence {
 			s.MaxSession.Sequence = lastEvent.Sequence
-			s.MaxSession.Phase = models.Phase(lastEvent.To)
+			s.MaxSession.Phase = db.Phase(lastEvent.To)
 		} else if s.MaxSession.Sequence == lastEvent.Sequence && uint8(s.MaxSession.Phase) < lastEvent.To {
-			s.MaxSession.Phase = models.Phase(lastEvent.To)
+			s.MaxSession.Phase = db.Phase(lastEvent.To)
 		}
 		if s.MinSession.Sequence > lastEvent.Sequence {
 			s.MinSession.Sequence = lastEvent.Sequence
-			s.MinSession.Phase = models.Phase(lastEvent.To)
-		} else if s.MinSession.Sequence == lastEvent.Sequence && s.MinSession.Phase > models.Phase(lastEvent.To) {
-			s.MinSession.Phase = models.Phase(lastEvent.To)
+			s.MinSession.Phase = db.Phase(lastEvent.To)
+		} else if s.MinSession.Sequence == lastEvent.Sequence && s.MinSession.Phase > db.Phase(lastEvent.To) {
+			s.MinSession.Phase = db.Phase(lastEvent.To)
 		}
 	}
 	diff := s.MaxSession.Cmp(&s.MinSession)
@@ -46,9 +46,9 @@ func (s *GroupRedeemSessions) Construct() {
 		Any("minSession", s.MinSession).
 		Msg("[GroupRedeemSessions] [ConstructPreparingPhase]")
 
-	if s.MaxSession.Phase == models.Preparing {
+	if s.MaxSession.Phase == db.Preparing {
 		s.ConstructPreparingPhase()
-	} else if s.MaxSession.Phase == models.Executing {
+	} else if s.MaxSession.Phase == db.Executing {
 		s.ConstructExecutingPhase()
 	}
 }
@@ -85,8 +85,8 @@ func (s *GroupRedeemSessions) ConstructPreparingPhase() {
 		//Find all chains with 2 events [Preparing, Executing], remove the first event
 		for chainId, switchPhaseEvent := range s.SwitchPhaseEvents {
 			if len(switchPhaseEvent) == 2 &&
-				switchPhaseEvent[0].To == uint8(models.Preparing) &&
-				switchPhaseEvent[1].To == uint8(models.Executing) {
+				switchPhaseEvent[0].To == uint8(db.Preparing) &&
+				switchPhaseEvent[1].To == uint8(db.Executing) {
 				s.SwitchPhaseEvents[chainId] = switchPhaseEvent[1:]
 			}
 		}

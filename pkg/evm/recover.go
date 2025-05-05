@@ -11,7 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/rs/zerolog/log"
-	"github.com/scalarorg/scalar-healer/pkg/db/models"
+	"github.com/scalarorg/scalar-healer/pkg/db"
 	contracts "github.com/scalarorg/scalar-healer/pkg/evm/contracts/generated"
 )
 
@@ -365,7 +365,7 @@ func (c *EvmClient) RecoverRedeemSessions(groups []string) (*ChainRedeemSessions
 				}
 				log.Info().Str("Chain", c.EvmConfig.ID).Str("groupUid", groupUid).Msg("[EvmClient] [RecoverRedeemSessions] found preparing event")
 				counter := chainRedeemSessions.AppendSwitchPhaseEvent(groupUid, switchedPhase)
-				if counter == 2 || switchedPhase.To == uint8(models.Preparing) && switchedPhase.Sequence == 1 {
+				if counter == 2 || switchedPhase.To == uint8(db.Preparing) && switchedPhase.Sequence == 1 {
 					//Stop get logs if we have 2 switch phase events or hit the fist event from sequence 1
 					delete(expectingGroups, groupUid)
 				}

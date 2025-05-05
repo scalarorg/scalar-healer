@@ -6,7 +6,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/scalarorg/scalar-healer/config"
 	"github.com/scalarorg/scalar-healer/internal/daemon"
-	"github.com/scalarorg/scalar-healer/pkg/db/mongo"
+	"github.com/scalarorg/scalar-healer/pkg/db/postgres"
 	"github.com/scalarorg/scalar-healer/pkg/openobserve"
 )
 
@@ -23,7 +23,14 @@ func main() {
 
 	config.InitLogger()
 
-	db := mongo.NewMongoRepository()
+	db := postgres.NewRepository(context.Background(), &postgres.ConnConfig{
+		User:     config.Env.POSTGRES_USER,
+		Password: config.Env.POSTGRES_PASSWORD,
+		Host:     config.Env.POSTGRES_HOST,
+		Port:     config.Env.POSTGRES_PORT,
+		DBName:   config.Env.POSTGRES_DB,
+	}, config.Env.MIGRATION_URL)
+
 	service := daemon.NewService(config.Env.CLIENTS_CONFIG_PATH, config.Env.EVM_PRIVATE_KEY, db)
 	err := service.Start(context.Background())
 	if err != nil {

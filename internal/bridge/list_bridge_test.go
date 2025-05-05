@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/scalarorg/scalar-healer/pkg/db/models"
+	"github.com/scalarorg/scalar-healer/pkg/db/sqlc"
 	"github.com/scalarorg/scalar-healer/pkg/utils"
 	"github.com/zeebo/assert"
 )
@@ -43,7 +43,7 @@ func TestListRedeem(t *testing.T) {
 				assert.Equal(t, http.StatusOK, recoder.Code)
 				data, err := io.ReadAll(recoder.Body)
 				assert.NoError(t, err)
-				var list []*models.BridgeRequest
+				var list []*sqlc.BridgeRequest
 				json.Unmarshal(data, &list)
 				assert.Equal(t, 1, len(list))
 				address := common.HexToAddress("0x24a1dB57Fa3ecAFcbaD91d6Ef068439acEeAe090")

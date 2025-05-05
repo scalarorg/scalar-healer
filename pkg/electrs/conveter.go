@@ -15,9 +15,9 @@ import (
 	"gorm.io/gorm"
 )
 
-func (c *Client) CategorizeVaultTxs(ctx context.Context, vaultTxs []types.VaultTransaction) ([]*chains.TokenSent, []*chains.RedeemTx) {
-	tokenSents := []*chains.TokenSent{}
-	redeemTxs := []*chains.RedeemTx{}
+func (c *Client) CategorizeVaultTxs(ctx context.Context, vaultTxs []types.VaultTransaction) ([]chains.TokenSent, []chains.RedeemTx) {
+	tokenSents := []chains.TokenSent{}
+	redeemTxs := []chains.RedeemTx{}
 	for _, vaultTx := range vaultTxs {
 		if vaultTx.VaultTxType == 1 {
 			//1.Staking
@@ -27,12 +27,12 @@ func (c *Client) CategorizeVaultTxs(ctx context.Context, vaultTxs []types.VaultT
 			} else if tokenSent.Symbol == "" {
 				log.Error().Msgf("[ElectrumClient] [CreateTokenSents] symbol not found for token: %s", vaultTx.DestTokenAddress)
 			} else {
-				tokenSents = append(tokenSents, tokenSent)
+				tokenSents = append(tokenSents, *tokenSent)
 			}
 		} else if vaultTx.VaultTxType == 2 {
 			//2.Unstaking
 			redeemTx := c.CreateRedeemTx(vaultTx)
-			redeemTxs = append(redeemTxs, redeemTx)
+			redeemTxs = append(redeemTxs, *redeemTx)
 			log.Info().Any("RedeemTx", redeemTx).Msg("[ElectrumClient] [CategorizeVaultTxs]")
 		}
 	}

@@ -39,9 +39,9 @@ func (c *Client) BlockchainHeaderHandler(ctx context.Context) func(header *types
 
 func (c *Client) tryConfirmTokenSents(ctx context.Context, blockHeight int) error {
 	// Check pending vault transactions in the relayer db, if the confirmation is enough, send to the event bus
-	lastConfirmedBlockNumber := blockHeight - c.electrumConfig.Confirmations + 1
+	lastConfirmedBlockNumber := blockHeight - int(c.electrumConfig.Confirmations) + 1
 
-	tokenSents, err := c.dbAdapter.FindPendingBtcTokenSent(ctx, c.electrumConfig.SourceChain, lastConfirmedBlockNumber)
+	tokenSents, err := c.dbAdapter.FindPendingBtcTokenSent(ctx, c.electrumConfig.SourceChain, int32(lastConfirmedBlockNumber))
 	if err != nil {
 		log.Error().Err(err).Msg("[ElectrumClient] [tryConfirmTokenSents] Failed to get pending vault transactions from db")
 		return fmt.Errorf("failed to get pending vault transactions from db: %w", err)
@@ -63,8 +63,8 @@ func (c *Client) tryConfirmTokenSents(ctx context.Context, blockHeight int) erro
 }
 func (c *Client) tryHandleRedeemsTransaction(ctx context.Context, blockHeight int) error {
 	// Check pending redeem transactions in the relayer db, if the confirmation is enough, send to the event bus
-	lastConfirmedBlockNumber := blockHeight - c.electrumConfig.Confirmations + 1
-	redeemTxs, err := c.dbAdapter.FindPendingRedeemsTransaction(ctx, c.electrumConfig.SourceChain, lastConfirmedBlockNumber)
+	lastConfirmedBlockNumber := blockHeight - int(c.electrumConfig.Confirmations) + 1
+	redeemTxs, err := c.dbAdapter.FindPendingRedeemsTransaction(ctx, c.electrumConfig.SourceChain, int32(lastConfirmedBlockNumber))
 	if err != nil {
 		log.Error().Err(err).Msg("[ElectrumClient] [tryHandleRedeemTransaction] Failed to get pending redeem transactions from db")
 		return fmt.Errorf("failed to get pending redeem transactions from db: %w", err)
@@ -149,7 +149,7 @@ func (c *Client) PreProcessVaultsMessages(vaultTxs []types.VaultTransaction) err
 	return nil
 }
 
-func (c *Client) handleTokenSents(ctx context.Context, tokenSents []*chains.TokenSent) error {
+func (c *Client) handleTokenSents(ctx context.Context, tokenSents []chains.TokenSent) error {
 	log.Debug().Int("CurrentHeight", c.currentHeight).Msgf("[ElectrumClient] [handleTokenSents] Received %d token sent transactions", len(tokenSents))
 	//If confirmations is 1, send to the event bus with destination chain is scalar for confirmation
 	//If confirmations is greater than 1, wait for the next blocks to get more confirmations before broadcasting to the scalar network
@@ -172,7 +172,7 @@ func (c *Client) handleTokenSents(ctx context.Context, tokenSents []*chains.Toke
 }
 
 // Todo: update ContractCallWithToken status with execution confirmation from bitcoin network
-func (c *Client) handleRedeemTxs(ctx context.Context, redeemTxs []*chains.RedeemTx) error {
+func (c *Client) handleRedeemTxs(ctx context.Context, redeemTxs []chains.RedeemTx) error {
 	log.Debug().Int("CurrentHeight", c.currentHeight).Msgf("[ElectrumClient] [handleRedeemTxs] Received %d redeem transactions", len(redeemTxs))
 	//1. Store redeem transactions to the db
 	err := c.dbAdapter.SaveRedeemTxs(ctx, redeemTxs)
@@ -192,7 +192,7 @@ func (c *Client) handleRedeemTxs(ctx context.Context, redeemTxs []*chains.Redeem
 
 // // Group redeem txs by custodian group uid with condition:
 // // Redeem txs have enough confirmations and highest sequence number
-// func (c *Client) groupRedeemTxs(redeemTxs []*chains.RedeemTx) map[string]*events.RedeemTxEvents {
+// func (c *Client) groupRedeemTxs(redeemTxs []chains.RedeemTx) map[string]*events.RedeemTxEvents {
 // 	mapRedeemTxs := make(map[string]*events.RedeemTxEvents)
 // 	for _, redeemTx := range redeemTxs {
 // 		txConfirmations := c.currentHeight - int(redeemTx.BlockNumber) + 1
@@ -204,12 +204,12 @@ func (c *Client) handleRedeemTxs(ctx context.Context, redeemTxs []*chains.Redeem
 // 			redeemTxEvents = &events.RedeemTxEvents{
 // 				Chain:     c.electrumConfig.SourceChain,
 // 				GroupUid:  redeemTx.CustodianGroupUid,
-// 				RedeemTxs: []*chains.RedeemTx{},
+// 				RedeemTxs: []chains.RedeemTx{},
 // 			}
 // 		}
 // 		if redeemTx.SessionSequence > redeemTxEvents.Sequence {
 // 			redeemTxEvents.Sequence = redeemTx.SessionSequence
-// 			redeemTxEvents.RedeemTxs = []*chains.RedeemTx{redeemTx}
+// 			redeemTxEvents.RedeemTxs = []chains.RedeemTx{redeemTx}
 // 		} else if redeemTx.SessionSequence == redeemTxEvents.Sequence {
 // 			redeemTxEvents.RedeemTxs = append(redeemTxEvents.RedeemTxs, redeemTx)
 // 		}

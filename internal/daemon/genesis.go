@@ -7,13 +7,13 @@ import (
 
 	"github.com/rs/zerolog/log"
 	"github.com/scalarorg/scalar-healer/config"
-	"github.com/scalarorg/scalar-healer/pkg/db/models"
+	"github.com/scalarorg/scalar-healer/pkg/db"
 	"golang.org/x/crypto/sha3"
 )
 
 func (s *Service) initGenesis(ctx context.Context) {
 	protocolCfgPath := fmt.Sprintf("%s/protocols.json", s.ConfigPath)
-	protocols, err := config.ReadJsonArrayConfig[models.Protocol](protocolCfgPath)
+	protocols, err := config.ReadJsonArrayConfig[db.Protocol](protocolCfgPath)
 	if err != nil {
 		panic(err)
 	}
@@ -24,8 +24,8 @@ func (s *Service) initGenesis(ctx context.Context) {
 	s.initTokens(ctx, protocols)
 }
 
-func (s *Service) initTokens(ctx context.Context, protocols []models.Protocol) {
-	tokens := make([]models.Token, 0)
+func (s *Service) initTokens(ctx context.Context, protocols []db.Protocol) {
+	tokens := make([]db.Token, 0)
 	for _, protocol := range protocols {
 		for _, evmClient := range s.EvmClients {
 			tokenAddr := evmClient.GetTokenAddressBySymbol(protocol.Symbol)
@@ -33,7 +33,7 @@ func (s *Service) initTokens(ctx context.Context, protocols []models.Protocol) {
 				log.Error().Msgf("Token address not found for symbol %s", protocol.Symbol)
 				continue
 			}
-			token := models.Token{
+			token := db.Token{
 				Protocol:  protocol.Name,
 				Address:   tokenAddr.Bytes(),
 				ChainID:   evmClient.EvmConfig.ChainID,

@@ -8,7 +8,7 @@ import (
 	"sync/atomic"
 
 	"github.com/rs/zerolog/log"
-	"github.com/scalarorg/scalar-healer/pkg/db/models"
+	"github.com/scalarorg/scalar-healer/pkg/db"
 	"github.com/scalarorg/scalar-healer/pkg/evm"
 	contracts "github.com/scalarorg/scalar-healer/pkg/evm/contracts/generated"
 )
@@ -47,12 +47,12 @@ func (s *Service) RecoverEvmSessions(ctx context.Context, groups []string) error
 				//Any("switchPhaseEvents", groupRedeemSessions.SwitchPhaseEvents).
 				//Any("redeemTokenEvents", groupRedeemSessions.RedeemTokenEvents).
 				Msg("[Relayer] [RecoverEvmSessions] recovered redeem session for each group")
-			if groupRedeemSessions.MaxSession.Phase == models.Executing {
+			if groupRedeemSessions.MaxSession.Phase == db.Executing {
 				err := s.processRecoverExecutingPhase(ctx, groupUid, groupRedeemSessions)
 				if err != nil {
 					log.Warn().Err(err).Msgf("[Relayer] [RecoverEvmSessions] cannot process recover executing phase for group %s", groupUid)
 				}
-			} else if groupRedeemSessions.MaxSession.Phase == models.Preparing {
+			} else if groupRedeemSessions.MaxSession.Phase == db.Preparing {
 				err := s.processRecoverPreparingPhase(ctx, groupUid, groupRedeemSessions)
 				if err != nil {
 					log.Warn().Err(err).Msgf("[Relayer] [RecoverEvmSessions] cannot process recover preparing phase for group %s", groupUid)
@@ -88,7 +88,7 @@ func (s *Service) processRecoverExecutingPhase(ctx context.Context, groupUid str
 		if evmCounter != int32(len(s.EvmClients)) {
 			panic(fmt.Sprintf("[Relayer] [processRecoverExecutingPhase] cannot recover all evm switch phase events, evm counter is %d", evmCounter))
 		}
-		if expectedPhase != int32(models.Preparing) {
+		if expectedPhase != int32(db.Preparing) {
 			panic("[Relayer] [processRecoverExecutingPhase] by design, recover first event switch to Preparing for all evm chains")
 		}
 
@@ -108,7 +108,7 @@ func (s *Service) processRecoverExecutingPhase(ctx context.Context, groupUid str
 	if hasDifferentPhase {
 		panic("[Relayer] [processRecoverExecutionPhase] cannot recover all evm switch phase events")
 	}
-	if expectedPhase != int32(models.Executing) {
+	if expectedPhase != int32(db.Executing) {
 		panic(fmt.Sprintf("[Relayer] [processRecoverExecutionPhase] cannot recover all evm switch phase events, expected phase is %d", expectedPhase))
 	}
 
@@ -136,7 +136,7 @@ func (s *Service) processRecoverPreparingPhase(ctx context.Context, groupUid str
 		panic(fmt.Sprintf("[Relayer] [processRecoverPreparingPhase] cannot recover all evm switch phase events, evm counter is %d", evmCounter))
 	}
 
-	if expectedPhase == int32(models.Preparing) {
+	if expectedPhase == int32(db.Preparing) {
 		//3. Replay all redeem transactions
 		mapTxHashes, err := s.replayRedeemTransactions(ctx, groupUid, groupRedeemSessions.RedeemTokenEvents)
 		if err != nil {
@@ -144,7 +144,7 @@ func (s *Service) processRecoverPreparingPhase(ctx context.Context, groupUid str
 			return err
 		}
 		log.Info().Any("mapTxHashes", mapTxHashes).Msg("[Relayer] [processRecoverPreparingPhase] finished replay redeem transactions")
-	} else if expectedPhase == int32(models.Executing) {
+	} else if expectedPhase == int32(db.Executing) {
 		err := s.replayBtcRedeemTxs(groupUid)
 		if err != nil {
 			log.Warn().Err(err).Msgf("[Relayer] [processRecoverPreparingPhase] cannot replay btc redeem transactions")

@@ -1,83 +1,80 @@
 package bridge_test
 
 import (
-	"context"
 	"os"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/scalarorg/scalar-healer/cmd/api/server"
 	"github.com/scalarorg/scalar-healer/config"
-	"github.com/scalarorg/scalar-healer/pkg/db/models"
-	"github.com/scalarorg/scalar-healer/pkg/db/mongo"
-	"go.mongodb.org/mongo-driver/bson"
+	"github.com/scalarorg/scalar-healer/pkg/db/postgres"
 )
 
 var (
 	testServer *server.Server
-	db         *mongo.MongoRepository
+	db         *postgres.PostgresRepository
 )
 
 func setup() {
 	config.LoadEnvWithPath("../../.env")
 	config.Env.ENV = "test"
-	config.Env.MONGODB_DATABASE = "scalar_healer_test"
+	config.Env.POSTGRES_DB = "scalar_healer_test"
 	server := server.New()
-	repo := server.DB.(*mongo.MongoRepository)
+	repo := server.DB.(*postgres.PostgresRepository)
+	_ = repo
 
-	// Clean up test data
-	_, err := repo.DB.Collection("redeem_requests").DeleteMany(context.Background(), bson.M{})
+	// // Clean up test data
+	// _, err := repo.DB.Collection("redeem_requests").DeleteMany(context.Background(), bson.M{})
 
-	if err != nil {
-		panic(err)
-	}
+	// if err != nil {
+	// 	panic(err)
+	// }
 
-	// Setup test data
-	gatewayAddr := common.HexToAddress("0x24a1dB57Fa3ecAFcbaD91d6Ef068439acEeAe090")
-	_, err = repo.DB.Collection("gateway_addresses").InsertOne(context.Background(), bson.M{
-		"chain_id": uint64(1),
-		"address":  gatewayAddr.Bytes(),
-	})
+	// // Setup test data
+	// gatewayAddr := common.HexToAddress("0x24a1dB57Fa3ecAFcbaD91d6Ef068439acEeAe090")
+	// _, err = repo.DB.Collection("gateway_addresses").InsertOne(context.Background(), bson.M{
+	// 	"chain_id": uint64(1),
+	// 	"address":  gatewayAddr.Bytes(),
+	// })
 
-	if err != nil {
-		panic(err)
-	}
+	// if err != nil {
+	// 	panic(err)
+	// }
 
-	err = repo.SaveTokenInfos(context.Background(), []models.Token{
-		{
-			Symbol:  "ETH",
-			ChainID: uint64(1),
-		},
-	})
+	// err = repo.SaveTokenInfos(context.Background(), []models.Token{
+	// 	{
+	// 		Symbol:  "ETH",
+	// 		ChainID: uint64(1),
+	// 	},
+	// })
 
-	if err != nil {
-		panic(err)
-	}
+	// if err != nil {
+	// 	panic(err)
+	// }
 
-	testServer = server
-	db = repo
+	// testServer = server
+	// db = repo
 }
 
 func cleanupTestDB() {
 	// Drop test collections
-	_, err := db.BridgeRequests.DeleteMany(context.Background(), bson.M{})
-	if err != nil {
-		panic(err)
-	}
+	// _, err := db.BridgeRequests.DeleteMany(context.Background(), bson.M{})
+	// if err != nil {
+	// 	panic(err)
+	// }
 
-	_, err = db.GatewayAddresses.DeleteMany(context.Background(), bson.M{})
+	// _, err = db.GatewayAddresses.DeleteMany(context.Background(), bson.M{})
 
-	if err != nil {
-		panic(err)
-	}
+	// if err != nil {
+	// 	panic(err)
+	// }
 
-	_, err = db.Tokens.DeleteMany(context.Background(), bson.M{})
-	if err != nil {
-		panic(err)
-	}
+	// _, err = db.Tokens.DeleteMany(context.Background(), bson.M{})
+	// if err != nil {
+	// 	panic(err)
+	// }
 
-	// Close connection
-	db.Close()
+	// // Close connection
+	// db.Close()
 }
 
 func TestMain(m *testing.M) {

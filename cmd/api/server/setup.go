@@ -12,7 +12,6 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/scalarorg/scalar-healer/config"
 	"github.com/scalarorg/scalar-healer/pkg/db"
-	"github.com/scalarorg/scalar-healer/pkg/db/mongo"
 	"github.com/scalarorg/scalar-healer/pkg/openobserve"
 	"github.com/scalarorg/scalar-healer/pkg/utils"
 	"github.com/scalarorg/scalar-healer/pkg/worker"
@@ -70,7 +69,7 @@ func setupAddHandlerEvent(e *echo.Echo) {
 	}
 }
 
-func setupMiddleware(e *echo.Echo, db db.DbAdapter) {
+func setupMiddleware(e *echo.Echo, adapter db.DbAdapter) {
 	e.Use(middleware.Recover())
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins:     config.Env.CORS_WHITE_LIST,
@@ -82,7 +81,7 @@ func setupMiddleware(e *echo.Echo, db db.DbAdapter) {
 
 	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			return mongo.SetRepositoryToContext(c, next, db)
+			return db.SetRepositoryToContext(c, next, adapter)
 		}
 	})
 }
