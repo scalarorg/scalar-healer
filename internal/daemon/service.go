@@ -2,12 +2,15 @@ package daemon
 
 import (
 	"context"
+	"encoding/hex"
 
 	"github.com/rs/zerolog/log"
 	"github.com/scalarorg/scalar-healer/pkg/btc"
 	"github.com/scalarorg/scalar-healer/pkg/db"
+	"github.com/scalarorg/scalar-healer/pkg/db/models"
 	"github.com/scalarorg/scalar-healer/pkg/electrs"
 	"github.com/scalarorg/scalar-healer/pkg/evm"
+	"github.com/scalarorg/scalar-healer/pkg/utils"
 )
 
 type Service struct {
@@ -50,7 +53,9 @@ func (s *Service) Start(ctx context.Context) error {
 	if err != nil {
 		log.Error().Err(err).Msg("[DaemonService] Cannot get custodian groups")
 	}
-	err = s.RecoverEvmSessions(ctx, groups)
+	err = s.RecoverEvmSessions(ctx, utils.Map(groups, func(group *models.CustodianGroup) string {
+		return hex.EncodeToString(group.UID)
+	}))
 	if err != nil {
 		log.Warn().Err(err).Msgf("[DaemonService] cannot recover evm sessions")
 		panic(err)

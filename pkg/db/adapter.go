@@ -27,7 +27,10 @@ type DbAdapter interface {
 	GetChainName(ctx context.Context, chainType string, chainId uint64) (string, error)
 
 	// custodian groups
-	GetAllCustodianGroups(ctx context.Context) ([]string, error)
+	GetAllCustodianGroups(ctx context.Context) ([]*models.CustodianGroup, error)
+
+	// utxo snapshots
+	SaveUtxoSnapshot(ctx context.Context, utxoSnapshot *models.UTXOSnapshot) error
 
 	// checkpoints
 	GetLastEventCheckPoint(ctx context.Context, chainName, eventName string, fromBlock uint64) (*scalarnet.EventCheckPoint, error)
