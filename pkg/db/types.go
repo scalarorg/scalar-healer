@@ -39,18 +39,6 @@ func (s *Session) Cmp(other *Session) int64 {
 type RedeemSession struct {
 }
 
-type RedeemRequest struct {
-	Address   []byte `json:"address" bson:"address"`
-	Signature []byte `json:"signature" bson:"signature"` // not need to validte length
-	ChainID   uint64 `json:"chain_id" bson:"chain_id"`
-	Symbol    string `json:"symbol" bson:"symbol"`
-	Amount    string `json:"amount" bson:"amount"` // bigint format
-	Nonce     uint64 `json:"nonce" bson:"nonce"`
-
-	CreatedAt int64 `json:"created_at" bson:"created_at"`
-	UpdatedAt int64 `json:"updated_at" bson:"updated_at"`
-}
-
 type Protocol struct {
 	Name               string   `json:"name" bson:"name"`
 	CustodianGroupName string   `json:"custodian_group_name" bson:"custodian_group_name"`

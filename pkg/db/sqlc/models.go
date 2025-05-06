@@ -27,6 +27,18 @@ type GatewayAddress struct {
 	UpdatedAt pgtype.Timestamp `json:"updated_at"`
 }
 
+type RedeemRequest struct {
+	ID        int64            `json:"id"`
+	Address   []byte           `json:"address"`
+	Signature []byte           `json:"signature"`
+	ChainID   pgtype.Numeric   `json:"chain_id"`
+	Symbol    string           `json:"symbol"`
+	Amount    string           `json:"amount"`
+	Nonce     pgtype.Numeric   `json:"nonce"`
+	CreatedAt pgtype.Timestamp `json:"created_at"`
+	UpdatedAt pgtype.Timestamp `json:"updated_at"`
+}
+
 type Token struct {
 	ID        int64            `json:"id"`
 	Protocol  string           `json:"protocol"`

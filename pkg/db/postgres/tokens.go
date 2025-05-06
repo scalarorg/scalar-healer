@@ -2,9 +2,11 @@ package postgres
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/scalarorg/scalar-healer/pkg/db"
 	"github.com/scalarorg/scalar-healer/pkg/db/sqlc"
 )
 
@@ -17,6 +19,7 @@ func (m *PostgresRepository) SaveTokens(ctx context.Context, tokens []sqlc.Token
 	var decimals []pgtype.Numeric
 	var names []string
 	var avatars []string
+	var actives []bool
 
 	for _, token := range tokens {
 		addresses = append(addresses, token.Address)
@@ -26,6 +29,7 @@ func (m *PostgresRepository) SaveTokens(ctx context.Context, tokens []sqlc.Token
 		decimals = append(decimals, token.Decimal)
 		names = append(names, token.Name)
 		avatars = append(avatars, token.Avatar)
+		actives = append(actives, token.Active)
 	}
 
 	return m.Queries.SaveTokens(ctx, sqlc.SaveTokensParams{
@@ -36,45 +40,27 @@ func (m *PostgresRepository) SaveTokens(ctx context.Context, tokens []sqlc.Token
 		Column5: decimals,  // decimal
 		Column6: names,     // name
 		Column7: avatars,   // avatar
+		Column8: actives,   // active,
 	})
 }
 
-func (m *PostgresRepository) GetTokenSymbolByAddress(ctx context.Context, chainId uint64, tokenAddress common.Address) (string, error) {
-
-	// filter := bson.M{
-	// 	"chain_id": chainId,
-	// 	"address":  tokenAddress.Bytes(),
-	// }
-	// var data struct {
-	// 	Symbol string `bson:"symbol"`
-	// }
-	// opts := options.FindOne().SetProjection(bson.M{
-	// 	"symbol": 1,
-	// })
-	// err := m.Tokens.FindOne(ctx, filter, opts).Decode(&data)
-	// if err != nil {
-	// 	return "", err
-	// }
-	// return data.Symbol, nil
-	return "", nil
+func (m *PostgresRepository) GetTokenSymbolByAddress(ctx context.Context, chainId uint64, tokenAddress *common.Address) (string, error) {
+	return m.Queries.GetTokenSymbolByAddress(ctx, sqlc.GetTokenSymbolByAddressParams{
+		ChainID: db.ConvertUint64ToNumeric(chainId),
+		Address: tokenAddress.Bytes(),
+	})
 }
 
 func (m *PostgresRepository) GetTokenAddressBySymbol(ctx context.Context, chainId uint64, tokenSymbol string) (*common.Address, error) {
-	// filter := bson.M{
-	// 	"chain_id": chainId,
-	// 	"symbol":   tokenSymbol,
-	// }
-	// var data struct {
-	// 	Address []byte `bson:"address"`
-	// }
-	// opts := options.FindOne().SetProjection(bson.M{
-	// 	"address": 1,
-	// })
-	// err := m.Tokens.FindOne(ctx, filter, opts).Decode(&data)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// add := common.BytesToAddress(data.Address)
-	// return &add, nil
-	return nil, nil
+	address, err := m.Queries.GetTokenAddressBySymbol(ctx, sqlc.GetTokenAddressBySymbolParams{
+		ChainID: db.ConvertUint64ToNumeric(chainId),
+		Symbol:  tokenSymbol,
+	})
+	if err != nil {
+		tokens, _ := m.Queries.ListTokens(ctx)
+		fmt.Printf("tokens: %v\n", tokens)
+		return nil, err
+	}
+	addr := common.BytesToAddress(address)
+	return &addr, nil
 }

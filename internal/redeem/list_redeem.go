@@ -16,7 +16,6 @@ type ListRedeemRequest struct {
 }
 
 func ListRedeem(c echo.Context) error {
-
 	var body ListRedeemRequest
 	if err := utils.BindAndValidate(c, &body); err != nil {
 		return err

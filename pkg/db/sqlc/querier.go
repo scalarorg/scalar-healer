@@ -13,8 +13,13 @@ import (
 type Querier interface {
 	CreateGatewayAddress(ctx context.Context, arg CreateGatewayAddressParams) error
 	GetGatewayAddress(ctx context.Context, chainID pgtype.Numeric) ([]byte, error)
+	GetTokenAddressBySymbol(ctx context.Context, arg GetTokenAddressBySymbolParams) ([]byte, error)
+	GetTokenSymbolByAddress(ctx context.Context, arg GetTokenSymbolByAddressParams) (string, error)
 	ListBridgeRequests(ctx context.Context, arg ListBridgeRequestsParams) ([]BridgeRequest, error)
+	ListRedeemRequests(ctx context.Context, arg ListRedeemRequestsParams) ([]RedeemRequest, error)
+	ListTokens(ctx context.Context) ([]Token, error)
 	SaveBridgeRequest(ctx context.Context, arg SaveBridgeRequestParams) error
+	SaveRedeemRequest(ctx context.Context, arg SaveRedeemRequestParams) error
 	SaveTokens(ctx context.Context, arg SaveTokensParams) error
 }
 

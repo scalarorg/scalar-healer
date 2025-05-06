@@ -6,6 +6,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/signer/core/apitypes"
+	"github.com/scalarorg/scalar-healer/constants"
 	"github.com/scalarorg/scalar-healer/pkg/db"
 )
 
@@ -66,7 +67,7 @@ func (m *BaseMessage) Validate(ctx context.Context, db db.DbAdapter, contractAdd
 	address := common.HexToAddress(m.Address)
 	nonce := db.GetNonce(ctx, address)
 	if nonce != m.Nonce {
-		return fmt.Errorf("invalid nonce")
+		return constants.ErrInvalidNonce
 	}
 	// Create and convert message to EIP-712 typed data
 	typedData := m.ToTypedData(*contractAddress)

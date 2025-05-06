@@ -1,75 +1,63 @@
 package redeem_test
 
-// var (
-// 	testServer *server.Server
-// 	db         *mongo.MongoRepository
-// )
+import (
+	"context"
+	"os"
+	"testing"
 
-// func setup() {
-// 	config.LoadEnvWithPath("../../.env")
-// 	config.Env.ENV = "test"
-// 	config.Env.POSTGRES_DB = "scalar_healer_test"
-// 	server := server.New()
-// 	repo := server.DB.(*mongo.MongoRepository)
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/scalarorg/scalar-healer/cmd/api/server"
+	"github.com/scalarorg/scalar-healer/pkg/db"
+	"github.com/scalarorg/scalar-healer/pkg/db/postgres"
+	"github.com/scalarorg/scalar-healer/pkg/db/sqlc"
+	testutils "github.com/scalarorg/scalar-healer/pkg/test_utils"
+)
 
-// 	// Clean up test data
-// 	_, err := repo.DB.Collection("redeem_requests").DeleteMany(context.Background(), bson.M{})
+var (
+	testServer *server.Server
+	dbAdapter  db.DbAdapter
+)
 
-// 	if err != nil {
-// 		panic(err)
-// 	}
+func TestMain(m *testing.M) {
+	var code int
+	testutils.RunWithTestDB(func(ctx context.Context, repo db.DbAdapter) error {
+		// Setup test data
+		gatewayAddr := common.HexToAddress("0x24a1dB57Fa3ecAFcbaD91d6Ef068439acEeAe090")
+		pg := (repo).(*postgres.PostgresRepository)
+		if pg == nil {
+			panic("repo is not postgres")
+		}
 
-// 	// Setup test data
-// 	gatewayAddr := common.HexToAddress("0x24a1dB57Fa3ecAFcbaD91d6Ef068439acEeAe090")
-// 	_, err = repo.DB.Collection("gateway_addresses").InsertOne(context.Background(), bson.M{
-// 		"chain_id": uint64(1),
-// 		"address":  gatewayAddr.Bytes(),
-// 	})
+		err := pg.Queries.CreateGatewayAddress(ctx, sqlc.CreateGatewayAddressParams{
+			ChainID: db.ConvertUint64ToNumeric(1),
+			Address: gatewayAddr.Bytes(),
+		})
 
-// 	if err != nil {
-// 		panic(err)
-// 	}
+		if err != nil {
+			panic(err)
+		}
 
-// 	err = repo.SaveTokenInfos(context.Background(), []models.Token{
-// 		{
-// 			Symbol:  "ETH",
-// 			ChainID: uint64(1),
-// 		},
-// 	})
+		err = repo.SaveTokens(ctx, []sqlc.Token{
+			{
+				Symbol:   "ETH",
+				ChainID:  db.ConvertUint64ToNumeric(1),
+				Protocol: "SCALAR",
+				Address:  common.MaxAddress.Bytes(),
+				Name:     "Ethereum",
+				Decimal:  db.ConvertUint64ToNumeric(8),
+				Avatar:   "",
+				Active:   true,
+			},
+		})
 
-// 	if err != nil {
-// 		panic(err)
-// 	}
+		if err != nil {
+			panic(err)
+		}
 
-// 	testServer = server
-// 	db = repo
-// }
-
-// func cleanupTestDB() {
-// 	// Drop test collections
-// 	_, err := db.RedeemRequests.DeleteMany(context.Background(), bson.M{})
-// 	if err != nil {
-// 		panic(err)
-// 	}
-
-// 	_, err = db.GatewayAddresses.DeleteMany(context.Background(), bson.M{})
-
-// 	if err != nil {
-// 		panic(err)
-// 	}
-
-// 	_, err = db.Tokens.DeleteMany(context.Background(), bson.M{})
-// 	if err != nil {
-// 		panic(err)
-// 	}
-
-// 	// Close connection
-// 	db.Close()
-// }
-
-// func TestMain(m *testing.M) {
-// 	setup()
-// 	code := m.Run()
-// 	cleanupTestDB()
-// 	os.Exit(code)
-// }
+		dbAdapter = repo
+		testServer = server.New(repo)
+		code = m.Run()
+		return nil
+	})
+	os.Exit(code)
+}

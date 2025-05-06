@@ -11,9 +11,77 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const getTokenAddressBySymbol = `-- name: GetTokenAddressBySymbol :one
+SELECT address FROM tokens WHERE chain_id = $1 AND symbol = $2
+`
+
+type GetTokenAddressBySymbolParams struct {
+	ChainID pgtype.Numeric `json:"chain_id"`
+	Symbol  string         `json:"symbol"`
+}
+
+func (q *Queries) GetTokenAddressBySymbol(ctx context.Context, arg GetTokenAddressBySymbolParams) ([]byte, error) {
+	row := q.db.QueryRow(ctx, getTokenAddressBySymbol, arg.ChainID, arg.Symbol)
+	var address []byte
+	err := row.Scan(&address)
+	return address, err
+}
+
+const getTokenSymbolByAddress = `-- name: GetTokenSymbolByAddress :one
+SELECT symbol FROM tokens WHERE chain_id = $1 AND address = $2
+`
+
+type GetTokenSymbolByAddressParams struct {
+	ChainID pgtype.Numeric `json:"chain_id"`
+	Address []byte         `json:"address"`
+}
+
+func (q *Queries) GetTokenSymbolByAddress(ctx context.Context, arg GetTokenSymbolByAddressParams) (string, error) {
+	row := q.db.QueryRow(ctx, getTokenSymbolByAddress, arg.ChainID, arg.Address)
+	var symbol string
+	err := row.Scan(&symbol)
+	return symbol, err
+}
+
+const listTokens = `-- name: ListTokens :many
+SELECT id, protocol, symbol, chain_id, active, address, decimal, name, avatar, created_at, updated_at FROM tokens
+`
+
+func (q *Queries) ListTokens(ctx context.Context) ([]Token, error) {
+	rows, err := q.db.Query(ctx, listTokens)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Token{}
+	for rows.Next() {
+		var i Token
+		if err := rows.Scan(
+			&i.ID,
+			&i.Protocol,
+			&i.Symbol,
+			&i.ChainID,
+			&i.Active,
+			&i.Address,
+			&i.Decimal,
+			&i.Name,
+			&i.Avatar,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const saveTokens = `-- name: SaveTokens :exec
-INSERT INTO tokens (address, chain_id, protocol, symbol, decimal, name, avatar)
-VALUES (unnest($1::bytea[]), unnest($2::numeric[]), unnest($3::text[]), unnest($4::text[]), unnest($5::numeric[]), unnest($6::text[]), unnest($7::text[]))
+INSERT INTO tokens (address, chain_id, protocol, symbol, decimal, name, avatar, active)
+VALUES (unnest($1::bytea[]), unnest($2::numeric[]), unnest($3::text[]), unnest($4::text[]), unnest($5::numeric[]), unnest($6::text[]), unnest($7::text[]), unnest($8::boolean[]))
 `
 
 type SaveTokensParams struct {
@@ -24,6 +92,7 @@ type SaveTokensParams struct {
 	Column5 []pgtype.Numeric `json:"column_5"`
 	Column6 []string         `json:"column_6"`
 	Column7 []string         `json:"column_7"`
+	Column8 []bool           `json:"column_8"`
 }
 
 func (q *Queries) SaveTokens(ctx context.Context, arg SaveTokensParams) error {
@@ -35,6 +104,7 @@ func (q *Queries) SaveTokens(ctx context.Context, arg SaveTokensParams) error {
 		arg.Column5,
 		arg.Column6,
 		arg.Column7,
+		arg.Column8,
 	)
 	return err
 }

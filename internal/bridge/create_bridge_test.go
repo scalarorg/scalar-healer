@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/scalarorg/scalar-healer/constants"
 	"github.com/scalarorg/scalar-healer/internal/bridge"
 	"github.com/scalarorg/scalar-healer/pkg/crypto/eip712"
 	testutils "github.com/scalarorg/scalar-healer/pkg/test_utils"
@@ -65,7 +66,7 @@ func TestCreateBridgeRequest(t *testing.T) {
 				err := json.NewDecoder(rec.Body).Decode(&response)
 				assert.NoError(t, err)
 				data := response["message"]
-				assert.Equal(t, data, "not found gateway address for chain: 1000")
+				assert.Equal(t, data, constants.ErrNotFoundGateway.Error())
 			},
 		},
 		{
@@ -85,7 +86,7 @@ func TestCreateBridgeRequest(t *testing.T) {
 				err := json.NewDecoder(rec.Body).Decode(&response)
 				assert.NoError(t, err)
 				data := response["message"]
-				assert.Equal(t, data, "invalid signature")
+				assert.Equal(t, data, constants.ErrInvalidSignature.Error())
 			},
 		},
 	}

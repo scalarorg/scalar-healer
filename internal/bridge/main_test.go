@@ -37,13 +37,6 @@ func TestMain(m *testing.M) {
 			panic(err)
 		}
 
-		err = repo.SaveTokens(context.Background(), []sqlc.Token{
-			{
-				Symbol:  "ETH",
-				ChainID: db.ConvertUint64ToNumeric(1),
-			},
-		})
-
 		dbAdapter = repo
 		testServer = server.New(repo)
 		code = m.Run()

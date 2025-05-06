@@ -8,6 +8,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/signer/core/apitypes"
+	"github.com/scalarorg/scalar-healer/constants"
 )
 
 // SignTypedData signs EIP-712 typed data with the provided private key
@@ -40,7 +41,7 @@ func VerifySignTypedData(typedData apitypes.TypedData, address common.Address, s
 	_addrress := crypto.PubkeyToAddress(*publicKey)
 
 	if _addrress.Hex() != address.Hex() {
-		return fmt.Errorf("invalid signature")
+		return constants.ErrInvalidSignature
 	}
 	return nil
 }

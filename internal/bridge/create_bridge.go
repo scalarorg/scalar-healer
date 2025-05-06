@@ -1,11 +1,11 @@
 package bridge
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/labstack/echo/v4"
+	"github.com/scalarorg/scalar-healer/constants"
 	"github.com/scalarorg/scalar-healer/pkg/crypto/eip712"
 	"github.com/scalarorg/scalar-healer/pkg/db"
 	"github.com/scalarorg/scalar-healer/pkg/utils"
@@ -28,7 +28,7 @@ func CreateBridge(c echo.Context) error {
 
 	gatewayAddress, err := db.GetGatewayAddress(ctx, body.ChainID)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("not found gateway address for chain: %d", body.ChainID))
+		return echo.NewHTTPError(http.StatusBadRequest, constants.ErrNotFoundGateway)
 
 	}
 

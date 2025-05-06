@@ -1,11 +1,11 @@
 package redeem
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/labstack/echo/v4"
+	"github.com/scalarorg/scalar-healer/constants"
 	"github.com/scalarorg/scalar-healer/pkg/crypto/eip712"
 	"github.com/scalarorg/scalar-healer/pkg/db"
 	"github.com/scalarorg/scalar-healer/pkg/utils"
@@ -29,18 +29,19 @@ func CreateRedeem(c echo.Context) error {
 
 	gatewayAddress, err := db.GetGatewayAddress(ctx, body.ChainID)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("not found gateway address for chain: %d", body.ChainID))
+		return echo.NewHTTPError(http.StatusBadRequest, constants.ErrNotFoundGateway)
 
 	}
+
 	_, err = db.GetTokenAddressBySymbol(ctx, body.ChainID, body.Symbol)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "token not exists")
+		return echo.NewHTTPError(http.StatusBadRequest, constants.ErrTokenNotExists)
 	}
 
 	// TODO: validate the balance on evm network
 	amountz, ok := utils.StringToBigInt(body.Amount)
 	if !ok {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid amount")
+		return echo.NewHTTPError(http.StatusBadRequest, constants.ErrInvalidAmount)
 	}
 
 	message := eip712.NewRedeemRequestMessage(&body.BaseRequest, body.Symbol, amountz)

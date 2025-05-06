@@ -49,3 +49,34 @@ func TestCreateGatewayAddress(t *testing.T) {
 		return nil
 	})
 }
+
+func TestCreateTokens(t *testing.T) {
+	testutils.RunWithTestDB(func(ctx context.Context, repo db.DbAdapter) error {
+		err := repo.SaveTokens(ctx, []sqlc.Token{
+			{
+				Symbol:   "ETH",
+				ChainID:  db.ConvertUint64ToNumeric(1),
+				Protocol: "SCALAR",
+				Address:  common.MaxAddress.Bytes(),
+				Name:     "Ethereum",
+				Decimal:  db.ConvertUint64ToNumeric(8),
+				Avatar:   "",
+				Active:   true,
+			},
+		})
+		if err != nil {
+			t.Errorf("failed to save tokens: %v", err)
+		}
+
+		pg := (repo).(*postgres.PostgresRepository)
+
+		allTokens, err := pg.ListTokens(ctx)
+		if err != nil {
+			t.Errorf("failed to list tokens: %v", err)
+		}
+
+		t.Logf("all tokens: %v", allTokens)
+
+		return nil
+	})
+}

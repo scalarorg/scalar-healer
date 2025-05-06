@@ -18,7 +18,7 @@ type DbAdapter interface {
 	// tokens
 	SaveTokens(ctx context.Context, tokens []sqlc.Token) error
 	GetTokenAddressBySymbol(ctx context.Context, chainId uint64, symbol string) (*common.Address, error)
-	GetTokenSymbolByAddress(ctx context.Context, chainId uint64, tokenAddress common.Address) (string, error)
+	GetTokenSymbolByAddress(ctx context.Context, chainId uint64, tokenAddress *common.Address) (string, error)
 
 	// gateways
 	GetGatewayAddress(ctx context.Context, chainId uint64) (*common.Address, error)
@@ -59,7 +59,7 @@ type DbAdapter interface {
 	UpdateRedeemExecutedCommands(ctx context.Context, chainId string, txHashes []string) error
 
 	SaveRedeemRequest(ctx context.Context, chainId uint64, address common.Address, signature []byte, amount *big.Int, symbol string, nonce uint64) error
-	ListRedeemRequests(ctx context.Context, address common.Address, page, size int32) ([]RedeemRequest, error)
+	ListRedeemRequests(ctx context.Context, address common.Address, page, size int32) ([]sqlc.RedeemRequest, error)
 
 	// contract calls
 	SaveContractCallWithToken(ctx context.Context, contractCallWithToken *chains.ContractCallWithToken, eventCheckPoint *scalarnet.EventCheckPoint) error
