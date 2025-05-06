@@ -18,3 +18,25 @@ type BridgeRequest struct {
 	CreatedAt pgtype.Timestamp `json:"created_at"`
 	UpdatedAt pgtype.Timestamp `json:"updated_at"`
 }
+
+type GatewayAddress struct {
+	ID        int64            `json:"id"`
+	Address   []byte           `json:"address"`
+	ChainID   pgtype.Numeric   `json:"chain_id"`
+	CreatedAt pgtype.Timestamp `json:"created_at"`
+	UpdatedAt pgtype.Timestamp `json:"updated_at"`
+}
+
+type Token struct {
+	ID        int64            `json:"id"`
+	Protocol  string           `json:"protocol"`
+	Symbol    string           `json:"symbol"`
+	ChainID   pgtype.Numeric   `json:"chain_id"`
+	Active    bool             `json:"active"`
+	Address   []byte           `json:"address"`
+	Decimal   pgtype.Numeric   `json:"decimal"`
+	Name      string           `json:"name"`
+	Avatar    string           `json:"avatar"`
+	CreatedAt pgtype.Timestamp `json:"created_at"`
+	UpdatedAt pgtype.Timestamp `json:"updated_at"`
+}

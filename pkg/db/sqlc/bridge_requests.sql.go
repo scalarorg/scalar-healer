@@ -57,7 +57,6 @@ func (q *Queries) ListBridgeRequests(ctx context.Context, arg ListBridgeRequests
 const saveBridgeRequest = `-- name: SaveBridgeRequest :exec
 INSERT INTO bridge_requests (address, signature, chain_id, tx_hash, nonce)
 VALUES ($1, $2, $3, $4, $5)
-ON CONFLICT (chain_id, nonce) DO NOTHING
 `
 
 type SaveBridgeRequestParams struct {

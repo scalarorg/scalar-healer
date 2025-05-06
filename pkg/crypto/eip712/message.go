@@ -60,12 +60,14 @@ func (m *BaseMessage) ToTypedData(gatewayAddress common.Address) apitypes.TypedD
 }
 
 func (m *BaseMessage) Validate(ctx context.Context, db db.DbAdapter, contractAddress *common.Address) error {
+	if contractAddress == nil {
+		return fmt.Errorf("contract address is nil")
+	}
 	address := common.HexToAddress(m.Address)
 	nonce := db.GetNonce(ctx, address)
 	if nonce != m.Nonce {
 		return fmt.Errorf("invalid nonce")
 	}
-
 	// Create and convert message to EIP-712 typed data
 	typedData := m.ToTypedData(*contractAddress)
 

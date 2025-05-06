@@ -4,27 +4,39 @@ import (
 	"context"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/scalarorg/scalar-healer/pkg/db"
+	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/scalarorg/scalar-healer/pkg/db/sqlc"
 )
 
-func (m *PostgresRepository) SaveTokenInfos(ctx context.Context, tokens []db.Token) error {
-	// if len(tokens) == 0 {
-	// 	return nil
-	// }
+func (m *PostgresRepository) SaveTokens(ctx context.Context, tokens []sqlc.Token) error {
 
-	// models := make([]mongo.WriteModel, len(tokens))
-	// for i, token := range tokens {
-	// 	filter := bson.M{"symbol": token.Symbol}
-	// 	update := bson.M{"$set": token}
-	// 	models[i] = mongo.NewUpdateOneModel().
-	// 		SetFilter(filter).
-	// 		SetUpdate(update).
-	// 		SetUpsert(true)
-	// }
+	var addresses [][]byte
+	var chainIds []pgtype.Numeric
+	var protocols []string
+	var symbols []string
+	var decimals []pgtype.Numeric
+	var names []string
+	var avatars []string
 
-	// _, err := m.Tokens.BulkWrite(ctx, models)
-	// return err
-	return nil
+	for _, token := range tokens {
+		addresses = append(addresses, token.Address)
+		chainIds = append(chainIds, token.ChainID)
+		protocols = append(protocols, token.Protocol)
+		symbols = append(symbols, token.Symbol)
+		decimals = append(decimals, token.Decimal)
+		names = append(names, token.Name)
+		avatars = append(avatars, token.Avatar)
+	}
+
+	return m.Queries.SaveTokens(ctx, sqlc.SaveTokensParams{
+		Column1: addresses, // address
+		Column2: chainIds,  // chain_id,
+		Column3: protocols, // protocol
+		Column4: symbols,   // symbol
+		Column5: decimals,  // decimal
+		Column6: names,     // name
+		Column7: avatars,   // avatar
+	})
 }
 
 func (m *PostgresRepository) GetTokenSymbolByAddress(ctx context.Context, chainId uint64, tokenAddress common.Address) (string, error) {

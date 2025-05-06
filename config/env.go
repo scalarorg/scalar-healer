@@ -3,11 +3,13 @@ package config
 import (
 	"log"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/joho/godotenv"
+	"github.com/scalarorg/scalar-healer/pkg/utils"
 )
 
 type ServerEnv struct {
@@ -36,10 +38,21 @@ type ServerEnv struct {
 
 var Env *ServerEnv
 
-func LoadEnvWithPath(path string) {
-	err := godotenv.Load(os.ExpandEnv(path))
+func LoadEnvWithPath(relativePath string) {
+	// Get the current working directory
+
+	root, err := utils.RootPath()
 	if err != nil {
-		log.Fatalf("LoadEnvWithPath: Error loading %s file: %s", path, err)
+		log.Fatalf("LoadEnvWithPath: Error getting root path: %s", err)
+	}
+
+	// Join the root path with the provided path
+	fullPath := filepath.Join(root, relativePath)
+
+	// Load the environment file
+	err = godotenv.Load(os.ExpandEnv(fullPath))
+	if err != nil {
+		log.Fatalf("LoadEnvWithPath: Error loading %s file: %s", fullPath, err)
 	}
 
 	loadEnv()

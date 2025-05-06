@@ -3,11 +3,11 @@ package daemon
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/rs/zerolog/log"
 	"github.com/scalarorg/scalar-healer/config"
 	"github.com/scalarorg/scalar-healer/pkg/db"
+	"github.com/scalarorg/scalar-healer/pkg/db/sqlc"
 	"golang.org/x/crypto/sha3"
 )
 
@@ -25,7 +25,7 @@ func (s *Service) initGenesis(ctx context.Context) {
 }
 
 func (s *Service) initTokens(ctx context.Context, protocols []db.Protocol) {
-	tokens := make([]db.Token, 0)
+	tokens := make([]sqlc.Token, 0)
 	for _, protocol := range protocols {
 		for _, evmClient := range s.EvmClients {
 			tokenAddr := evmClient.GetTokenAddressBySymbol(protocol.Symbol)
@@ -33,20 +33,18 @@ func (s *Service) initTokens(ctx context.Context, protocols []db.Protocol) {
 				log.Error().Msgf("Token address not found for symbol %s", protocol.Symbol)
 				continue
 			}
-			token := db.Token{
-				Protocol:  protocol.Name,
-				Address:   tokenAddr.Bytes(),
-				ChainID:   evmClient.EvmConfig.ChainID,
-				Active:    true,
-				Decimal:   uint64(protocol.Decimals),
-				Symbol:    protocol.Symbol,
-				Name:      protocol.Asset,
-				Avatar:    protocol.Avatar,
-				CreatedAt: uint64(time.Now().Second()),
-				UpdatedAt: uint64(time.Now().Second()),
+			token := sqlc.Token{
+				Protocol: protocol.Name,
+				Address:  tokenAddr.Bytes(),
+				ChainID:  db.ConvertUint64ToNumeric(evmClient.EvmConfig.ChainID),
+				Active:   true,
+				Decimal:  db.ConvertUint64ToNumeric(uint64(protocol.Decimals)),
+				Symbol:   protocol.Symbol,
+				Name:     protocol.Asset,
+				Avatar:   protocol.Avatar,
 			}
 			tokens = append(tokens, token)
 		}
 	}
-	s.DbAdapter.SaveTokenInfos(ctx, tokens)
+	s.DbAdapter.SaveTokens(ctx, tokens)
 }

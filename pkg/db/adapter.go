@@ -16,7 +16,7 @@ type DbAdapter interface {
 	SaveProtocols(ctx context.Context, protocols []Protocol) error
 
 	// tokens
-	SaveTokenInfos(ctx context.Context, tokens []Token) error
+	SaveTokens(ctx context.Context, tokens []sqlc.Token) error
 	GetTokenAddressBySymbol(ctx context.Context, chainId uint64, symbol string) (*common.Address, error)
 	GetTokenSymbolByAddress(ctx context.Context, chainId uint64, tokenAddress common.Address) (string, error)
 

@@ -7,4 +7,26 @@ CREATE TABLE IF NOT EXISTS bridge_requests (
     nonce NUMERIC NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS gateway_addresses (
+    id BIGSERIAL PRIMARY KEY,
+    address BYTEA NOT NULL,
+    chain_id NUMERIC NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS tokens (
+    id BIGSERIAL PRIMARY KEY,
+    protocol TEXT NOT NULL,
+    symbol TEXT NOT NULL,
+    chain_id NUMERIC NOT NULL,
+    active BOOLEAN NOT NULL,
+    address BYTEA NOT NULL,
+    decimal NUMERIC NOT NULL,
+    name TEXT NOT NULL,
+    avatar TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 )

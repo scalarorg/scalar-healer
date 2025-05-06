@@ -8,7 +8,6 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/scalarorg/scalar-healer/config"
 	"github.com/scalarorg/scalar-healer/pkg/db"
-	"github.com/scalarorg/scalar-healer/pkg/db/postgres"
 	"github.com/scalarorg/scalar-healer/pkg/openobserve"
 	"github.com/scalarorg/scalar-healer/pkg/worker"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
@@ -21,7 +20,7 @@ type Server struct {
 	scheduler     worker.Worker
 }
 
-func New() *Server {
+func New(db db.DbAdapter) *Server {
 	appName := config.Env.APP_NAME
 	openobserve.Init(openobserve.OpenObserveConfig{
 		Endpoint:    config.Env.OPENOBSERVE_ENDPOINT,
@@ -35,14 +34,6 @@ func New() *Server {
 	e := echo.New()
 	e.HideBanner = true
 	tp := openobserve.SetupTraceHTTP()
-
-	db := postgres.NewRepository(context.Background(), &postgres.ConnConfig{
-		User:     config.Env.POSTGRES_USER,
-		Password: config.Env.POSTGRES_PASSWORD,
-		Host:     config.Env.POSTGRES_HOST,
-		Port:     config.Env.POSTGRES_PORT,
-		DBName:   config.Env.POSTGRES_DB,
-	}, config.Env.MIGRATION_URL)
 
 	setupAddHandlerEvent(e)
 	setupMiddleware(e, db)

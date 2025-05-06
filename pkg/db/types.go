@@ -64,18 +64,6 @@ type Protocol struct {
 	DailyMintLimit     uint64   `json:"daily_mint_limit" bson:"daily_mint_limit"`
 	Avatar             string   `json:"avatar" bson:"avatar"`
 }
-type Token struct {
-	Protocol  string `json:"protocol" bson:"protocol"`
-	Symbol    string `json:"symbol" bson:"symbol"`
-	ChainID   uint64 `json:"chain_id" bson:"chain_id"`
-	Active    bool   `json:"active" bson:"active"`
-	Address   []byte `json:"address" bson:"address"`
-	Decimal   uint64 `json:"decimal" bson:"decimal"`
-	Name      string `json:"name" bson:"name"`
-	Avatar    string `json:"avatar" bson:"avatar"`
-	CreatedAt uint64 `json:"created_at" bson:"created_at"`
-	UpdatedAt uint64 `json:"updated_at" bson:"updated_at"`
-}
 
 type TransferRequest struct {
 	Address            []byte `json:"address" bson:"address"`
@@ -108,14 +96,6 @@ type UTXOSnapshot struct {
 	CustodianGroupUID []byte  `json:"custodian_group_uid" bson:"custodian_group_uid"`
 	BlockHeight       uint64  `json:"block_height" bson:"block_height"`
 	UTXOs             []*UTXO `json:"utxos" bson:"utxos"`
-}
-
-type GatewayAddress struct {
-	Address []byte `json:"address" bson:"address"`
-	ChainID uint64 `json:"chain_id" bson:"chain_id"` // TODO: index this
-
-	CreatedAt uint64 `json:"created_at" bson:"created_at"`
-	UpdatedAt uint64 `json:"updated_at" bson:"updated_at"`
 }
 
 type CustodianGroup struct {

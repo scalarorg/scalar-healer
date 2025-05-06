@@ -6,11 +6,16 @@ package sqlc
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Querier interface {
+	CreateGatewayAddress(ctx context.Context, arg CreateGatewayAddressParams) error
+	GetGatewayAddress(ctx context.Context, chainID pgtype.Numeric) ([]byte, error)
 	ListBridgeRequests(ctx context.Context, arg ListBridgeRequestsParams) ([]BridgeRequest, error)
 	SaveBridgeRequest(ctx context.Context, arg SaveBridgeRequestParams) error
+	SaveTokens(ctx context.Context, arg SaveTokensParams) error
 }
 
 var _ Querier = (*Queries)(nil)

@@ -37,6 +37,10 @@ func NewRepository(ctx context.Context, cfg *ConnConfig, migrationURL string) *P
 		log.Fatal().Err(err).Msg("cannot connect to db")
 	}
 
+	if err = connPool.Ping(ctx); err != nil {
+		log.Fatal().Err(err).Msg("cannot ping db")
+	}
+
 	runDBMigration(migrationURL, dbSource)
 
 	log.Info().Msg("db initialized successfully")
@@ -62,4 +66,13 @@ func runDBMigration(migrationURL string, dbSource string) {
 
 func (r *PostgresRepository) Close() {
 	r.connPool.Close()
+}
+
+func (r *PostgresRepository) DropSchema(name string) {
+	r.connPool.Exec(context.Background(), fmt.Sprintf("DROP SCHEMA %s CASCADE", name))
+}
+
+func (r *PostgresRepository) ExecQuery(ctx context.Context, query string, args ...interface{}) error {
+	_, err := r.connPool.Exec(ctx, query, args...)
+	return err
 }
