@@ -51,7 +51,7 @@ type DbAdapter interface {
 
 	// transfer
 	SaveTransferRequest(ctx context.Context, chainId uint64, address common.Address, signature []byte, amount *big.Int, destChain string, destAddress *common.Address, symbol string, nonce uint64) error
-	ListTransferRequests(ctx context.Context, address common.Address, page, size int32) ([]TransferRequest, error)
+	ListTransferRequests(ctx context.Context, address common.Address, page, size int32) ([]sqlc.TransferRequest, error)
 
 	// redeem
 	SaveRedeemTxs(ctx context.Context, redeemTxs []chains.RedeemTx) error

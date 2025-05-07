@@ -146,6 +146,8 @@ func TestCreateRedeem(t *testing.T) {
 				assert.NoError(t, err)
 				assert.Equal(t, tc.expectedError, response["message"])
 			}
+
+			cleanup()
 		})
 	}
 }

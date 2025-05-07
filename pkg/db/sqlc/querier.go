@@ -18,9 +18,11 @@ type Querier interface {
 	ListBridgeRequests(ctx context.Context, arg ListBridgeRequestsParams) ([]BridgeRequest, error)
 	ListRedeemRequests(ctx context.Context, arg ListRedeemRequestsParams) ([]RedeemRequest, error)
 	ListTokens(ctx context.Context) ([]Token, error)
+	ListTransferRequests(ctx context.Context, arg ListTransferRequestsParams) ([]TransferRequest, error)
 	SaveBridgeRequest(ctx context.Context, arg SaveBridgeRequestParams) error
 	SaveRedeemRequest(ctx context.Context, arg SaveRedeemRequestParams) error
 	SaveTokens(ctx context.Context, arg SaveTokensParams) error
+	SaveTransferRequest(ctx context.Context, arg SaveTransferRequestParams) error
 }
 
 var _ Querier = (*Queries)(nil)

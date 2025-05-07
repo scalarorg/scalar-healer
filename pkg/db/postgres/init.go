@@ -7,6 +7,7 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog/log"
 	"github.com/scalarorg/scalar-healer/pkg/db"
@@ -72,7 +73,16 @@ func (r *PostgresRepository) DropSchema(name string) {
 	r.connPool.Exec(context.Background(), fmt.Sprintf("DROP SCHEMA %s CASCADE", name))
 }
 
-func (r *PostgresRepository) ExecQuery(ctx context.Context, query string, args ...interface{}) error {
+func (r *PostgresRepository) Exec(ctx context.Context, query string, args ...interface{}) error {
 	_, err := r.connPool.Exec(ctx, query, args...)
+	return err
+}
+
+func (r *PostgresRepository) Query(ctx context.Context, query string, args ...interface{}) (pgx.Rows, error) {
+	return r.connPool.Query(ctx, query, args...)
+}
+
+func (r *PostgresRepository) TruncateTable(ctx context.Context, tableName string) error {
+	_, err := r.connPool.Exec(ctx, fmt.Sprintf("TRUNCATE TABLE %s", tableName))
 	return err
 }

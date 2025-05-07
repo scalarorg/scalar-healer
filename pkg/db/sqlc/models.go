@@ -52,3 +52,17 @@ type Token struct {
 	CreatedAt pgtype.Timestamp `json:"created_at"`
 	UpdatedAt pgtype.Timestamp `json:"updated_at"`
 }
+
+type TransferRequest struct {
+	ID                 int64            `json:"id"`
+	Address            []byte           `json:"address"`
+	Signature          []byte           `json:"signature"`
+	ChainID            pgtype.Numeric   `json:"chain_id"`
+	DestinationChain   string           `json:"destination_chain"`
+	DestinationAddress []byte           `json:"destination_address"`
+	Symbol             string           `json:"symbol"`
+	Amount             string           `json:"amount"`
+	Nonce              pgtype.Numeric   `json:"nonce"`
+	CreatedAt          pgtype.Timestamp `json:"created_at"`
+	UpdatedAt          pgtype.Timestamp `json:"updated_at"`
+}

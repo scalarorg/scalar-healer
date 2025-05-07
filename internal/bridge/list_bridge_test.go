@@ -104,6 +104,7 @@ func TestListBridge(t *testing.T) {
 			})
 			testServer.Raw.ServeHTTP(rec, req)
 			tc.checkResponse(rec)
+			cleanup()
 		})
 	}
 }
