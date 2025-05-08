@@ -23,7 +23,6 @@ func InitLogger() {
 
 	consoleWriter := zerolog.ConsoleWriter{Out: os.Stderr}
 	subWriters = append(subWriters, consoleWriter)
-
 	if !Env.IS_TEST {
 		o2Writer := openobserve.NewLogWriter(zerolog.InfoLevel)
 		subWriters = append(subWriters, o2Writer)

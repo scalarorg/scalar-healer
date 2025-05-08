@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
@@ -88,16 +89,10 @@ func (r *PostgresRepository) TruncateTable(ctx context.Context, tableName string
 }
 
 func (r *PostgresRepository) TruncateTables(ctx context.Context, tableNames ...string) error {
-	var batch pgx.Batch
-	for _, tableName := range tableNames {
-		batch.Queue(fmt.Sprintf("TRUNCATE TABLE %s", tableName))
+	if len(tableNames) == 0 {
+		return nil
 	}
-	batchResults := r.connPool.SendBatch(ctx, &batch)
-	for i := 0; i < len(tableNames); i++ {
-		_, err := batchResults.Exec()
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+	query := fmt.Sprintf("TRUNCATE TABLE %s CASCADE", strings.Join(tableNames, ", "))
+	_, err := r.connPool.Exec(ctx, query)
+	return err
 }
