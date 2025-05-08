@@ -6,15 +6,13 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/signer/core/apitypes"
-	"github.com/scalarorg/scalar-healer/constants"
-	"github.com/scalarorg/scalar-healer/pkg/db"
 )
 
 // EIP712Message defines the interface for EIP-712 message types
 type EIP712Message interface {
 	// ToTypedData converts the message to EIP-712 typed data
 	ToTypedData(contractAddress common.Address) apitypes.TypedData
-	Validate(ctx context.Context, db db.DbAdapter, contractAddress *common.Address) error
+	Validate(ctx context.Context, contractAddress *common.Address) error
 }
 
 var _ EIP712Message = &BaseMessage{}
@@ -60,15 +58,11 @@ func (m *BaseMessage) ToTypedData(gatewayAddress common.Address) apitypes.TypedD
 	)
 }
 
-func (m *BaseMessage) Validate(ctx context.Context, db db.DbAdapter, contractAddress *common.Address) error {
+func (m *BaseMessage) Validate(ctx context.Context, contractAddress *common.Address) error {
 	if contractAddress == nil {
 		return fmt.Errorf("contract address is nil")
 	}
 	address := common.HexToAddress(m.Address)
-	nonce := db.GetNonce(ctx, address)
-	if nonce != m.Nonce {
-		return constants.ErrInvalidNonce
-	}
 	// Create and convert message to EIP-712 typed data
 	typedData := m.ToTypedData(*contractAddress)
 

@@ -15,7 +15,7 @@ import (
 
 func TestCreateBridge(t *testing.T) {
 	testutils.RunWithTestDB(func(ctx context.Context, repo db.DbAdapter) error {
-		err := repo.SaveBridgeRequest(ctx, 222, common.Address{}, []byte{0x1, 0x2, 0x3}, []byte{0x1, 0x2, 0x3}, 100)
+		err := repo.SaveBridgeRequest(ctx, 222, common.Address{}, []byte{0x1, 0x2, 0x3}, []byte{0x1, 0x2, 0x3}, 0)
 		if err != nil {
 			t.Errorf("failed to save bridge request: %v", err)
 		}
@@ -27,6 +27,11 @@ func TestCreateBridge(t *testing.T) {
 
 		if len(bridgeRequests) != 1 {
 			t.Errorf("expected 1 bridge request, got %d", len(bridgeRequests))
+		}
+
+		nonce := repo.GetNonce(ctx, common.Address{})
+		if nonce != 1 {
+			t.Errorf("Expect %d, got %d", 1, nonce)
 		}
 		return nil
 	})

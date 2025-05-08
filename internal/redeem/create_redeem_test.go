@@ -2,7 +2,6 @@ package redeem_test
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"testing"
 
@@ -48,21 +47,6 @@ func TestCreateRedeem(t *testing.T) {
 			},
 			expectedStatus: http.StatusBadRequest,
 			expectedError:  constants.ErrNotFoundGateway.Error(),
-		},
-		{
-			name: "invalid nonce",
-			request: redeem.CreateRedeemRequest{
-				BaseRequest: eip712.BaseRequest{
-					Address:   "0x24a1dB57Fa3ecAFcbaD91d6Ef068439acEeAe090",
-					Signature: "f6c5691b0cd1120058f8a4ed75cd67065a8cdcefaa34ff55678ce1fcab07e0c91357e525c94b97e78b558e3cfe44eb66e3de28cc0d65a6c11c910fff0fabad0100",
-					Nonce:     2,
-					ChainID:   1,
-				},
-				Symbol: "ETH",
-				Amount: "1000000000000000000",
-			},
-			expectedStatus: http.StatusBadRequest,
-			expectedError:  constants.ErrInvalidNonce.Error(),
 		},
 		{
 			name: "bind error",
@@ -142,7 +126,6 @@ func TestCreateRedeem(t *testing.T) {
 			if tc.expectedError != "" {
 				var response map[string]string
 				err := json.NewDecoder(rec.Body).Decode(&response)
-				fmt.Printf("response: %+v\n", response["message"])
 				assert.NoError(t, err)
 				assert.Equal(t, tc.expectedError, response["message"])
 			}

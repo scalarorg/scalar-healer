@@ -34,6 +34,7 @@ type ServerEnv struct {
 
 	CLIENTS_CONFIG_PATH string `validate:"min=1"`
 	EVM_PRIVATE_KEY     string `validate:"min=1"`
+	IS_TEST             bool
 }
 
 var Env *ServerEnv
@@ -118,6 +119,7 @@ func loadEnv() {
 
 		CLIENTS_CONFIG_PATH: os.Getenv("CLIENTS_CONFIG_PATH"),
 		EVM_PRIVATE_KEY:     os.Getenv("EVM_PRIVATE_KEY"),
+		IS_TEST:             env == "test",
 	}
 
 	validate := validator.New()

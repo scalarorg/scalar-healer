@@ -48,7 +48,7 @@ func CreateTransfer(c echo.Context) error {
 	}
 
 	message := eip712.NewTransferRequestMessage(&body.BaseRequest, body.DestinationChain, &destAddress, body.Symbol, amountz)
-	err = message.Validate(ctx, db, gatewayAddress)
+	err = message.Validate(ctx, gatewayAddress)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}

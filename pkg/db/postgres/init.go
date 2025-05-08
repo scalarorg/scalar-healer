@@ -86,3 +86,18 @@ func (r *PostgresRepository) TruncateTable(ctx context.Context, tableName string
 	_, err := r.connPool.Exec(ctx, fmt.Sprintf("TRUNCATE TABLE %s", tableName))
 	return err
 }
+
+func (r *PostgresRepository) TruncateTables(ctx context.Context, tableNames ...string) error {
+	var batch pgx.Batch
+	for _, tableName := range tableNames {
+		batch.Queue(fmt.Sprintf("TRUNCATE TABLE %s", tableName))
+	}
+	batchResults := r.connPool.SendBatch(ctx, &batch)
+	for i := 0; i < len(tableNames); i++ {
+		_, err := batchResults.Exec()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}

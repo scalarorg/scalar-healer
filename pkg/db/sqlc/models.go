@@ -27,6 +27,14 @@ type GatewayAddress struct {
 	UpdatedAt pgtype.Timestamp `json:"updated_at"`
 }
 
+type Nonce struct {
+	ID        int64            `json:"id"`
+	Address   []byte           `json:"address"`
+	Nonce     pgtype.Numeric   `json:"nonce"`
+	CreatedAt pgtype.Timestamp `json:"created_at"`
+	UpdatedAt pgtype.Timestamp `json:"updated_at"`
+}
+
 type RedeemRequest struct {
 	ID        int64            `json:"id"`
 	Address   []byte           `json:"address"`

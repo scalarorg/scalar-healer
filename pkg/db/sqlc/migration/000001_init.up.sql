@@ -55,4 +55,14 @@ CREATE TABLE IF NOT EXISTS tokens (
     avatar TEXT NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
-)
+);
+
+CREATE TABLE IF NOT EXISTS nonces (
+    id BIGSERIAL PRIMARY KEY,
+    address BYTEA UNIQUE NOT NULL,
+    nonce NUMERIC NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS nonces_address_idx ON nonces (address);

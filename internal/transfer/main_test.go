@@ -63,5 +63,5 @@ func TestMain(m *testing.M) {
 }
 
 func cleanup() {
-	(dbAdapter).(*postgres.PostgresRepository).TruncateTable(context.Background(), "transfer_requests")
+	(dbAdapter).(*postgres.PostgresRepository).TruncateTables(context.Background(), "transfer_requests", "nonces")
 }

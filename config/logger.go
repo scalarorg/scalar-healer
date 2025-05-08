@@ -10,7 +10,7 @@ import (
 )
 
 func InitLogger() {
-	if Env.ENV == "test" {
+	if Env.IS_TEST {
 		zerolog.SetGlobalLevel(zerolog.Disabled)
 	} else {
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
@@ -21,14 +21,15 @@ func InitLogger() {
 	var writer io.Writer
 	var subWriters []io.Writer = []io.Writer{}
 
-	o2Writer := openobserve.NewLogWriter(zerolog.InfoLevel)
 	consoleWriter := zerolog.ConsoleWriter{Out: os.Stderr}
-
 	subWriters = append(subWriters, consoleWriter)
-	subWriters = append(subWriters, o2Writer)
+
+	if !Env.IS_TEST {
+		o2Writer := openobserve.NewLogWriter(zerolog.InfoLevel)
+		subWriters = append(subWriters, o2Writer)
+	}
 
 	writer = zerolog.MultiLevelWriter(subWriters...)
-
 	log.Logger = log.Output(writer)
 	log.Info().Msg("Logger initialized")
 }

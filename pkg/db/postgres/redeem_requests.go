@@ -2,10 +2,12 @@ package postgres
 
 import (
 	"context"
+	"fmt"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/scalarorg/data-models/chains"
+	"github.com/scalarorg/scalar-healer/constants"
 	"github.com/scalarorg/scalar-healer/pkg/db"
 	"github.com/scalarorg/scalar-healer/pkg/db/sqlc"
 )
@@ -22,13 +24,32 @@ func (m *PostgresRepository) SaveRedeemTxs(ctx context.Context, redeemTxs []chai
 }
 
 func (m *PostgresRepository) SaveRedeemRequest(ctx context.Context, chainId uint64, address common.Address, signature []byte, amount *big.Int, symbol string, nonce uint64) error {
-	return m.Queries.SaveRedeemRequest(ctx, sqlc.SaveRedeemRequestParams{
-		Address:   address.Bytes(),
-		Signature: signature,
-		Amount:    amount.String(),
-		Symbol:    symbol,
-		ChainID:   db.ConvertUint64ToNumeric(chainId),
-		Nonce:     db.ConvertUint64ToNumeric(nonce),
+	return m.execTx(ctx, func(q *sqlc.Queries) error {
+		currentNonce := m.GetNonce(ctx, address)
+		fmt.Println("Saving redeem request")
+
+			fmt.Printf("Invalid nonce. Expected %d, got %d", currentNonce, nonce)
+		if nonce != currentNonce {
+			fmt.Printf("Invalid nonce. Expected %d, got %d", currentNonce, nonce)
+			return constants.ErrInvalidNonce
+		}
+
+		err := m.Queries.UpsertNonce(ctx, sqlc.UpsertNonceParams{
+			Address: address.Bytes(),
+			Nonce:   db.ConvertUint64ToNumeric(currentNonce),
+		})
+		if err != nil {
+			return err
+		}
+
+		return m.Queries.SaveRedeemRequest(ctx, sqlc.SaveRedeemRequestParams{
+			Address:   address.Bytes(),
+			Signature: signature,
+			Amount:    amount.String(),
+			Symbol:    symbol,
+			ChainID:   db.ConvertUint64ToNumeric(chainId),
+			Nonce:     db.ConvertUint64ToNumeric(nonce),
+		})
 	})
 }
 

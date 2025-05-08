@@ -5,6 +5,8 @@ endif
 
 POSTGRES_URL := postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB)?sslmode=disable
 
+MODULE := github.com/scalarorg/scalar-healer
+
 migration_url := pkg/db/sqlc/migration
 
 $(info POSTGRES_URL: $(POSTGRES_URL))
@@ -15,6 +17,21 @@ $(info migration_url: $(migration_url))
 
 test:
 	ENV=test go test -coverprofile=cover.out -v ./...
+test-pkg:
+	ENV=test go test -v $(MODULE)/pkg/$(module)/...
+test-internal:
+	@if [ -z "$(module)" ]; then \
+		ENV=test go test -v -count=1 $(MODULE)/internal/...; \
+		exit 0; \
+	else \
+		if [ -d "internal/$(module)" ]; then \
+			ENV=test go test -v -count=1 $(MODULE)/internal/$(module)/...; \
+			exit 0; \
+		else \
+			echo "Error: Module '$(module)' not found in internal directory"; \
+			exit 1; \
+		fi \
+	fi
 coverage:
 	go tool cover -html=cover.out
 clean:

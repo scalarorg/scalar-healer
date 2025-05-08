@@ -35,7 +35,7 @@ func CreateBridge(c echo.Context) error {
 	txHash := common.HexToHash(body.TxHash)
 
 	message := eip712.NewBridgeRequestMessage(&body.BaseRequest, txHash)
-	err = message.Validate(ctx, db, gatewayAddress)
+	err = message.Validate(ctx, gatewayAddress)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}

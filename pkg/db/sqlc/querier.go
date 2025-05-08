@@ -13,6 +13,7 @@ import (
 type Querier interface {
 	CreateGatewayAddress(ctx context.Context, arg CreateGatewayAddressParams) error
 	GetGatewayAddress(ctx context.Context, chainID pgtype.Numeric) ([]byte, error)
+	GetNonce(ctx context.Context, address []byte) (pgtype.Numeric, error)
 	GetTokenAddressBySymbol(ctx context.Context, arg GetTokenAddressBySymbolParams) ([]byte, error)
 	GetTokenSymbolByAddress(ctx context.Context, arg GetTokenSymbolByAddressParams) (string, error)
 	ListBridgeRequests(ctx context.Context, arg ListBridgeRequestsParams) ([]BridgeRequest, error)
@@ -23,6 +24,7 @@ type Querier interface {
 	SaveRedeemRequest(ctx context.Context, arg SaveRedeemRequestParams) error
 	SaveTokens(ctx context.Context, arg SaveTokensParams) error
 	SaveTransferRequest(ctx context.Context, arg SaveTransferRequestParams) error
+	UpsertNonce(ctx context.Context, arg UpsertNonceParams) error
 }
 
 var _ Querier = (*Queries)(nil)

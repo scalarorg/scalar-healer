@@ -27,3 +27,7 @@ func ConvertUint64ToNumeric(n uint64) pgtype.Numeric {
 	binary.Scan(big.String())
 	return binary
 }
+
+func ConvertNumericToUint64(num pgtype.Numeric) uint64 {
+	return num.Int.Uint64()
+}

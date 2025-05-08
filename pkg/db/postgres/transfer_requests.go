@@ -5,20 +5,36 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/scalarorg/scalar-healer/constants"
 	"github.com/scalarorg/scalar-healer/pkg/db"
 	"github.com/scalarorg/scalar-healer/pkg/db/sqlc"
 )
 
 func (m *PostgresRepository) SaveTransferRequest(ctx context.Context, chainId uint64, address common.Address, signature []byte, amount *big.Int, destChain string, destAddress *common.Address, symbol string, nonce uint64) error {
-	return m.Queries.SaveTransferRequest(ctx, sqlc.SaveTransferRequestParams{
-		ChainID:            db.ConvertUint64ToNumeric(chainId),
-		Address:            address.Bytes(),
-		Signature:          signature,
-		Amount:             amount.String(),
-		DestinationChain:   destChain,
-		DestinationAddress: destAddress.Bytes(),
-		Symbol:             symbol,
-		Nonce:              db.ConvertUint64ToNumeric(nonce),
+	return m.execTx(ctx, func(q *sqlc.Queries) error {
+		currentNonce := m.GetNonce(ctx, address)
+		if nonce != currentNonce {
+			return constants.ErrInvalidNonce
+		}
+
+		err := m.Queries.UpsertNonce(ctx, sqlc.UpsertNonceParams{
+			Address: address.Bytes(),
+			Nonce:   db.ConvertUint64ToNumeric(currentNonce),
+		})
+		if err != nil {
+			return err
+		}
+
+		return m.Queries.SaveTransferRequest(ctx, sqlc.SaveTransferRequestParams{
+			ChainID:            db.ConvertUint64ToNumeric(chainId),
+			Address:            address.Bytes(),
+			Signature:          signature,
+			Amount:             amount.String(),
+			DestinationChain:   destChain,
+			DestinationAddress: destAddress.Bytes(),
+			Symbol:             symbol,
+			Nonce:              db.ConvertUint64ToNumeric(nonce),
+		})
 	})
 }
 

@@ -45,7 +45,7 @@ func CreateRedeem(c echo.Context) error {
 	}
 
 	message := eip712.NewRedeemRequestMessage(&body.BaseRequest, body.Symbol, amountz)
-	err = message.Validate(ctx, db, gatewayAddress)
+	err = message.Validate(ctx, gatewayAddress)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
