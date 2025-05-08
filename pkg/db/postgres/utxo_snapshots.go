@@ -1,52 +1,77 @@
 package postgres
 
 import (
+	"bytes"
 	"context"
+	"fmt"
 
-	"github.com/scalarorg/scalar-healer/pkg/db"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/scalarorg/scalar-healer/pkg/db/sqlc"
 )
 
-func (m *PostgresRepository) SaveUtxoSnapshot(ctx context.Context, utxoSnapshot *db.UTXOSnapshot) error {
-	// filter := bson.M{"custodian_group_uid": utxoSnapshot.CustodianGroupUID}
+func (m *PostgresRepository) SaveUtxoSnapshot(ctx context.Context, utxoSnapshot []sqlc.Utxo) error {
+	return m.execTx(ctx, func(q *sqlc.Queries) error {
+		if len(utxoSnapshot) == 0 {
+			return nil
+		}
 
-	// update := mongo.Pipeline{
-	// 	{{"$set": bson.M{
-	// 		"block_height": bson.M{
-	// 			"$cond": bson.M{
-	// 				"if":   bson.M{"$gt": bson.A{"$$newHeight", "$block_height"}},
-	// 				"then": "$$newHeight",
-	// 				"else": "$block_height",
-	// 			},
-	// 		},
-	// 		"utxos": bson.M{
-	// 			"$cond": bson.M{
-	// 				"if":   bson.M{"$gt": bson.A{"$$newHeight", "$block_height"}},
-	// 				"then": "$$newUtxos",
-	// 				"else": "$utxos",
-	// 			},
-	// 		},
-	// 	}}},
-	// }
+		var (
+			txIDs              [][]byte
+			vouts              []int64
+			scriptPubkeys      [][]byte
+			amountsInSats      []pgtype.Numeric
+			custodianGroupUIDs [][]byte
+			blockHeights       []int64
+		)
 
-	// updateOptions := options.Update().SetUpsert(true)
+		var firstGrUID = utxoSnapshot[0].CustodianGroupUid
+		var firstBlockHeight = utxoSnapshot[0].BlockHeight
+		var firstScriptPubkey = utxoSnapshot[0].ScriptPubkey
 
-	// _, err := m.UtxoSnapshots.UpdateOne(
-	// 	ctx,
-	// 	filter,
-	// 	update,
-	// 	updateOptions,
-	// 	options.UpdateOptions{
-	// 		Let: bson.M{
-	// 			"newHeight": utxoSnapshot.BlockHeight,
-	// 			"newUtxos":  utxoSnapshot.UTXOs,
-	// 		},
-	// 	},
-	// )
+		for _, utxo := range utxoSnapshot {
+			if !bytes.Equal(firstScriptPubkey, utxo.ScriptPubkey) {
+				return fmt.Errorf("UTXO snapshot is not owned by the same script pubkey")
+			}
+			if firstBlockHeight != utxo.BlockHeight {
+				return fmt.Errorf("UTXO snapshot is not owned by the same block height")
+			}
+			if !bytes.Equal(firstGrUID, utxo.CustodianGroupUid) {
+				return fmt.Errorf("UTXO snapshot is not owned by the same custodian group")
+			}
 
-	// _, err = m.UtxoSnapshots.UpdateOne(ctx, filter, update)
-	// if err != nil {
-	// 	log.Error().Err(err).Msg("Failed to update existing UTXO snapshot")
-	// 	return err
-	// }
-	return nil
+			txIDs = append(txIDs, utxo.TxID)
+			vouts = append(vouts, utxo.Vout)
+			scriptPubkeys = append(scriptPubkeys, utxo.ScriptPubkey)
+			amountsInSats = append(amountsInSats, utxo.AmountInSats)
+			custodianGroupUIDs = append(custodianGroupUIDs, utxo.CustodianGroupUid)
+			blockHeights = append(blockHeights, utxo.BlockHeight)
+		}
+
+		utxos, err := m.Queries.GetUTXOsByCustodianGroupUID(ctx, firstGrUID)
+		if err != nil && err != pgx.ErrNoRows {
+			return err
+		}
+
+		if len(utxos) > 0 {
+			if utxos[0].BlockHeight >= firstBlockHeight {
+				return fmt.Errorf("UTXO snapshot is not newer than the existing one")
+			}
+		}
+
+		err = m.Queries.DeleteUTXOs(ctx, firstGrUID)
+		if err != nil {
+			return err
+		}
+
+		// insert new UTXO snapshot
+		return m.Queries.SaveUTXOs(ctx, sqlc.SaveUTXOsParams{
+			Column1: txIDs,
+			Column2: vouts,
+			Column3: scriptPubkeys,
+			Column4: amountsInSats,
+			Column5: custodianGroupUIDs,
+			Column6: blockHeights,
+		})
+	})
 }

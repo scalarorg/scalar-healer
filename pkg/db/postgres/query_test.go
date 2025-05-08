@@ -161,3 +161,140 @@ func TestSaveProtocols(t *testing.T) {
 		return nil
 	})
 }
+
+func TestSaveUtxoSnapshot(t *testing.T) {
+	tests := []struct {
+		name    string
+		setup   func(t *testing.T, repo *postgres.PostgresRepository)
+		input   []sqlc.Utxo
+		wantErr bool
+	}{
+		{
+			name:    "empty snapshot",
+			setup:   func(t *testing.T, repo *postgres.PostgresRepository) {},
+			input:   []sqlc.Utxo{},
+			wantErr: false,
+		},
+		{
+			name:  "valid snapshot with same custodian group",
+			setup: func(t *testing.T, repo *postgres.PostgresRepository) {},
+			input: []sqlc.Utxo{
+				{
+					TxID:              []byte{0x1},
+					Vout:              1,
+					ScriptPubkey:      []byte{0x2},
+					AmountInSats:      pgtype.Numeric{Int: common.Big1, Valid: true},
+					CustodianGroupUid: []byte{0x3},
+					BlockHeight:       100,
+				},
+				{
+					TxID:              []byte{0x2},
+					Vout:              1,
+					ScriptPubkey:      []byte{0x02},
+					AmountInSats:      pgtype.Numeric{Int: common.Big2, Valid: true},
+					CustodianGroupUid: []byte{0x3},
+					BlockHeight:       100,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name:  "invalid snapshot with mixed groups",
+			setup: func(t *testing.T, repo *postgres.PostgresRepository) {},
+			input: []sqlc.Utxo{
+				{
+					TxID:              []byte{0x1},
+					Vout:              1,
+					ScriptPubkey:      []byte{0x2},
+					AmountInSats:      pgtype.Numeric{Int: common.Big1, Valid: true},
+					CustodianGroupUid: []byte{0x3},
+					BlockHeight:       100,
+				},
+				{
+					TxID:              []byte{0x1},
+					Vout:              1,
+					ScriptPubkey:      []byte{0x2},
+					AmountInSats:      pgtype.Numeric{Int: common.Big2, Valid: true},
+					CustodianGroupUid: []byte{0x4}, // Different group
+					BlockHeight:       100,
+				},
+			},
+			wantErr: true,
+		},
+
+		{
+			name:  "invalid snapshot with mixed script pubkeys",
+			setup: func(t *testing.T, repo *postgres.PostgresRepository) {},
+			input: []sqlc.Utxo{
+				{
+					TxID:              []byte{0x1},
+					Vout:              1,
+					ScriptPubkey:      []byte{0x1},
+					AmountInSats:      pgtype.Numeric{Int: common.Big1, Valid: true},
+					CustodianGroupUid: []byte{0x4},
+					BlockHeight:       100,
+				},
+				{
+					TxID:              []byte{0x1},
+					Vout:              1,
+					ScriptPubkey:      []byte{0x2},
+					AmountInSats:      pgtype.Numeric{Int: common.Big2, Valid: true},
+					CustodianGroupUid: []byte{0x4}, // Different group
+					BlockHeight:       100,
+				},
+			},
+			wantErr: true,
+		},
+
+		{
+			name: "block height validation",
+			setup: func(t *testing.T, repo *postgres.PostgresRepository) {
+				// Insert existing UTXO with higher block height
+				err := repo.SaveUTXOs(context.Background(), sqlc.SaveUTXOsParams{
+					Column1: [][]byte{{0x1}},
+					Column2: []int64{1},
+					Column3: [][]byte{{0x2}},
+					Column4: []pgtype.Numeric{{Int: common.Big1, Valid: true}},
+					Column5: [][]byte{{0x3}},
+					Column6: []int64{200}, // Higher block height
+				})
+				assert.NoError(t, err)
+			},
+			input: []sqlc.Utxo{
+				{
+					TxID:              []byte{0x1},
+					Vout:              1,
+					ScriptPubkey:      []byte{0x2},
+					AmountInSats:      pgtype.Numeric{Int: common.Big1, Valid: true},
+					CustodianGroupUid: []byte{0x3},
+					BlockHeight:       100, // Lower block height
+				},
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			testutils.RunWithTestDB(func(ctx context.Context, repo db.DbAdapter) error {
+				pg := repo.(*postgres.PostgresRepository)
+				tc.setup(t, pg)
+
+				err := pg.SaveUtxoSnapshot(ctx, tc.input)
+				if tc.wantErr {
+					assert.Error(t, err)
+				} else {
+					assert.NoError(t, err)
+
+					// Verify saved data if no error expected
+					if len(tc.input) > 0 {
+						utxos, err := pg.GetUTXOsByCustodianGroupUID(ctx, tc.input[0].CustodianGroupUid)
+						assert.NoError(t, err)
+						assert.Equal(t, len(tc.input), len(utxos))
+					}
+				}
+				return nil
+			})
+		})
+	}
+}

@@ -33,7 +33,7 @@ type DbAdapter interface {
 	GetAllCustodianGroups(ctx context.Context) ([]sqlc.CustodianGroup, error)
 
 	// utxo snapshots
-	SaveUtxoSnapshot(ctx context.Context, utxoSnapshot *UTXOSnapshot) error
+	SaveUtxoSnapshot(ctx context.Context, utxoSnapshot []sqlc.Utxo) error
 
 	// checkpoints
 	GetLastEventCheckPoint(ctx context.Context, chainName, eventName string, fromBlock uint64) (*scalarnet.EventCheckPoint, error)

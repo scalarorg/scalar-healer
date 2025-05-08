@@ -95,3 +95,33 @@ CREATE TABLE IF NOT EXISTS protocols (
 );
 
 CREATE INDEX IF NOT EXISTS protocols_asset_idx ON protocols (asset);
+
+CREATE TABLE IF NOT EXISTS utxos (
+    id BIGSERIAL PRIMARY KEY,
+    tx_id BYTEA NOT NULL,
+    vout BIGINT NOT NULL,
+    script_pubkey BYTEA NOT NULL,
+    amount_in_sats NUMERIC NOT NULL,
+    custodian_group_uid BYTEA NOT NULL,
+    block_height BIGINT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS utxos_tx_id_vout_idx ON utxos (tx_id, vout);
+
+CREATE INDEX IF NOT EXISTS utxos_custodian_group_uid_idx ON utxos (custodian_group_uid);
+
+CREATE TABLE IF NOT EXISTS reservations (
+    id BIGSERIAL PRIMARY KEY,
+    utxo_tx_id BYTEA NOT NULL,
+    utxo_vout BIGINT NOT NULL,
+    request_id TEXT UNIQUE NOT NULL,
+    amount NUMERIC NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS reservations_utxo_tx_id_vout_idx ON reservations (utxo_tx_id, utxo_vout);
+
+ALTER TABLE reservations ADD FOREIGN KEY (utxo_tx_id, utxo_vout) REFERENCES utxos (tx_id, vout) ON DELETE CASCADE;

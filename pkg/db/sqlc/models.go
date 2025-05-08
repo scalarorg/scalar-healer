@@ -74,6 +74,16 @@ type RedeemRequest struct {
 	UpdatedAt pgtype.Timestamp `json:"updated_at"`
 }
 
+type Reservation struct {
+	ID        int64            `json:"id"`
+	UtxoTxID  []byte           `json:"utxo_tx_id"`
+	UtxoVout  int64            `json:"utxo_vout"`
+	RequestID string           `json:"request_id"`
+	Amount    pgtype.Numeric   `json:"amount"`
+	CreatedAt pgtype.Timestamp `json:"created_at"`
+	UpdatedAt pgtype.Timestamp `json:"updated_at"`
+}
+
 type Token struct {
 	ID        int64            `json:"id"`
 	Protocol  string           `json:"protocol"`
@@ -100,4 +110,16 @@ type TransferRequest struct {
 	Nonce              pgtype.Numeric   `json:"nonce"`
 	CreatedAt          pgtype.Timestamp `json:"created_at"`
 	UpdatedAt          pgtype.Timestamp `json:"updated_at"`
+}
+
+type Utxo struct {
+	ID                int64            `json:"id"`
+	TxID              []byte           `json:"tx_id"`
+	Vout              int64            `json:"vout"`
+	ScriptPubkey      []byte           `json:"script_pubkey"`
+	AmountInSats      pgtype.Numeric   `json:"amount_in_sats"`
+	CustodianGroupUid []byte           `json:"custodian_group_uid"`
+	BlockHeight       int64            `json:"block_height"`
+	CreatedAt         pgtype.Timestamp `json:"created_at"`
+	UpdatedAt         pgtype.Timestamp `json:"updated_at"`
 }
