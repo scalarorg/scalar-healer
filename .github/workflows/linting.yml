@@ -28,7 +28,7 @@ jobs:
 
       - name: Setup environment
         run: |
-          echo "ENV=development" >> .env
+          echo "ENV=test" >> .env
           echo "PORT=12345" >>.env
 
           echo "APP_NAME=scalar_healer" >>.env
@@ -45,9 +45,7 @@ jobs:
           echo "MIGRATION_URL=file://pkg/db/sqlc/migration" >>.env
 
           echo "CLIENTS_CONFIG_PATH=data" >>.env
-      - name: Setup mongodb
-        run: |
-          docker run -d --name mongo -p 27017:27017 -e MONGO_INITDB_ROOT_USERNAME=root -e MONGO_INITDB_ROOT_PASSWORD=helloworld mongo:latest
+          echo "EVM_PRIVATE_KEY=0x0000000000000000000000000000000000000000000000000000000000000001" >>.env
 
       - name: Test
         run: go test -v ./internal/...

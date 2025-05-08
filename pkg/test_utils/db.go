@@ -4,7 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/rs/zerolog/log"
+	"log"
+
 	"github.com/scalarorg/scalar-healer/config"
 	"github.com/scalarorg/scalar-healer/pkg/db"
 	"github.com/scalarorg/scalar-healer/pkg/db/postgres"
@@ -22,7 +23,7 @@ func RunWithTestDB(callback RunWithTestDBFunc) {
 
 	rootPath, err := utils.RootPath()
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to get root path")
+		log.Fatal("Failed to get root path")
 	}
 
 	config.Env.MIGRATION_URL = "file://" + rootPath + "/pkg/db/sqlc/migration"
@@ -42,17 +43,16 @@ func RunWithTestDB(callback RunWithTestDBFunc) {
 				WithStartupTimeout(5*time.Second)),
 	)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to start postgres container")
+		log.Fatal("Failed to start postgres container")
 	}
 
 	port, err := pgContainer.MappedPort(ctx, "5432")
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to get postgres port")
+		log.Fatal("Failed to get postgres port")
 	}
 
 	var repo *postgres.PostgresRepository
 
-	var dbErr error
 	for retries := 0; retries < 3; retries++ {
 		repo = postgres.NewRepository(ctx, &postgres.ConnConfig{
 			User:     config.Env.POSTGRES_USER,
@@ -66,17 +66,17 @@ func RunWithTestDB(callback RunWithTestDBFunc) {
 			break
 		}
 
-		log.Warn().Int("retry", retries+1).Msg("retrying database connection")
+		log.Println("retrying database connection")
 		time.Sleep(time.Second * 2)
 	}
 
 	if repo == nil {
-		log.Fatal().Err(dbErr).Msg("failed to connect to database after retries")
+		log.Fatal("failed to connect to database after retries")
 	}
 
 	err = callback(ctx, repo)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Error in callback")
+		log.Fatal("Error in callback")
 	}
 
 	if repo != nil {
@@ -84,9 +84,10 @@ func RunWithTestDB(callback RunWithTestDBFunc) {
 	}
 
 	if pgContainer != nil {
+		log.Println("Terminating postgres container")
 		err = pgContainer.Terminate(ctx)
 		if err != nil {
-			log.Fatal().Err(err).Msg("Failed to terminate postgres container")
+			log.Println("Failed to terminate postgres container")
 		}
 	}
 }
