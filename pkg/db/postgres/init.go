@@ -33,7 +33,10 @@ type ConnConfig struct {
 func NewRepository(ctx context.Context, cfg *ConnConfig, migrationURL string) *PostgresRepository {
 	dbSource := fmt.Sprintf("postgresql://%s:%s@%s:%d/%s?sslmode=disable", cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.DBName)
 
-	connPool, err := pgxpool.New(ctx, dbSource)
+	config, err := pgxpool.ParseConfig(dbSource)
+	config.ConnConfig.Tracer = &Tracer{}
+
+	connPool, err := pgxpool.NewWithConfig(ctx, config)
 
 	if err != nil {
 		log.Fatal().Err(err).Msg("cannot connect to db")

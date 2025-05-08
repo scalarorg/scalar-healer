@@ -13,18 +13,22 @@ import (
 
 func (s *Service) initGenesis(ctx context.Context) {
 	protocolCfgPath := fmt.Sprintf("%s/protocols.json", s.ConfigPath)
-	protocols, err := config.ReadJsonArrayConfig[db.Protocol](protocolCfgPath)
+	protocols, err := config.ReadJsonArrayConfig[sqlc.Protocol](protocolCfgPath)
 	if err != nil {
 		panic(err)
 	}
+
+	newProtocols := make([]sqlc.Protocol, 0)
 	for _, protocol := range protocols {
-		protocol.CustodianGroupUid = sha3.Sum256([]byte(protocol.CustodianGroupName))
+		uid := sha3.Sum256([]byte(protocol.CustodianGroupName))
+		protocol.CustodianGroupUid = uid[:]
+		newProtocols = append(newProtocols, protocol)
 	}
-	s.DbAdapter.SaveProtocols(ctx, protocols)
+	s.DbAdapter.SaveProtocols(ctx, newProtocols)
 	s.initTokens(ctx, protocols)
 }
 
-func (s *Service) initTokens(ctx context.Context, protocols []db.Protocol) {
+func (s *Service) initTokens(ctx context.Context, protocols []sqlc.Protocol) {
 	tokens := make([]sqlc.Token, 0)
 	for _, protocol := range protocols {
 		for _, evmClient := range s.EvmClients {

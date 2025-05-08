@@ -12,8 +12,11 @@ import (
 
 type Querier interface {
 	CreateGatewayAddress(ctx context.Context, arg CreateGatewayAddressParams) error
+	GetAllCustodianGroups(ctx context.Context) ([]CustodianGroup, error)
+	GetCustodianGroupByUID(ctx context.Context, uid []byte) (CustodianGroup, error)
 	GetGatewayAddress(ctx context.Context, chainID pgtype.Numeric) ([]byte, error)
 	GetNonce(ctx context.Context, address []byte) (pgtype.Numeric, error)
+	GetProtocol(ctx context.Context, asset string) (Protocol, error)
 	GetTokenAddressBySymbol(ctx context.Context, arg GetTokenAddressBySymbolParams) ([]byte, error)
 	GetTokenSymbolByAddress(ctx context.Context, arg GetTokenSymbolByAddressParams) (string, error)
 	ListBridgeRequests(ctx context.Context, arg ListBridgeRequestsParams) ([]BridgeRequest, error)
@@ -21,6 +24,8 @@ type Querier interface {
 	ListTokens(ctx context.Context) ([]Token, error)
 	ListTransferRequests(ctx context.Context, arg ListTransferRequestsParams) ([]TransferRequest, error)
 	SaveBridgeRequest(ctx context.Context, arg SaveBridgeRequestParams) error
+	SaveCustodianGroups(ctx context.Context, arg SaveCustodianGroupsParams) error
+	SaveProtocols(ctx context.Context, arg SaveProtocolsParams) error
 	SaveRedeemRequest(ctx context.Context, arg SaveRedeemRequestParams) error
 	SaveTokens(ctx context.Context, arg SaveTokensParams) error
 	SaveTransferRequest(ctx context.Context, arg SaveTransferRequestParams) error

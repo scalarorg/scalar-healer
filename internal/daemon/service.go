@@ -7,6 +7,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/scalarorg/scalar-healer/pkg/btc"
 	"github.com/scalarorg/scalar-healer/pkg/db"
+	"github.com/scalarorg/scalar-healer/pkg/db/sqlc"
 	"github.com/scalarorg/scalar-healer/pkg/electrs"
 	"github.com/scalarorg/scalar-healer/pkg/evm"
 	"github.com/scalarorg/scalar-healer/pkg/utils"
@@ -52,8 +53,8 @@ func (s *Service) Start(ctx context.Context) error {
 	if err != nil {
 		log.Error().Err(err).Msg("[DaemonService] Cannot get custodian groups")
 	}
-	err = s.RecoverEvmSessions(ctx, utils.Map(groups, func(group db.CustodianGroup) string {
-		return hex.EncodeToString(group.UID)
+	err = s.RecoverEvmSessions(ctx, utils.Map(groups, func(group sqlc.CustodianGroup) string {
+		return hex.EncodeToString(group.Uid)
 	}))
 	if err != nil {
 		log.Warn().Err(err).Msgf("[DaemonService] cannot recover evm sessions")

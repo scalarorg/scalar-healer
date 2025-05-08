@@ -3,20 +3,33 @@ package postgres
 import (
 	"context"
 
-	"github.com/scalarorg/scalar-healer/pkg/db"
+	"github.com/scalarorg/scalar-healer/pkg/db/sqlc"
 )
 
-func (m *PostgresRepository) GetAllCustodianGroups(ctx context.Context) ([]db.CustodianGroup, error) {
-	// cursor, err := m.CustodianGroups.Find(ctx, bson.M{})
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// defer cursor.Close(ctx)
-	// var result []*CustodianGroup
+func (m *PostgresRepository) GetAllCustodianGroups(ctx context.Context) ([]sqlc.CustodianGroup, error) {
+	return m.Queries.GetAllCustodianGroups(ctx)
+}
 
-	// if err := cursor.All(ctx, &result); err != nil {
-	// 	return nil, err
-	// }
-	// return result, nil
-	return nil, nil
+func (m *PostgresRepository) GetCustodianGroup(ctx context.Context, uid []byte) (sqlc.CustodianGroup, error) {
+	return m.Queries.GetCustodianGroupByUID(ctx, uid)
+}
+
+func (m *PostgresRepository) SaveCustodianGroups(ctx context.Context, grs []sqlc.CustodianGroup) error {
+	var uids [][]byte
+	var names []string
+	var bitcoinPubkeys [][]byte
+	var quorums []int64
+	for _, gr := range grs {
+		uids = append(uids, gr.Uid)
+		names = append(names, gr.Name)
+		bitcoinPubkeys = append(bitcoinPubkeys, gr.BitcoinPubkey)
+		quorums = append(quorums, gr.Quorum)
+	}
+
+	return m.Queries.SaveCustodianGroups(ctx, sqlc.SaveCustodianGroupsParams{
+		Column1: uids,
+		Column2: names,
+		Column3: bitcoinPubkeys,
+		Column4: quorums,
+	})
 }

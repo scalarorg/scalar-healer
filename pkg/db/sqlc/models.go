@@ -19,6 +19,16 @@ type BridgeRequest struct {
 	UpdatedAt pgtype.Timestamp `json:"updated_at"`
 }
 
+type CustodianGroup struct {
+	ID            int64            `json:"id"`
+	Uid           []byte           `json:"uid"`
+	Name          string           `json:"name"`
+	BitcoinPubkey []byte           `json:"bitcoin_pubkey"`
+	Quorum        int64            `json:"quorum"`
+	CreatedAt     pgtype.Timestamp `json:"created_at"`
+	UpdatedAt     pgtype.Timestamp `json:"updated_at"`
+}
+
 type GatewayAddress struct {
 	ID        int64            `json:"id"`
 	Address   []byte           `json:"address"`
@@ -33,6 +43,23 @@ type Nonce struct {
 	Nonce     pgtype.Numeric   `json:"nonce"`
 	CreatedAt pgtype.Timestamp `json:"created_at"`
 	UpdatedAt pgtype.Timestamp `json:"updated_at"`
+}
+
+type Protocol struct {
+	ID                 int64            `json:"id"`
+	Asset              string           `json:"asset"`
+	Name               string           `json:"name"`
+	CustodianGroupName string           `json:"custodian_group_name"`
+	CustodianGroupUid  []byte           `json:"custodian_group_uid"`
+	Tag                string           `json:"tag"`
+	LiquidityModel     string           `json:"liquidity_model"`
+	Symbol             string           `json:"symbol"`
+	Decimals           int64            `json:"decimals"`
+	Capacity           pgtype.Numeric   `json:"capacity"`
+	DailyMintLimit     pgtype.Numeric   `json:"daily_mint_limit"`
+	Avatar             string           `json:"avatar"`
+	CreatedAt          pgtype.Timestamp `json:"created_at"`
+	UpdatedAt          pgtype.Timestamp `json:"updated_at"`
 }
 
 type RedeemRequest struct {

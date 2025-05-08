@@ -13,7 +13,8 @@ import (
 type DbAdapter interface {
 
 	// protocols
-	SaveProtocols(ctx context.Context, protocols []Protocol) error
+	GetProtocol(ctx context.Context, asset string) (*sqlc.Protocol, error)
+	SaveProtocols(ctx context.Context, protocols []sqlc.Protocol) error
 
 	// tokens
 	SaveTokens(ctx context.Context, tokens []sqlc.Token) error
@@ -27,7 +28,9 @@ type DbAdapter interface {
 	GetChainName(ctx context.Context, chainType string, chainId uint64) (string, error)
 
 	// custodian groups
-	GetAllCustodianGroups(ctx context.Context) ([]CustodianGroup, error)
+	SaveCustodianGroups(ctx context.Context, custodianGroups []sqlc.CustodianGroup) error
+	GetCustodianGroup(ctx context.Context, uid []byte) (sqlc.CustodianGroup, error)
+	GetAllCustodianGroups(ctx context.Context) ([]sqlc.CustodianGroup, error)
 
 	// utxo snapshots
 	SaveUtxoSnapshot(ctx context.Context, utxoSnapshot *UTXOSnapshot) error

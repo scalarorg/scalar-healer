@@ -11,6 +11,7 @@ import (
 	"github.com/scalarorg/scalar-healer/pkg/db/postgres"
 	"github.com/scalarorg/scalar-healer/pkg/db/sqlc"
 	testutils "github.com/scalarorg/scalar-healer/pkg/test_utils"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCreateBridge(t *testing.T) {
@@ -82,6 +83,81 @@ func TestCreateTokens(t *testing.T) {
 
 		t.Logf("all tokens: %v", allTokens)
 
+		return nil
+	})
+}
+
+func TestCreateCustodianGroups(t *testing.T) {
+	testutils.RunWithTestDB(func(ctx context.Context, repo db.DbAdapter) error {
+		mockUid := []byte{0x1, 0x2, 0x3}
+		mockName := "test"
+		mockQuorum := int64(1)
+		mockBitcoinPubkey := common.MaxHash[:]
+		mockCustodians := [][]byte{common.MaxAddress.Bytes(), common.MaxAddress.Bytes()}
+		_ = mockCustodians
+
+		err := repo.SaveCustodianGroups(ctx, []sqlc.CustodianGroup{
+			{
+				Uid:           mockUid,
+				Name:          mockName,
+				Quorum:        mockQuorum,
+				BitcoinPubkey: mockBitcoinPubkey,
+			},
+		})
+
+		if err != nil {
+			t.Errorf("failed to save custodian groups: %v", err)
+		}
+
+		pg := (repo).(*postgres.PostgresRepository)
+
+		grs, err := pg.GetAllCustodianGroups(ctx)
+		assert.NoError(t, err)
+		assert.Equal(t, 1, len(grs))
+
+		gr, err := pg.GetCustodianGroupByUID(ctx, []byte{0x1, 0x2, 0x3})
+		assert.NoError(t, err)
+		assert.Equal(t, "test", gr.Name)
+		assert.Equal(t, 1, int(gr.Quorum))
+		assert.Equal(t, common.MaxHash, common.BytesToHash(gr.BitcoinPubkey))
+		return nil
+	})
+}
+
+func TestSaveProtocols(t *testing.T) {
+	testutils.RunWithTestDB(func(ctx context.Context, repo db.DbAdapter) error {
+		err := repo.SaveProtocols(ctx, []sqlc.Protocol{
+			{
+				Asset:              "BTC",
+				Name:               "Bitcoin",
+				CustodianGroupName: "test",
+				CustodianGroupUid:  []byte{0x1, 0x2, 0x3},
+				Tag:                "test",
+				LiquidityModel:     "test",
+				Symbol:             "BTC",
+				Decimals:           int64(8),
+				Capacity:           db.ConvertUint64ToNumeric(100000000),
+				DailyMintLimit:     db.ConvertUint64ToNumeric(100000000),
+				Avatar:             "",
+			},
+		})
+
+		if err != nil {
+			t.Errorf("failed to save protocols: %v", err)
+		}
+
+		protocol, err := repo.GetProtocol(ctx, "BTC")
+		if err != nil {
+			t.Errorf("failed to get protocol: %v", err)
+		}
+		assert.Equal(t, "BTC", protocol.Asset)
+		assert.Equal(t, "Bitcoin", protocol.Name)
+		assert.Equal(t, "test", protocol.CustodianGroupName)
+		assert.Equal(t, []byte{0x1, 0x2, 0x3}, protocol.CustodianGroupUid)
+		assert.Equal(t, "test", protocol.Tag)
+		assert.Equal(t, "test", protocol.LiquidityModel)
+		assert.Equal(t, "BTC", protocol.Symbol)
+		assert.Equal(t, int64(8), protocol.Decimals)
 		return nil
 	})
 }

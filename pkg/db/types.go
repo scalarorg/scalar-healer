@@ -39,20 +39,6 @@ func (s *Session) Cmp(other *Session) int64 {
 type RedeemSession struct {
 }
 
-type Protocol struct {
-	Name               string   `json:"name" bson:"name"`
-	CustodianGroupName string   `json:"custodian_group_name" bson:"custodian_group_name"`
-	CustodianGroupUid  [32]byte `json:"custodian_group_uid" bson:"custodian_group_uid"`
-	Tag                string   `json:"tag" bson:"tag"`
-	LiquidityModel     string   `json:"liquidity_model" bson:"liquidity_model"`
-	Asset              string   `json:"asset" bson:"asset"`
-	Symbol             string   `json:"symbol" bson:"symbol"`
-	Decimals           uint8    `json:"decimals" bson:"decimals"`
-	Capacity           uint64   `json:"capacity" bson:"capacity"`
-	DailyMintLimit     uint64   `json:"daily_mint_limit" bson:"daily_mint_limit"`
-	Avatar             string   `json:"avatar" bson:"avatar"`
-}
-
 type Reservation struct {
 	Request string `json:"request" bson:"request"`
 	Amount  uint64 `json:"amount" bson:"amount"`
