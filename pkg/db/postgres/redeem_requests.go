@@ -2,7 +2,6 @@ package postgres
 
 import (
 	"context"
-	"fmt"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -26,11 +25,7 @@ func (m *PostgresRepository) SaveRedeemTxs(ctx context.Context, redeemTxs []chai
 func (m *PostgresRepository) SaveRedeemRequest(ctx context.Context, chainId uint64, address common.Address, signature []byte, amount *big.Int, symbol string, nonce uint64) error {
 	return m.execTx(ctx, func(q *sqlc.Queries) error {
 		currentNonce := m.GetNonce(ctx, address)
-		fmt.Println("Saving redeem request")
-
-			fmt.Printf("Invalid nonce. Expected %d, got %d", currentNonce, nonce)
 		if nonce != currentNonce {
-			fmt.Printf("Invalid nonce. Expected %d, got %d", currentNonce, nonce)
 			return constants.ErrInvalidNonce
 		}
 
