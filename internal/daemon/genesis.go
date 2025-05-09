@@ -18,11 +18,11 @@ func (s *Service) initGenesis(ctx context.Context) {
 		panic(err)
 	}
 
-	newProtocols := make([]sqlc.Protocol, 0)
-	for _, protocol := range protocols {
+	newProtocols := make([]sqlc.Protocol, len(protocols))
+	for ind, protocol := range protocols {
 		uid := sha3.Sum256([]byte(protocol.CustodianGroupName))
 		protocol.CustodianGroupUid = uid[:]
-		newProtocols = append(newProtocols, protocol)
+		protocols[ind] = protocol
 	}
 	s.DbAdapter.SaveProtocols(ctx, newProtocols)
 	s.initTokens(ctx, protocols)

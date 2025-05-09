@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -399,7 +400,7 @@ func (p *RedeemTokenPayload) AbiUnpack(data []byte) error {
 	amounts := unpacked[4].([]uint64)
 	p.Utxos = make([]*UTXO, len(txIds))
 	for i, txId := range txIds {
-		hash, err := hex.DecodeString(txId)
+		hash, err := hex.DecodeString(strings.TrimPrefix(txId, "0x"))
 		if err != nil {
 			log.Error().Err(err).Msg("txId hash error")
 			return err

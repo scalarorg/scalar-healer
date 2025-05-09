@@ -99,7 +99,7 @@ func (s *GroupRedeemSessions) ConstructExecutingPhase() {
 	for chainId, switchPhaseEvent := range s.SwitchPhaseEvents {
 		if switchPhaseEvent[0].Sequence < s.MaxSession.Sequence {
 			log.Warn().Str("chainId", chainId).Any("First preparing event", switchPhaseEvent[0]).
-				Msg("[Relayer] [RecoverRedeemSessions] Session is too low. Some thing wrong")
+				Msg("[Service][RecoverRedeemSessions] Session is too low. Some thing wrong")
 		}
 	}
 	//We resend to the scalar network onlye the redeem transaction of the last session
@@ -107,7 +107,7 @@ func (s *GroupRedeemSessions) ConstructExecutingPhase() {
 		for _, event := range redeemTokenEvent {
 			if event.Sequence < s.MaxSession.Sequence {
 				log.Warn().Str("chainId", chainId).Any("Redeem transaction", event).
-					Msg("[Relayer] [RecoverRedeemSessions] Redeem transaction is too low. Some thing wrong")
+					Msg("[Service][RecoverRedeemSessions] Redeem transaction is too low. Some thing wrong")
 			}
 		}
 	}
@@ -143,7 +143,7 @@ func (s *CustodiansRecoverRedeemSessions) AddRecoverSessions(chainId string, cha
 		}
 		groupSession, ok := s.RecoverSessions[groupUid]
 		if !ok {
-			log.Warn().Msgf("[Relayer] [AddRecoverSessions] no recover session found for group %s", groupUid)
+			log.Warn().Msgf("[Service][AddRecoverSessions] no recover session found for group %s", groupUid)
 			groupSession = &GroupRedeemSessions{
 				GroupUid:          groupUid,
 				SwitchPhaseEvents: make(map[string][]*contracts.IScalarGatewaySwitchPhase),
@@ -156,7 +156,7 @@ func (s *CustodiansRecoverRedeemSessions) AddRecoverSessions(chainId string, cha
 }
 
 func (s *CustodiansRecoverRedeemSessions) ConstructSessions() {
-	log.Info().Msg("[Relayer] [ConstructSessions] start construct sessions")
+	log.Info().Msg("[Service][ConstructSessions] start construct sessions")
 	for _, groupSession := range s.RecoverSessions {
 		groupSession.Construct()
 	}

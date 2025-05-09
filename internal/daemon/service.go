@@ -60,5 +60,23 @@ func (s *Service) Start(ctx context.Context) error {
 		log.Warn().Err(err).Msgf("[DaemonService] cannot recover evm sessions")
 		panic(err)
 	}
+	//Recover all events
+	for _, client := range s.EvmClients {
+		go client.ProcessMissingLogs()
+		go func() {
+			//Todo: Handle the moment when recover just finished and listner has not started yet. It around 1 second
+			err := client.RecoverAllEvents(ctx, groups)
+			if err != nil {
+				log.Warn().Err(err).Msgf("[Relayer] [Start] cannot recover events for evm client %s", client.EvmConfig.GetId())
+			} else {
+				log.Info().Msgf("[Relayer] [Start] recovered missing events for evm client %s", client.EvmConfig.GetId())
+				client.Start(ctx)
+			}
+		}()
+	}
 	return nil
+}
+
+func (s *Service) Stop() {
+	log.Info().Msg("Daemon service stopped")
 }

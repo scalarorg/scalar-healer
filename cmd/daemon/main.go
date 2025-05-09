@@ -2,6 +2,9 @@ package main
 
 import (
 	"context"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/rs/zerolog/log"
 	"github.com/scalarorg/scalar-healer/config"
@@ -37,4 +40,11 @@ func main() {
 		log.Error().Err(err).Msg("Cannot start daemon service")
 		panic(err)
 	}
+	// Wait for interrupt signal to gracefully shutdown the server
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	log.Info().Msg("Shutting down relayer...")
+	service.Stop()
 }

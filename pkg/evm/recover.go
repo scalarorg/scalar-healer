@@ -360,7 +360,10 @@ func (c *EvmClient) RecoverRedeemSessions(groups []string) (*ChainRedeemSessions
 				}
 				groupUid := strings.TrimPrefix(hex.EncodeToString(switchedPhase.CustodianGroupId[:]), "0x")
 				if _, ok := allGroups[groupUid]; !ok {
-					log.Warn().Str("Chain", c.EvmConfig.ID).Str("groupUid", groupUid).Msg("[EvmClient] [RecoverRedeemSessions] unexpected groupUid")
+					log.Warn().Str("Chain", c.EvmConfig.ID).
+						Str("groupUid", groupUid).
+						Any("Expected groups", allGroups).
+						Msg("[EvmClient] [RecoverRedeemSessions] unexpected groupUid")
 					continue
 				}
 				log.Info().Str("Chain", c.EvmConfig.ID).Str("groupUid", groupUid).Msg("[EvmClient] [RecoverRedeemSessions] found preparing event")

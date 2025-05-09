@@ -23,9 +23,11 @@ func (c *Client) CategorizeVaultTxs(ctx context.Context, vaultTxs []types.VaultT
 			//1.Staking
 			tokenSent, err := c.CreateTokenSent(ctx, vaultTx)
 			if err != nil {
-				log.Error().Err(err).Any("BridgeTx", vaultTx).Msg("[ElectrumClient] [CreateTokenSents] failed to create token sent")
+				log.Warn().Err(err).
+					Str("TokenAddress", vaultTx.DestTokenAddress).
+					Msg("[ElectrumClient] [CreateTokenSents] failed to create token sent")
 			} else if tokenSent.Symbol == "" {
-				log.Error().Msgf("[ElectrumClient] [CreateTokenSents] symbol not found for token: %s", vaultTx.DestTokenAddress)
+				log.Warn().Msgf("[ElectrumClient] [CreateTokenSents] symbol not found for token: %s", vaultTx.DestTokenAddress)
 			} else {
 				tokenSents = append(tokenSents, *tokenSent)
 			}
