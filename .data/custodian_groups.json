@@ -1,0 +1,14 @@
+[
+    {
+        "uid": "wLb09UmqIk/Htjh/pfFMd1lcgzCAJPkPXcC4r64VvjQ=",
+        "name": "scalarv36",
+        "bitcoin_pubkey": "USCo/FDYfxbYkrTU0IfSWcCrQX4QawRLKRp3KNKuE0Pefw==",
+        "quorum": 3
+    },
+    {
+        "uid": "MuQblpUUbmr1O/IXOoQpT5Sdsc9aoRBFY/i7HOQCoKk=",
+        "name": "scalarv37",
+        "bitcoin_pubkey": "USCo/FDYfxbYkrTU0IfSWcCrQX4QawRLKRp3KNKuE0Pefw==",
+        "quorum": 3
+    }
+]

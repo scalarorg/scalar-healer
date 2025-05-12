@@ -1,6 +1,7 @@
 package daemon
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 
@@ -12,6 +13,30 @@ import (
 )
 
 func (s *Service) initGenesis(ctx context.Context) {
+	s.initCustodianGroups(ctx)
+	s.initProtocols(ctx)
+}
+
+func (s *Service) initCustodianGroups(ctx context.Context) {
+	custodianGroupCfgPath := fmt.Sprintf("%s/custodian_groups.json", s.ConfigPath)
+	custodianGroups, err := config.ReadJsonArrayConfig[sqlc.CustodianGroup](custodianGroupCfgPath)
+	if err != nil {
+		panic(err)
+	}
+
+	for _, custodianGroup := range custodianGroups {
+		uid := sha3.Sum256([]byte(custodianGroup.Name))
+		log.Info().Msgf("Custodian Group's UID: %x", custodianGroup.Uid)
+		log.Info().Msgf("Custodian Group's BitcoinPubKey: %x", custodianGroup.BitcoinPubkey)
+		if !bytes.Equal(uid[:], custodianGroup.Uid) {
+			panic("custodian group uid is not correct")
+		}
+	}
+
+	s.DbAdapter.SaveCustodianGroups(ctx, custodianGroups)
+}
+
+func (s *Service) initProtocols(ctx context.Context) {
 	protocolCfgPath := fmt.Sprintf("%s/protocols.json", s.ConfigPath)
 	protocols, err := config.ReadJsonArrayConfig[sqlc.Protocol](protocolCfgPath)
 	if err != nil {
@@ -25,6 +50,7 @@ func (s *Service) initGenesis(ctx context.Context) {
 		protocols[ind] = protocol
 	}
 	s.DbAdapter.SaveProtocols(ctx, newProtocols)
+
 	s.initTokens(ctx, protocols)
 }
 

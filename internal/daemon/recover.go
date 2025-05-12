@@ -9,24 +9,41 @@ import (
 
 	"github.com/rs/zerolog/log"
 	"github.com/scalarorg/scalar-healer/pkg/db"
+	"github.com/scalarorg/scalar-healer/pkg/db/sqlc"
 	"github.com/scalarorg/scalar-healer/pkg/evm"
 	contracts "github.com/scalarorg/scalar-healer/pkg/evm/contracts/generated"
+	"github.com/scalarorg/scalar-healer/pkg/utils"
 )
 
-func (s *Service) RecoverEvmSessions(ctx context.Context, groups []string) error {
+func (s *Service) RecoverEvmSessions(ctx context.Context) {
+	groups, err := s.DbAdapter.GetAllCustodianGroups(ctx)
+	if err != nil {
+		log.Error().Err(err).Msg("[DaemonService] Cannot get custodian groups")
+		panic(err)
+	}
+
+	log.Info().
+		Int("len(groups)", len(groups)).
+		Interface("groups", groups).
+		Msg("[Service][RecoverEvmSessions] start recover evm sessions")
+
+	groupIds := utils.Map(groups, func(group sqlc.CustodianGroup) string {
+		return hex.EncodeToString(group.Uid)
+	})
+
 	wg := sync.WaitGroup{}
 	recoverSessions := CustodiansRecoverRedeemSessions{}
 	for _, client := range s.EvmClients {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			chainRedeemSessions, err := client.RecoverRedeemSessions(groups)
+			chainRedeemSessions, err := client.RecoverRedeemSessions(groupIds)
 			if err != nil {
 				log.Warn().Err(err).Msgf("[Service][Start] cannot recover sessions for evm client %s", client.EvmConfig.GetId())
 			}
 			if chainRedeemSessions != nil {
-				log.Info().Str("chainId", client.EvmConfig.GetId()).
-					//Any("chainRedeemSessions", chainRedeemSessions).
+				log.Info().
+					Str("chainId", client.EvmConfig.GetId()).
 					Msg("[Service][RecoverEvmSessions] add evm session")
 				recoverSessions.AddRecoverSessions(client.EvmConfig.GetId(), chainRedeemSessions)
 			} else {
@@ -36,7 +53,9 @@ func (s *Service) RecoverEvmSessions(ctx context.Context, groups []string) error
 	}
 	wg.Wait()
 	log.Info().Msgf("[Service][RecoverEvmSessions] finished get SwitchPhase And redeemTx from evm chains")
+
 	recoverSessions.ConstructSessions()
+
 	for groupUid, groupRedeemSessions := range recoverSessions.RecoverSessions {
 		wg.Add(1)
 		go func() {
@@ -44,8 +63,6 @@ func (s *Service) RecoverEvmSessions(ctx context.Context, groups []string) error
 			log.Info().Str("groupUid", groupUid).
 				Any("maxSession", groupRedeemSessions.MaxSession).
 				Any("minSession", groupRedeemSessions.MinSession).
-				//Any("switchPhaseEvents", groupRedeemSessions.SwitchPhaseEvents).
-				//Any("redeemTokenEvents", groupRedeemSessions.RedeemTokenEvents).
 				Msg("[Relayer] [RecoverEvmSessions] recovered redeem session for each group")
 			if groupRedeemSessions.MaxSession.Phase == db.Executing {
 				err := s.processRecoverExecutingPhase(ctx, groupUid, groupRedeemSessions)
@@ -62,8 +79,8 @@ func (s *Service) RecoverEvmSessions(ctx context.Context, groups []string) error
 	}
 	wg.Wait()
 	log.Info().Msgf("[Service][RecoverEvmSessions] finished RecoverEvmSessions")
-	return nil
 }
+
 func (s *Service) processRecoverExecutingPhase(ctx context.Context, groupUid string, groupRedeemSessions *GroupRedeemSessions) error {
 	log.Info().Str("groupUid", groupUid).
 		Msg("[Service][RecoverEvmSessions] processRecoverExecutingPhase")
@@ -113,7 +130,7 @@ func (s *Service) processRecoverExecutingPhase(ctx context.Context, groupUid str
 	}
 
 	if evmCounter == int32(len(s.EvmClients)) {
-		log.Info().Int32("evmCounter", evmCounter).Msg("[Service][processRecoverExecutionPhase] all evm chains a in executing phase")
+		log.Info().Int32("evmCounter", evmCounter).Msg("[Service][processRecoverExecutionPhase] all evm chains are in executing phase")
 		err = s.replayBtcRedeemTxs(groupUid)
 		if err != nil {
 			log.Warn().Err(err).Msgf("[Service][processRecoverExecutionPhase] cannot replay btc redeem transactions")
@@ -226,12 +243,12 @@ func (s *Service) replaySwitchPhaseEvents(ctx context.Context, mapSwitchPhaseEve
 				hasDifferentPhase.Store(true)
 				return
 			}
-			err := evmClient.HandleSwitchPhase(ctx, switchPhaseEvent)
-			if err != nil {
-				log.Warn().Err(err).Msgf("[Service][processRecoverPreparingPhase] cannot handle switch phase event for evm client %s", chainId)
-			} else {
-				evmCounter.Add(1)
-			}
+			// err := evmClient.HandleSwitchPhase(ctx, switchPhaseEvent)
+			// if err != nil {
+			// 	log.Warn().Err(err).Msgf("[Service][processRecoverPreparingPhase] cannot handle switch phase event for evm client %s", chainId)
+			// } else {
+			// 	evmCounter.Add(1)
+			// }
 		}()
 	}
 	wg.Wait()
@@ -281,10 +298,15 @@ func (s *Service) replayRedeemTransactions(ctx context.Context, groupUid string,
 
 func (s *Service) replayBtcRedeemTxs(groupUid string) error {
 	log.Info().Str("groupUid", groupUid).Msgf("[Service][processRecoverPreparingPhase] replay btc redeem transactions")
-	// groupBytes, err := hex.DecodeString(groupUid)
-	// if err != nil {
-	// 	return fmt.Errorf("[Service][processRecoverPreparingPhase] cannot decode group uid: %s", err)
-	// }
+	groupBytes, err := hex.DecodeString(groupUid)
+	if err != nil {
+		return fmt.Errorf("[Service][processRecoverPreparingPhase] cannot decode group uid: %s", err)
+	}
+
+	_ = groupBytes
+
+	// TODO: Get redeem session from DB
+
 	// redeemSession, err := s.ScalarClient.GetRedeemSession(groupBytes)
 	// if err != nil {
 	// 	return fmt.Errorf("[Service][processRecoverPreparingPhase] cannot get redeem session for group %s", groupUid)

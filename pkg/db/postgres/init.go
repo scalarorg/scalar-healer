@@ -11,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog/log"
+	"github.com/scalarorg/scalar-healer/config"
 	"github.com/scalarorg/scalar-healer/pkg/db"
 	"github.com/scalarorg/scalar-healer/pkg/db/sqlc"
 )
@@ -33,10 +34,12 @@ type ConnConfig struct {
 func NewRepository(ctx context.Context, cfg *ConnConfig, migrationURL string) *PostgresRepository {
 	dbSource := fmt.Sprintf("postgresql://%s:%s@%s:%d/%s?sslmode=disable", cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.DBName)
 
-	config, err := pgxpool.ParseConfig(dbSource)
-	config.ConnConfig.Tracer = &Tracer{}
+	configs, err := pgxpool.ParseConfig(dbSource)
+	if config.Env.IS_TEST {
+		configs.ConnConfig.Tracer = &Tracer{}
+	}
 
-	connPool, err := pgxpool.NewWithConfig(ctx, config)
+	connPool, err := pgxpool.NewWithConfig(ctx, configs)
 
 	if err != nil {
 		log.Fatal().Err(err).Msg("cannot connect to db")

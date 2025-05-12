@@ -1,0 +1,28 @@
+[
+  {
+    "chainId": 11155111,
+    "id": "evm|11155111",
+    "name": "ethereum-sepolia",
+    "_rpcUrl": "https://eth-sepolia.g.alchemy.com/v2/nNbspp-yjKP9GtAcdKi8xcLnBTptR2Zx",
+    "rpcUrl": "https://eth-sepolia.g.alchemy.com/v2/DpCscOiv_evEPscGYARI3cOVeJ59CRo8",
+    "gateway": "0xCd60852A48fc101304C603A9b1Bbd1E40d35E8c8",
+    "startBlock": 8095740,
+    "recoverRange": 1000000,
+    "blockTime": 12000,
+    "gasLimit": 3000000,
+    "finality": 1
+  },
+  {
+    "chainId": 97,
+    "id": "evm|97",
+    "name": "ethereum-bnb",
+    "rpcUrl": "https://bnb-testnet.g.alchemy.com/v2/DpCscOiv_evEPscGYARI3cOVeJ59CRo8",
+    "_rpcUrl": "https://bnb-testnet.g.alchemy.com/v2/bTuMLydGpQ3aDd46xDOjQtKGEYHMtYQw",
+    "gateway": "0x930C3c4f7d26f18830318115DaD97E0179DA55f0",
+    "startBlock": 49962364,
+    "recoverRange": 1000000,
+    "blockTime": 12000,
+    "gasLimit": 3000000,
+    "finality": 1
+  }
+]

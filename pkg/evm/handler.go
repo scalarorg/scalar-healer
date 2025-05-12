@@ -344,20 +344,6 @@ func (ec *EvmClient) preprocessCommandExecuted(event *contracts.IScalarGatewayEx
 	return nil
 }
 
-func (ec *EvmClient) HandleSwitchPhase(ctx context.Context, event *contracts.IScalarGatewaySwitchPhase) error {
-	//0. Preprocess the event
-	log.Info().Str("Chain", ec.EvmConfig.ID).Any("event", event).Msg("[EvmClient] [HandleSwitchPhase] Start processing evm switch phase")
-	//1. Convert into a RelayData instance then store to the db
-	switchPhase := ec.SwitchPhaseEvent2Model(event)
-	if ec.dbAdapter != nil {
-		err := ec.dbAdapter.SaveSwitchPhaseValue(ctx, &switchPhase)
-		if err != nil {
-			return fmt.Errorf("failed to create evm switch phase: %w", err)
-		}
-	}
-	return nil
-}
-
 func (ec *EvmClient) SubmitTx(signedTx *ethtypes.Transaction, retryAttempt int) (*ethtypes.Receipt, error) {
 	if retryAttempt >= ec.EvmConfig.MaxRetry {
 		return nil, fmt.Errorf("max retry exceeded")
