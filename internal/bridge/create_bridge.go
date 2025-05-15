@@ -29,7 +29,6 @@ func CreateBridge(c echo.Context) error {
 	gatewayAddress, err := db.GetGatewayAddress(ctx, body.ChainID)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, constants.ErrNotFoundGateway)
-
 	}
 
 	txHash := common.HexToHash(body.TxHash)

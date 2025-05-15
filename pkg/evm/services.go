@@ -13,11 +13,16 @@ import (
 )
 
 var abiEventsMap = map[string]abi.Event{}
+var switchPhaseEvent abi.Event
+var redeemTokenEvent abi.Event
 
 func init() {
 	for _, event := range scalarGatewayAbi.Events {
 		abiEventsMap[event.Name] = event
 	}
+
+	switchPhaseEvent = abiEventsMap[EVENT_EVM_SWITCHED_PHASE]
+	redeemTokenEvent = abiEventsMap[EVENT_EVM_REDEEM_TOKEN]
 }
 
 // Go routine for process missing logs

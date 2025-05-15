@@ -55,7 +55,6 @@ func (s *Service) Start(ctx context.Context) error {
 	select {
 	case <-ctx.Done():
 		return nil
-
 	}
 }
 

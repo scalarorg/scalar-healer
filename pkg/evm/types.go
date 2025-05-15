@@ -75,7 +75,7 @@ type EvmNetworkConfig struct {
 	GasLimit     uint64        `mapstructure:"gas_limit"`
 	BlockTime    time.Duration `mapstructure:"blockTime"` //Timeout im ms for pending txs
 	MaxRetry     int
-	RecoverRange uint64 `mapstructure:"recover_range"` //Max block range to recover events in single query
+	RecoverRange int64 `mapstructure:"recover_range"` //Max block range to recover events in single query
 	RetryDelay   time.Duration
 	TxTimeout    time.Duration `mapstructure:"tx_timeout"` //Timeout for send txs (~3s)
 }
@@ -271,6 +271,13 @@ type ChainRedeemSessions struct {
 	RedeemTokenEvents map[string][]*contracts.IScalarGatewayRedeemToken
 }
 
+func NewChainRedeemSessions() *ChainRedeemSessions {
+	return &ChainRedeemSessions{
+		SwitchPhaseEvents: make(map[string][]*contracts.IScalarGatewaySwitchPhase),
+		RedeemTokenEvents: make(map[string][]*contracts.IScalarGatewayRedeemToken),
+	}
+}
+
 // Return number of events added
 func (s *ChainRedeemSessions) AppendSwitchPhaseEvent(groupUid string, event *contracts.IScalarGatewaySwitchPhase) int {
 	//Put switch phase event in the first position
@@ -330,9 +337,10 @@ func (s *ChainRedeemSessions) AppendRedeemTokenEvent(groupUid string, event *con
 		} else if lastInsertedEvent.Sequence == event.Sequence {
 			s.RedeemTokenEvents[groupUid] = append([]*contracts.IScalarGatewayRedeemToken{event}, redeemEvents...)
 		} else {
-			log.Warn().Str("groupUid", groupUid).Any("last inserted event", lastInsertedEvent).
-				Any("incomming event", event).
-				Msg("[ChainRedeemSessions] [AppendRedeemTokenEvent] ignore redeem token tx with lower sequence")
+			// log.Warn().Str("groupUid", groupUid).
+			// Any("last inserted event", lastInsertedEvent).
+			// Any("incomming event", event).
+			// 	Msg("[ChainRedeemSessions] [AppendRedeemTokenEvent] ignore redeem token tx with lower sequence")
 		}
 	}
 }

@@ -27,4 +27,5 @@ tmp
 dump
 main
 data
+.data
 *.out

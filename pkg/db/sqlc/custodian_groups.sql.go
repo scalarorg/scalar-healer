@@ -63,6 +63,10 @@ func (q *Queries) GetCustodianGroupByUID(ctx context.Context, uid []byte) (Custo
 const saveCustodianGroups = `-- name: SaveCustodianGroups :exec
 INSERT INTO custodian_groups (uid, name, bitcoin_pubkey, quorum)
 VALUES (unnest($1::bytea[]), unnest($2::text[]), unnest($3::bytea[]), unnest($4::bigint[]))
+ON CONFLICT (uid) DO UPDATE
+SET name = EXCLUDED.name,
+    bitcoin_pubkey = EXCLUDED.bitcoin_pubkey,
+    quorum = EXCLUDED.quorum
 `
 
 type SaveCustodianGroupsParams struct {

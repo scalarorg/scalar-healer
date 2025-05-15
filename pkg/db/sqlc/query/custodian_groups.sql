@@ -6,4 +6,8 @@ SELECT * FROM custodian_groups WHERE uid = $1;
 
 -- name: SaveCustodianGroups :exec
 INSERT INTO custodian_groups (uid, name, bitcoin_pubkey, quorum)
-VALUES (unnest($1::bytea[]), unnest($2::text[]), unnest($3::bytea[]), unnest($4::bigint[]));
+VALUES (unnest($1::bytea[]), unnest($2::text[]), unnest($3::bytea[]), unnest($4::bigint[]))
+ON CONFLICT (uid) DO UPDATE
+SET name = EXCLUDED.name,
+    bitcoin_pubkey = EXCLUDED.bitcoin_pubkey,
+    quorum = EXCLUDED.quorum;

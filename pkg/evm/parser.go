@@ -321,7 +321,7 @@ func ParseEventData(receiptLog *eth_types.Log, eventName string, eventData any) 
 		return fmt.Errorf("receipt log topic 0 does not match %s event id", eventName)
 	}
 	// Unpack non-indexed arguments
-	if err := gatewayAbi.UnpackIntoInterface(eventData, eventName, receiptLog.Data); err != nil {
+	if err = gatewayAbi.UnpackIntoInterface(eventData, eventName, receiptLog.Data); err != nil {
 		return fmt.Errorf("failed to unpack event: %w", err)
 	}
 	// Unpack indexed arguments

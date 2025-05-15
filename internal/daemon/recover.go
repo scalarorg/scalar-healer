@@ -7,6 +7,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/rs/zerolog/log"
 	"github.com/scalarorg/scalar-healer/pkg/db"
 	"github.com/scalarorg/scalar-healer/pkg/db/sqlc"
@@ -27,8 +28,8 @@ func (s *Service) RecoverEvmSessions(ctx context.Context) {
 		Interface("groups", groups).
 		Msg("[Service][RecoverEvmSessions] start recover evm sessions")
 
-	groupIds := utils.Map(groups, func(group sqlc.CustodianGroup) string {
-		return hex.EncodeToString(group.Uid)
+	groupIds := utils.Map(groups, func(group sqlc.CustodianGroup) common.Hash {
+		return common.BytesToHash(group.Uid)
 	})
 
 	wg := sync.WaitGroup{}
@@ -37,18 +38,15 @@ func (s *Service) RecoverEvmSessions(ctx context.Context) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			chainRedeemSessions, err := client.RecoverRedeemSessions(groupIds)
-			if err != nil {
-				log.Warn().Err(err).Msgf("[Service][Start] cannot recover sessions for evm client %s", client.EvmConfig.GetId())
-			}
-			if chainRedeemSessions != nil {
-				log.Info().
-					Str("chainId", client.EvmConfig.GetId()).
-					Msg("[Service][RecoverEvmSessions] add evm session")
-				recoverSessions.AddRecoverSessions(client.EvmConfig.GetId(), chainRedeemSessions)
-			} else {
+			chainRedeemSessions, err := client.RecoverRedeemSessions(ctx, groupIds)
+			if err != nil || chainRedeemSessions == nil {
+				log.Error().Err(err).Msgf("[Service][RecoverEvmSessions] recover session error: %s", err)
 				panic(fmt.Sprintf("[Service][RecoverEvmSessions] cannot recover sessions for evm client %s", client.EvmConfig.GetId()))
 			}
+			log.Info().
+				Str("chainId", client.EvmConfig.GetId()).
+				Msg("[Service][RecoverEvmSessions] add evm session")
+			recoverSessions.AddRecoverSessions(client.EvmConfig.GetId(), chainRedeemSessions)
 		}()
 	}
 	wg.Wait()
@@ -94,7 +92,7 @@ func (s *Service) processRecoverExecutingPhase(ctx context.Context, groupUid str
 		log.Info().Msgf("[Service][processRecoverExecutingPhase] redeem session is not broadcasted to bitcoin network")
 
 		//1. Replay all switch to preparing phase event,
-		expectedPhase, evmCounter, hasDifferentPhase := s.replaySwitchPhaseEvents(ctx, groupRedeemSessions.SwitchPhaseEvents, 0)
+		expectedPhase, evmCounter, hasDifferentPhase := s.replaySwitchPhaseEvents(groupRedeemSessions.SwitchPhaseEvents, 0)
 		log.Info().Int32("evmCounter", evmCounter).
 			Any("ExpectedPhase", expectedPhase).
 			Bool("hasDifferentPhase", hasDifferentPhase).
@@ -117,7 +115,7 @@ func (s *Service) processRecoverExecutingPhase(ctx context.Context, groupUid str
 		log.Info().Any("mapTxHashes", mapTxHashes).Msg("[Service][processRecoverExecutionPhase] finished replay redeem transactions")
 	}
 	//5. Replay all switch to executing phase events
-	expectedPhase, evmCounter, hasDifferentPhase := s.replaySwitchPhaseEvents(ctx, groupRedeemSessions.SwitchPhaseEvents, 1)
+	expectedPhase, evmCounter, hasDifferentPhase := s.replaySwitchPhaseEvents(groupRedeemSessions.SwitchPhaseEvents, 1)
 	log.Info().Int32("evmCounter", evmCounter).
 		Any("ExpectedPhase", expectedPhase).
 		Bool("hasDifferentPhase", hasDifferentPhase).
@@ -145,7 +143,7 @@ func (s *Service) processRecoverPreparingPhase(ctx context.Context, groupUid str
 	log.Info().Str("groupUid", groupUid).
 		Msg("[Service][RecoverEvmSessions] processRecoverPreparingPhase")
 	//1. For each evm chain, replay last switch event. It can be Preparing or executing from previous session
-	expectedPhase, evmCounter, hasDifferentPhase := s.replaySwitchPhaseEvents(ctx, groupRedeemSessions.SwitchPhaseEvents, 0)
+	expectedPhase, evmCounter, hasDifferentPhase := s.replaySwitchPhaseEvents(groupRedeemSessions.SwitchPhaseEvents, 0)
 	if hasDifferentPhase {
 		panic("[Service][processRecoverPreparingPhase] cannot recover all evm switch phase events")
 	}
@@ -211,7 +209,7 @@ func (s *Service) isRedeemSessionBroadcasted(mapRedeemTokenEvents map[string][]*
 	return false, nil
 }
 
-func (s *Service) replaySwitchPhaseEvents(ctx context.Context, mapSwitchPhaseEvents map[string][]*contracts.IScalarGatewaySwitchPhase, index int) (int32, int32, bool) {
+func (s *Service) replaySwitchPhaseEvents(mapSwitchPhaseEvents map[string][]*contracts.IScalarGatewaySwitchPhase, index int) (int32, int32, bool) {
 	wg := sync.WaitGroup{}
 	var hasDifferentPhase atomic.Bool
 	var expectedPhase atomic.Int32

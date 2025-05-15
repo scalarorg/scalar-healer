@@ -9,6 +9,7 @@ import (
 	"github.com/scalarorg/scalar-healer/config"
 	"github.com/scalarorg/scalar-healer/pkg/db"
 	"github.com/scalarorg/scalar-healer/pkg/openobserve"
+	"github.com/scalarorg/scalar-healer/pkg/session"
 	"github.com/scalarorg/scalar-healer/pkg/worker"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
@@ -48,7 +49,13 @@ func New(db db.DbAdapter) *Server {
 func (s *Server) Start() error {
 	s.printRoutes()
 
+	s.setupSvs()
+
 	return s.Raw.Start(fmt.Sprintf("%s:%s", config.Env.API_HOST, config.Env.PORT))
+}
+
+func (s *Server) setupSvs() {
+	session.Init([]byte(config.Env.JWT_SECRET), config.Env.JWT_DURATION)
 }
 
 func (s *Server) Close() {

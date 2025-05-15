@@ -33,7 +33,10 @@ func (s *Service) initCustodianGroups(ctx context.Context) {
 		}
 	}
 
-	s.DbAdapter.SaveCustodianGroups(ctx, custodianGroups)
+	err = s.DbAdapter.SaveCustodianGroups(ctx, custodianGroups)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (s *Service) initProtocols(ctx context.Context) {
@@ -60,8 +63,7 @@ func (s *Service) initTokens(ctx context.Context, protocols []sqlc.Protocol) {
 		for _, evmClient := range s.EvmClients {
 			tokenAddr := evmClient.GetTokenAddressBySymbol(protocol.Symbol)
 			if tokenAddr == nil {
-				log.Error().Msgf("Token address not found for symbol %s", protocol.Symbol)
-				continue
+				panic(fmt.Sprintf("Token address not found for symbol %s", protocol.Symbol))
 			}
 			token := sqlc.Token{
 				Protocol: protocol.Name,
