@@ -1,4 +1,4 @@
-package postgres_test
+package healer_test
 
 import (
 	"context"
@@ -8,14 +8,14 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/scalarorg/scalar-healer/pkg/db"
-	"github.com/scalarorg/scalar-healer/pkg/db/postgres"
+	"github.com/scalarorg/scalar-healer/pkg/db/healer"
 	"github.com/scalarorg/scalar-healer/pkg/db/sqlc"
 	testutils "github.com/scalarorg/scalar-healer/pkg/test_utils"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestCreateBridge(t *testing.T) {
-	testutils.RunWithTestDB(func(ctx context.Context, repo db.DbAdapter) error {
+	testutils.RunWithTestDB(func(ctx context.Context, repo db.HealderAdapter) error {
 		err := repo.SaveBridgeRequest(ctx, 222, common.Address{}, []byte{0x1, 0x2, 0x3}, []byte{0x1, 0x2, 0x3}, 0)
 		if err != nil {
 			t.Errorf("failed to save bridge request: %v", err)
@@ -39,8 +39,8 @@ func TestCreateBridge(t *testing.T) {
 }
 
 func TestCreateGatewayAddress(t *testing.T) {
-	testutils.RunWithTestDB(func(ctx context.Context, repo db.DbAdapter) error {
-		err := (repo).(*postgres.PostgresRepository).CreateGatewayAddress(ctx, sqlc.CreateGatewayAddressParams{
+	testutils.RunWithTestDB(func(ctx context.Context, repo db.HealderAdapter) error {
+		err := (repo).(*healer.HealerRepository).CreateGatewayAddress(ctx, sqlc.CreateGatewayAddressParams{
 			ChainID: pgtype.Numeric{
 				Int:   big.NewInt(1),
 				Exp:   0,
@@ -57,7 +57,7 @@ func TestCreateGatewayAddress(t *testing.T) {
 }
 
 func TestCreateTokens(t *testing.T) {
-	testutils.RunWithTestDB(func(ctx context.Context, repo db.DbAdapter) error {
+	testutils.RunWithTestDB(func(ctx context.Context, repo db.HealderAdapter) error {
 		err := repo.SaveTokens(ctx, []sqlc.Token{
 			{
 				Symbol:   "ETH",
@@ -74,7 +74,7 @@ func TestCreateTokens(t *testing.T) {
 			t.Errorf("failed to save tokens: %v", err)
 		}
 
-		pg := (repo).(*postgres.PostgresRepository)
+		pg := (repo).(*healer.HealerRepository)
 
 		allTokens, err := pg.ListTokens(ctx)
 		if err != nil {
@@ -88,7 +88,7 @@ func TestCreateTokens(t *testing.T) {
 }
 
 func TestCreateCustodianGroups(t *testing.T) {
-	testutils.RunWithTestDB(func(ctx context.Context, repo db.DbAdapter) error {
+	testutils.RunWithTestDB(func(ctx context.Context, repo db.HealderAdapter) error {
 		mockUid := []byte{0x1, 0x2, 0x3}
 		mockName := "test"
 		mockQuorum := int64(1)
@@ -109,7 +109,7 @@ func TestCreateCustodianGroups(t *testing.T) {
 			t.Errorf("failed to save custodian groups: %v", err)
 		}
 
-		pg := (repo).(*postgres.PostgresRepository)
+		pg := (repo).(*healer.HealerRepository)
 
 		grs, err := pg.GetAllCustodianGroups(ctx)
 		assert.NoError(t, err)
@@ -125,7 +125,7 @@ func TestCreateCustodianGroups(t *testing.T) {
 }
 
 func TestSaveProtocols(t *testing.T) {
-	testutils.RunWithTestDB(func(ctx context.Context, repo db.DbAdapter) error {
+	testutils.RunWithTestDB(func(ctx context.Context, repo db.HealderAdapter) error {
 		err := repo.SaveProtocols(ctx, []sqlc.Protocol{
 			{
 				Asset:              "BTC",
@@ -165,19 +165,19 @@ func TestSaveProtocols(t *testing.T) {
 func TestSaveUtxoSnapshot(t *testing.T) {
 	tests := []struct {
 		name    string
-		setup   func(t *testing.T, repo *postgres.PostgresRepository)
+		setup   func(t *testing.T, repo *healer.HealerRepository)
 		input   []sqlc.Utxo
 		wantErr bool
 	}{
 		{
 			name:    "empty snapshot",
-			setup:   func(t *testing.T, repo *postgres.PostgresRepository) {},
+			setup:   func(t *testing.T, repo *healer.HealerRepository) {},
 			input:   []sqlc.Utxo{},
 			wantErr: false,
 		},
 		{
 			name:  "valid snapshot with same custodian group",
-			setup: func(t *testing.T, repo *postgres.PostgresRepository) {},
+			setup: func(t *testing.T, repo *healer.HealerRepository) {},
 			input: []sqlc.Utxo{
 				{
 					TxID:              []byte{0x1},
@@ -200,7 +200,7 @@ func TestSaveUtxoSnapshot(t *testing.T) {
 		},
 		{
 			name:  "invalid snapshot with mixed groups",
-			setup: func(t *testing.T, repo *postgres.PostgresRepository) {},
+			setup: func(t *testing.T, repo *healer.HealerRepository) {},
 			input: []sqlc.Utxo{
 				{
 					TxID:              []byte{0x1},
@@ -224,7 +224,7 @@ func TestSaveUtxoSnapshot(t *testing.T) {
 
 		{
 			name:  "invalid snapshot with mixed script pubkeys",
-			setup: func(t *testing.T, repo *postgres.PostgresRepository) {},
+			setup: func(t *testing.T, repo *healer.HealerRepository) {},
 			input: []sqlc.Utxo{
 				{
 					TxID:              []byte{0x1},
@@ -248,7 +248,7 @@ func TestSaveUtxoSnapshot(t *testing.T) {
 
 		{
 			name: "block height validation",
-			setup: func(t *testing.T, repo *postgres.PostgresRepository) {
+			setup: func(t *testing.T, repo *healer.HealerRepository) {
 				// Insert existing UTXO with higher block height
 				err := repo.SaveUTXOs(context.Background(), sqlc.SaveUTXOsParams{
 					Column1: [][]byte{{0x1}},
@@ -276,8 +276,8 @@ func TestSaveUtxoSnapshot(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			testutils.RunWithTestDB(func(ctx context.Context, repo db.DbAdapter) error {
-				pg := repo.(*postgres.PostgresRepository)
+			testutils.RunWithTestDB(func(ctx context.Context, repo db.HealderAdapter) error {
+				pg := repo.(*healer.HealerRepository)
 				tc.setup(t, pg)
 
 				err := pg.SaveUtxoSnapshot(ctx, tc.input)

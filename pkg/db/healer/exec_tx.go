@@ -1,4 +1,4 @@
-package postgres
+package healer
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"github.com/scalarorg/scalar-healer/pkg/db/sqlc"
 )
 
-func (store *PostgresRepository) execTx(ctx context.Context, fn func(*sqlc.Queries) error) error {
+func (store *HealerRepository) execTx(ctx context.Context, fn func(*sqlc.Queries) error) error {
 	tx, err := store.connPool.Begin(ctx)
 	if err != nil {
 		return err

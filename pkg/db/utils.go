@@ -11,11 +11,11 @@ func GetRepositoryContextKey() string {
 	return "repository"
 }
 
-func GetRepositoryFromContext(c echo.Context) DbAdapter {
-	return c.Get(GetRepositoryContextKey()).(DbAdapter)
+func GetRepositoryFromContext(c echo.Context) HealderAdapter {
+	return c.Get(GetRepositoryContextKey()).(HealderAdapter)
 }
 
-func SetRepositoryToContext(c echo.Context, next echo.HandlerFunc, m DbAdapter) error {
+func SetRepositoryToContext(c echo.Context, next echo.HandlerFunc, m HealderAdapter) error {
 	c.Set(GetRepositoryContextKey(), m)
 	return next(c)
 }

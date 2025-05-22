@@ -1,4 +1,4 @@
-package postgres
+package healer
 
 import (
 	"bytes"
@@ -10,7 +10,7 @@ import (
 	"github.com/scalarorg/scalar-healer/pkg/db/sqlc"
 )
 
-func (m *PostgresRepository) SaveUtxoSnapshot(ctx context.Context, utxoSnapshot []sqlc.Utxo) error {
+func (m *HealerRepository) SaveUtxoSnapshot(ctx context.Context, utxoSnapshot []sqlc.Utxo) error {
 	return m.execTx(ctx, func(q *sqlc.Queries) error {
 		if len(utxoSnapshot) == 0 {
 			return nil

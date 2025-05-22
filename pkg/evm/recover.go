@@ -307,39 +307,60 @@ func (c *EvmClient) RecoverRedeemSessions(ctx context.Context, groups []common.H
 
 	redeemSessions := NewChainRedeemSessions()
 
+	// just get events in range 500 blocks to prevent rate limit
+	currentBlockNumber, err := c.Client.BlockNumber(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get current block number: %w", err)
+	}
+
+	baseQuery := ethereum.FilterQuery{
+		Addresses: []common.Address{c.GatewayAddress},
+		ToBlock:   big.NewInt(int64(currentBlockNumber)),
+		FromBlock: big.NewInt(int64(currentBlockNumber - uint64(c.EvmConfig.RecoverRange) + 1)),
+	}
+
+	log.Info().
+		Str("Number of groups", fmt.Sprintf("%d", len(groups))).
+		Msg("[EvmClient] [RecoverRedeemSessions] start recovering redeem sessions")
+
 	for _, gr := range groups {
-		query := ethereum.FilterQuery{
-			Addresses: []common.Address{c.GatewayAddress},
-			Topics:    [][]common.Hash{{switchPhaseEvent.ID}, {gr}},
-			FromBlock: big.NewInt(int64(c.EvmConfig.StartBlock)),
-		}
-
-		events, err := c.Client.FilterLogs(ctx, query)
-		if err != nil {
-			return nil, fmt.Errorf("failed to filter logs: %w", err)
-		}
-
-		if len(events) == 0 {
-			log.Warn().
+		isEnoughEvents := false
+		query := baseQuery
+		query.Topics = [][]common.Hash{{switchPhaseEvent.ID}, {gr}}
+		for !isEnoughEvents && query.FromBlock.Uint64() > c.EvmConfig.StartBlock {
+			log.Info().
 				Str("Chain", c.EvmConfig.ID).
-				Msg("[EvmClient] [RecoverRedeemSessions] no events found")
-			return nil, fmt.Errorf("[EvmClient] [RecoverRedeemSessions]: no events found")
-		}
-
-		for i := len(events) - 1; i >= 0; i-- {
-			event := events[i]
-			switchedPhase, err := parseSwitchPhaseEvent(event)
+				Str("Group", gr.String()).
+				Msgf("[EvmClient] [RecoverRedeemSessions] querying logs fromBlock: %d, toBlock: %d", query.FromBlock.Uint64(), query.ToBlock.Uint64())
+			events, err := c.Client.FilterLogs(ctx, query)
 			if err != nil {
-				log.Error().Err(err).Msgf("[EvmClient] [RecoverRedeemSessions] failed to parse event %s", switchPhaseEvent.Name)
-				return nil, fmt.Errorf("[EvmClient] [RecoverRedeemSessions]: failed to parse event %s", switchPhaseEvent.Name)
+				return nil, fmt.Errorf("failed to filter logs: %w", err)
 			}
 
-			counter := redeemSessions.AppendSwitchPhaseEvent(gr.Hex(), switchedPhase)
-			if counter == 2 || switchedPhase.To == uint8(db.Preparing) && switchedPhase.Sequence == 1 {
-				break
+			if len(events) > 0 {
+				for i := len(events) - 1; i >= 0; i-- {
+					event := events[i]
+					switchedPhaseEvent, err := parseSwitchPhaseEvent(event)
+					if err != nil {
+						log.Error().Err(err).Msgf("[EvmClient] [RecoverRedeemSessions] failed to parse event %s", switchPhaseEvent.Name)
+						return nil, fmt.Errorf("[EvmClient] [RecoverRedeemSessions]: failed to parse event %s", switchPhaseEvent.Name)
+					}
+
+					counter := redeemSessions.AppendSwitchPhaseEvent(gr.Hex(), switchedPhaseEvent)
+					if counter == 2 || switchedPhaseEvent.To == uint8(db.Preparing) && switchedPhaseEvent.Sequence == 1 {
+						log.Debug().
+							Str("Chain", c.EvmConfig.ID).
+							Str("Group", gr.String()).
+							Msgf("[EvmClient] [RecoverRedeemSessions] found %d events", counter)
+						isEnoughEvents = true
+						break
+					}
+				}
 			}
+
+			query.ToBlock = big.NewInt(int64(query.ToBlock.Uint64() - uint64(c.EvmConfig.RecoverRange)))
+			query.FromBlock = big.NewInt(int64(query.FromBlock.Uint64() - uint64(c.EvmConfig.RecoverRange)))
 		}
-
 	}
 
 	return redeemSessions, nil

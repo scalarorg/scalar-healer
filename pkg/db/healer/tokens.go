@@ -1,4 +1,4 @@
-package postgres
+package healer
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 	"github.com/scalarorg/scalar-healer/pkg/db/sqlc"
 )
 
-func (m *PostgresRepository) SaveTokens(ctx context.Context, tokens []sqlc.Token) error {
+func (m *HealerRepository) SaveTokens(ctx context.Context, tokens []sqlc.Token) error {
 
 	var addresses [][]byte
 	var chainIds []pgtype.Numeric
@@ -44,14 +44,14 @@ func (m *PostgresRepository) SaveTokens(ctx context.Context, tokens []sqlc.Token
 	})
 }
 
-func (m *PostgresRepository) GetTokenSymbolByAddress(ctx context.Context, chainId uint64, tokenAddress *common.Address) (string, error) {
+func (m *HealerRepository) GetTokenSymbolByAddress(ctx context.Context, chainId uint64, tokenAddress *common.Address) (string, error) {
 	return m.Queries.GetTokenSymbolByAddress(ctx, sqlc.GetTokenSymbolByAddressParams{
 		ChainID: db.ConvertUint64ToNumeric(chainId),
 		Address: tokenAddress.Bytes(),
 	})
 }
 
-func (m *PostgresRepository) GetTokenAddressBySymbol(ctx context.Context, chainId uint64, tokenSymbol string) (*common.Address, error) {
+func (m *HealerRepository) GetTokenAddressBySymbol(ctx context.Context, chainId uint64, tokenSymbol string) (*common.Address, error) {
 	address, err := m.Queries.GetTokenAddressBySymbol(ctx, sqlc.GetTokenAddressBySymbolParams{
 		ChainID: db.ConvertUint64ToNumeric(chainId),
 		Symbol:  tokenSymbol,

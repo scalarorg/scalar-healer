@@ -1,4 +1,4 @@
-package postgres
+package healer
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 	"github.com/scalarorg/scalar-healer/pkg/db/sqlc"
 )
 
-func (m *PostgresRepository) SaveTransferRequest(ctx context.Context, chainId uint64, address common.Address, signature []byte, amount *big.Int, destChain string, destAddress *common.Address, symbol string, nonce uint64) error {
+func (m *HealerRepository) SaveTransferRequest(ctx context.Context, chainId uint64, address common.Address, signature []byte, amount *big.Int, destChain string, destAddress *common.Address, symbol string, nonce uint64) error {
 	return m.execTx(ctx, func(q *sqlc.Queries) error {
 		currentNonce := m.GetNonce(ctx, address)
 		if nonce != currentNonce {
@@ -38,7 +38,7 @@ func (m *PostgresRepository) SaveTransferRequest(ctx context.Context, chainId ui
 	})
 }
 
-func (m *PostgresRepository) ListTransferRequests(ctx context.Context, address common.Address, page, size int32) ([]sqlc.TransferRequest, error) {
+func (m *HealerRepository) ListTransferRequests(ctx context.Context, address common.Address, page, size int32) ([]sqlc.TransferRequest, error) {
 	return m.Queries.ListTransferRequests(ctx, sqlc.ListTransferRequestsParams{
 		Address: address.Bytes(),
 		Offset:  page * size,

@@ -10,7 +10,7 @@ import (
 	"github.com/scalarorg/scalar-healer/pkg/db/sqlc"
 )
 
-type DbAdapter interface {
+type HealderAdapter interface {
 
 	// protocols
 	GetProtocol(ctx context.Context, asset string) (*sqlc.Protocol, error)
@@ -73,5 +73,15 @@ type DbAdapter interface {
 	// accounts
 	GetNonce(ctx context.Context, address common.Address) uint64
 
+	Close()
+}
+
+type IndexerAdapter interface {
+	GetSwitchedPhaseEvent(ctx context.Context, chain string) ([]chains.SwitchedPhase, error)
+}
+
+type CombinedAdapter interface {
+	HealderAdapter
+	IndexerAdapter
 	Close()
 }

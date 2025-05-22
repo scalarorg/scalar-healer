@@ -1,4 +1,4 @@
-package postgres
+package healer
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"github.com/scalarorg/scalar-healer/pkg/db/sqlc"
 )
 
-func (m *PostgresRepository) SaveBridgeRequest(ctx context.Context, chainId uint64, address common.Address, signature []byte, txHash []byte, nonce uint64) error {
+func (m *HealerRepository) SaveBridgeRequest(ctx context.Context, chainId uint64, address common.Address, signature []byte, txHash []byte, nonce uint64) error {
 	return m.execTx(ctx, func(q *sqlc.Queries) error {
 		currentNonce := m.GetNonce(ctx, address)
 		if nonce != currentNonce {
@@ -34,7 +34,7 @@ func (m *PostgresRepository) SaveBridgeRequest(ctx context.Context, chainId uint
 	})
 }
 
-func (m *PostgresRepository) ListBridgeRequests(ctx context.Context, address common.Address, page, size int32) ([]sqlc.BridgeRequest, error) {
+func (m *HealerRepository) ListBridgeRequests(ctx context.Context, address common.Address, page, size int32) ([]sqlc.BridgeRequest, error) {
 	return m.Queries.ListBridgeRequests(ctx, sqlc.ListBridgeRequestsParams{
 		Address: address.Bytes(),
 		Limit:   size,

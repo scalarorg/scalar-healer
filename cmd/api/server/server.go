@@ -16,12 +16,12 @@ import (
 
 type Server struct {
 	Raw           *echo.Echo
-	DB            db.DbAdapter
+	DB            db.HealderAdapter
 	traceProvider *sdktrace.TracerProvider
 	scheduler     worker.Worker
 }
 
-func New(db db.DbAdapter) *Server {
+func New(db db.HealderAdapter) *Server {
 	appName := config.Env.APP_NAME
 	openobserve.Init(openobserve.OpenObserveConfig{
 		Endpoint:    config.Env.OPENOBSERVE_ENDPOINT,

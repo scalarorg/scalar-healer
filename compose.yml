@@ -4,9 +4,9 @@ services:
     restart: unless-stopped
     container_name: postgres
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB:  ${POSTGRES_DB} 
+      POSTGRES_USER: ${HEALER_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${HEALER_POSTGRES_PASSWORD}
+      POSTGRES_DB:  ${HEALER_POSTGRES_DB} 
     ports:
       - "5432:5432"
     volumes:

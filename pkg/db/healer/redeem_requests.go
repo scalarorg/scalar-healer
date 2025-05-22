@@ -1,4 +1,4 @@
-package postgres
+package healer
 
 import (
 	"context"
@@ -11,18 +11,18 @@ import (
 	"github.com/scalarorg/scalar-healer/pkg/db/sqlc"
 )
 
-func (m *PostgresRepository) FindPendingRedeemsTransaction(ctx context.Context, chainId string, expectedConfirmBlock int32) ([]chains.RedeemTx, error) {
+func (m *HealerRepository) FindPendingRedeemsTransaction(ctx context.Context, chainId string, expectedConfirmBlock int32) ([]chains.RedeemTx, error) {
 	return nil, nil
 }
-func (m *PostgresRepository) UpdateRedeemExecutedCommands(ctx context.Context, chainId string, txHashes []string) error {
+func (m *HealerRepository) UpdateRedeemExecutedCommands(ctx context.Context, chainId string, txHashes []string) error {
 	return nil
 }
 
-func (m *PostgresRepository) SaveRedeemTxs(ctx context.Context, redeemTxs []chains.RedeemTx) error {
+func (m *HealerRepository) SaveRedeemTxs(ctx context.Context, redeemTxs []chains.RedeemTx) error {
 	return nil
 }
 
-func (m *PostgresRepository) SaveRedeemRequest(ctx context.Context, chainId uint64, address common.Address, signature []byte, amount *big.Int, symbol string, nonce uint64) error {
+func (m *HealerRepository) SaveRedeemRequest(ctx context.Context, chainId uint64, address common.Address, signature []byte, amount *big.Int, symbol string, nonce uint64) error {
 	return m.execTx(ctx, func(q *sqlc.Queries) error {
 		currentNonce := m.GetNonce(ctx, address)
 		if nonce != currentNonce {
@@ -48,7 +48,7 @@ func (m *PostgresRepository) SaveRedeemRequest(ctx context.Context, chainId uint
 	})
 }
 
-func (m *PostgresRepository) ListRedeemRequests(ctx context.Context, address common.Address, page, size int32) ([]sqlc.RedeemRequest, error) {
+func (m *HealerRepository) ListRedeemRequests(ctx context.Context, address common.Address, page, size int32) ([]sqlc.RedeemRequest, error) {
 	return m.Queries.ListRedeemRequests(ctx, sqlc.ListRedeemRequestsParams{
 		Address: address.Bytes(),
 		Offset:  page * size,

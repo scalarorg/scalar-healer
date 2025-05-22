@@ -1,4 +1,4 @@
-package postgres
+package healer
 
 import (
 	"context"
@@ -16,12 +16,12 @@ import (
 	"github.com/scalarorg/scalar-healer/pkg/db/sqlc"
 )
 
-type PostgresRepository struct {
+type HealerRepository struct {
 	connPool *pgxpool.Pool
 	*sqlc.Queries
 }
 
-var _ db.DbAdapter = (*PostgresRepository)(nil)
+var _ db.HealderAdapter = (*HealerRepository)(nil)
 
 type ConnConfig struct {
 	User     string
@@ -31,7 +31,7 @@ type ConnConfig struct {
 	DBName   string
 }
 
-func NewRepository(ctx context.Context, cfg *ConnConfig, migrationURL string) *PostgresRepository {
+func NewRepository(ctx context.Context, cfg *ConnConfig, migrationURL string) *HealerRepository {
 	dbSource := fmt.Sprintf("postgresql://%s:%s@%s:%d/%s?sslmode=disable", cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.DBName)
 
 	configs, err := pgxpool.ParseConfig(dbSource)
@@ -53,7 +53,7 @@ func NewRepository(ctx context.Context, cfg *ConnConfig, migrationURL string) *P
 
 	log.Info().Msg("db initialized successfully")
 
-	return &PostgresRepository{
+	return &HealerRepository{
 		connPool: connPool,
 		Queries:  sqlc.New(connPool),
 	}
@@ -72,29 +72,29 @@ func runDBMigration(migrationURL string, dbSource string) {
 	log.Info().Msg("db migrated successfully")
 }
 
-func (r *PostgresRepository) Close() {
+func (r *HealerRepository) Close() {
 	r.connPool.Close()
 }
 
-func (r *PostgresRepository) DropSchema(name string) {
+func (r *HealerRepository) DropSchema(name string) {
 	r.connPool.Exec(context.Background(), fmt.Sprintf("DROP SCHEMA %s CASCADE", name))
 }
 
-func (r *PostgresRepository) Exec(ctx context.Context, query string, args ...interface{}) error {
+func (r *HealerRepository) Exec(ctx context.Context, query string, args ...interface{}) error {
 	_, err := r.connPool.Exec(ctx, query, args...)
 	return err
 }
 
-func (r *PostgresRepository) Query(ctx context.Context, query string, args ...interface{}) (pgx.Rows, error) {
+func (r *HealerRepository) Query(ctx context.Context, query string, args ...interface{}) (pgx.Rows, error) {
 	return r.connPool.Query(ctx, query, args...)
 }
 
-func (r *PostgresRepository) TruncateTable(ctx context.Context, tableName string) error {
+func (r *HealerRepository) TruncateTable(ctx context.Context, tableName string) error {
 	_, err := r.connPool.Exec(ctx, fmt.Sprintf("TRUNCATE TABLE %s", tableName))
 	return err
 }
 
-func (r *PostgresRepository) TruncateTables(ctx context.Context, tableNames ...string) error {
+func (r *HealerRepository) TruncateTables(ctx context.Context, tableNames ...string) error {
 	if len(tableNames) == 0 {
 		return nil
 	}

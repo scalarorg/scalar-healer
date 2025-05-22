@@ -1,4 +1,4 @@
-package postgres
+package healer
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"github.com/scalarorg/scalar-healer/pkg/db"
 )
 
-func (m *PostgresRepository) GetNonce(ctx context.Context, address common.Address) uint64 {
+func (m *HealerRepository) GetNonce(ctx context.Context, address common.Address) uint64 {
 	num, err := m.Queries.GetNonce(ctx, address.Bytes())
 	if err != nil {
 		return 0

@@ -1,4 +1,4 @@
-package postgres
+package healer
 
 import (
 	"context"
@@ -6,15 +6,15 @@ import (
 	"github.com/scalarorg/scalar-healer/pkg/db/sqlc"
 )
 
-func (m *PostgresRepository) GetAllCustodianGroups(ctx context.Context) ([]sqlc.CustodianGroup, error) {
+func (m *HealerRepository) GetAllCustodianGroups(ctx context.Context) ([]sqlc.CustodianGroup, error) {
 	return m.Queries.GetAllCustodianGroups(ctx)
 }
 
-func (m *PostgresRepository) GetCustodianGroup(ctx context.Context, uid []byte) (sqlc.CustodianGroup, error) {
+func (m *HealerRepository) GetCustodianGroup(ctx context.Context, uid []byte) (sqlc.CustodianGroup, error) {
 	return m.Queries.GetCustodianGroupByUID(ctx, uid)
 }
 
-func (m *PostgresRepository) SaveCustodianGroups(ctx context.Context, grs []sqlc.CustodianGroup) error {
+func (m *HealerRepository) SaveCustodianGroups(ctx context.Context, grs []sqlc.CustodianGroup) error {
 	var uids [][]byte
 	var names []string
 	var bitcoinPubkeys [][]byte

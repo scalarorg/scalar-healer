@@ -1,4 +1,4 @@
-package postgres
+package healer
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"github.com/scalarorg/scalar-healer/pkg/db/sqlc"
 )
 
-func (m *PostgresRepository) SaveProtocols(ctx context.Context, protocols []sqlc.Protocol) error {
+func (m *HealerRepository) SaveProtocols(ctx context.Context, protocols []sqlc.Protocol) error {
 	var assets []string
 	var names []string
 	var custodianGroupNames []string
@@ -49,7 +49,7 @@ func (m *PostgresRepository) SaveProtocols(ctx context.Context, protocols []sqlc
 	})
 }
 
-func (m *PostgresRepository) GetProtocol(ctx context.Context, name string) (*sqlc.Protocol, error) {
+func (m *HealerRepository) GetProtocol(ctx context.Context, name string) (*sqlc.Protocol, error) {
 	protocol, err := m.Queries.GetProtocol(ctx, name)
 	return &protocol, err
 }

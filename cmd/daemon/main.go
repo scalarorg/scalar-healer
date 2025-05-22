@@ -9,7 +9,9 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/scalarorg/scalar-healer/config"
 	"github.com/scalarorg/scalar-healer/internal/daemon"
-	"github.com/scalarorg/scalar-healer/pkg/db/postgres"
+	"github.com/scalarorg/scalar-healer/pkg/db/combined"
+	"github.com/scalarorg/scalar-healer/pkg/db/healer"
+	"github.com/scalarorg/scalar-healer/pkg/db/indexer"
 	"github.com/scalarorg/scalar-healer/pkg/openobserve"
 )
 
@@ -26,13 +28,23 @@ func main() {
 
 	config.InitLogger()
 
-	db := postgres.NewRepository(context.Background(), &postgres.ConnConfig{
-		User:     config.Env.POSTGRES_USER,
-		Password: config.Env.POSTGRES_PASSWORD,
-		Host:     config.Env.POSTGRES_HOST,
-		Port:     config.Env.POSTGRES_PORT,
-		DBName:   config.Env.POSTGRES_DB,
+	healerDb := healer.NewRepository(context.Background(), &healer.ConnConfig{
+		User:     config.Env.HEALER_POSTGRES_USER,
+		Password: config.Env.HEALER_POSTGRES_PASSWORD,
+		Host:     config.Env.HEALER_POSTGRES_HOST,
+		Port:     config.Env.HEALER_POSTGRES_PORT,
+		DBName:   config.Env.HEALER_POSTGRES_DB,
 	}, config.Env.MIGRATION_URL)
+
+	indexerDb := indexer.NewRepository(context.Background(), &indexer.ConnConfig{
+		User:     config.Env.INDEXER_POSTGRES_USER,
+		Password: config.Env.INDEXER_POSTGRES_PASSWORD,
+		Host:     config.Env.INDEXER_POSTGRES_HOST,
+		Port:     config.Env.INDEXER_POSTGRES_PORT,
+		DBName:   config.Env.INDEXER_POSTGRES_DB,
+	})
+
+	db := combined.NewCombinedManager(healerDb, indexerDb)
 
 	service := daemon.NewService(config.Env.CLIENTS_CONFIG_PATH, config.Env.EVM_PRIVATE_KEY, db)
 	err := service.Start(context.Background())

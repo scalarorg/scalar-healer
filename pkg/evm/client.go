@@ -24,13 +24,13 @@ type EvmClient struct {
 	GatewayAddress common.Address
 	Gateway        *contracts.IScalarGateway
 	transactOpts   *bind.TransactOpts
-	dbAdapter      db.DbAdapter
+	dbAdapter      db.HealderAdapter
 	MissingLogs    MissingLogs
 
 	retryInterval time.Duration
 }
 
-func NewEvmClients(configPath string, evmPrivKey string, dbAdapter db.DbAdapter) ([]*EvmClient, error) {
+func NewEvmClients(configPath string, evmPrivKey string, dbAdapter db.HealderAdapter) ([]*EvmClient, error) {
 	evmCfgPath := fmt.Sprintf("%s/evm.json", configPath)
 	configs, err := config.ReadJsonArrayConfig[EvmNetworkConfig](evmCfgPath)
 	if err != nil {
@@ -65,7 +65,7 @@ func NewEvmClients(configPath string, evmPrivKey string, dbAdapter db.DbAdapter)
 	return evmClients, nil
 }
 
-func NewEvmClient(evmConfig *EvmNetworkConfig, dbAdapter db.DbAdapter) (*EvmClient, error) {
+func NewEvmClient(evmConfig *EvmNetworkConfig, dbAdapter db.HealderAdapter) (*EvmClient, error) {
 	// Setup
 	ctx := context.Background()
 	log.Info().Any("evmConfig", evmConfig).Msgf("[EvmClient] [NewEvmClient] connecting to EVM network")

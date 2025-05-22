@@ -69,7 +69,7 @@ func setupAddHandlerEvent(e *echo.Echo) {
 	}
 }
 
-func setupMiddleware(e *echo.Echo, adapter db.DbAdapter) {
+func setupMiddleware(e *echo.Echo, adapter db.HealderAdapter) {
 	e.Use(middleware.Recover())
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins:     config.Env.CORS_WHITE_LIST,

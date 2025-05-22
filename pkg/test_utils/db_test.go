@@ -9,7 +9,7 @@ import (
 )
 
 func TestPrepareTestPostgresDB(t *testing.T) {
-	testutils.RunWithTestDB(func(_ context.Context, _ db.DbAdapter) error {
+	testutils.RunWithTestDB(func(_ context.Context, _ db.HealderAdapter) error {
 		return nil
 	})
 }

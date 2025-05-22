@@ -17,11 +17,11 @@ import (
 type Client struct {
 	electrumConfig *ElectrsConfig
 	Electrs        *electrum.Client
-	dbAdapter      db.DbAdapter
+	dbAdapter      db.HealderAdapter
 	currentHeight  int
 }
 
-func NewElectrumClient(configPath string, dbAdapter db.DbAdapter) (*Client, error) {
+func NewElectrumClient(configPath string, dbAdapter db.HealderAdapter) (*Client, error) {
 	electrumCfgPath := fmt.Sprintf("%s/electrum.json", configPath)
 	configs, err := config.ReadJsonArrayConfig[ElectrsConfig](electrumCfgPath)
 	if err != nil || len(configs) == 0 {

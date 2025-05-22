@@ -25,11 +25,17 @@ type ServerEnv struct {
 	OPENOBSERVE_ENDPOINT   string `validate:"url"`
 	OPENOBSERVE_CREDENTIAL string `validate:"min=1"`
 
-	POSTGRES_USER     string `validate:"min=1"`
-	POSTGRES_PASSWORD string `validate:"min=1"`
-	POSTGRES_DB       string `validate:"min=1"`
-	POSTGRES_HOST     string `validate:"min=1"`
-	POSTGRES_PORT     int    `validate:"min=1"`
+	HEALER_POSTGRES_USER     string `validate:"min=1"`
+	HEALER_POSTGRES_PASSWORD string `validate:"min=1"`
+	HEALER_POSTGRES_DB       string `validate:"min=1"`
+	HEALER_POSTGRES_HOST     string `validate:"min=1"`
+	HEALER_POSTGRES_PORT     int    `validate:"min=1"`
+
+	INDEXER_POSTGRES_USER     string `validate:"min=1"`
+	INDEXER_POSTGRES_PASSWORD string `validate:"min=1"`
+	INDEXER_POSTGRES_DB       string `validate:"min=1"`
+	INDEXER_POSTGRES_HOST     string `validate:"min=1"`
+	INDEXER_POSTGRES_PORT     int    `validate:"min=1"`
 
 	MIGRATION_URL string `validate:"url"`
 
@@ -38,7 +44,7 @@ type ServerEnv struct {
 	IS_TEST             bool
 
 	JWT_SECRET   string        `validate:"min=10"`
-	JWT_DURATION time.Duration `validate:"min=1h"`
+	JWT_DURATION time.Duration `validate:"min=0m"`
 	AUTH_DOMAIN  string        `validate:"min=1"`
 }
 
@@ -99,7 +105,12 @@ func loadEnv() {
 
 	env := os.Getenv("ENV")
 
-	postgresPort, err := strconv.Atoi(os.Getenv("POSTGRES_PORT"))
+	healerPgPort, err := strconv.Atoi(os.Getenv("HEALER_POSTGRES_PORT"))
+	if err != nil {
+		panic(err)
+	}
+
+	indexerPgPort, err := strconv.Atoi(os.Getenv("INDEXER_POSTGRES_PORT"))
 	if err != nil {
 		panic(err)
 	}
@@ -120,12 +131,19 @@ func loadEnv() {
 		OPENOBSERVE_ENDPOINT:   os.Getenv("OPENOBSERVE_ENDPOINT"),
 		OPENOBSERVE_CREDENTIAL: os.Getenv("OPENOBSERVE_CREDENTIAL"),
 
-		POSTGRES_USER:     os.Getenv("POSTGRES_USER"),
-		POSTGRES_PASSWORD: os.Getenv("POSTGRES_PASSWORD"),
-		POSTGRES_DB:       os.Getenv("POSTGRES_DB"),
-		POSTGRES_HOST:     os.Getenv("POSTGRES_HOST"),
-		POSTGRES_PORT:     postgresPort,
-		MIGRATION_URL:     os.Getenv("MIGRATION_URL"),
+		HEALER_POSTGRES_USER:     os.Getenv("HEALER_POSTGRES_USER"),
+		HEALER_POSTGRES_PASSWORD: os.Getenv("HEALER_POSTGRES_PASSWORD"),
+		HEALER_POSTGRES_DB:       os.Getenv("HEALER_POSTGRES_DB"),
+		HEALER_POSTGRES_HOST:     os.Getenv("HEALER_POSTGRES_HOST"),
+		HEALER_POSTGRES_PORT:     healerPgPort,
+
+		INDEXER_POSTGRES_USER:     os.Getenv("INDEXER_POSTGRES_USER"),
+		INDEXER_POSTGRES_PASSWORD: os.Getenv("INDEXER_POSTGRES_PASSWORD"),
+		INDEXER_POSTGRES_DB:       os.Getenv("INDEXER_POSTGRES_DB"),
+		INDEXER_POSTGRES_HOST:     os.Getenv("INDEXER_POSTGRES_HOST"),
+		INDEXER_POSTGRES_PORT:     indexerPgPort,
+
+		MIGRATION_URL: os.Getenv("MIGRATION_URL"),
 
 		CLIENTS_CONFIG_PATH: os.Getenv("CLIENTS_CONFIG_PATH"),
 		EVM_PRIVATE_KEY:     os.Getenv("EVM_PRIVATE_KEY"),
