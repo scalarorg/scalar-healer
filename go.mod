@@ -20,6 +20,7 @@ require (
 	github.com/scalarorg/data-models v0.0.0-20250424041304-9384c0238741
 	github.com/scalarorg/go-electrum v0.1.2-0.20250423051259-1bfc1458b9fa
 	github.com/scalarorg/relayers v0.0.1
+	github.com/spruceid/siwe-go v0.2.1
 	github.com/stretchr/testify v1.10.0
 	github.com/testcontainers/testcontainers-go v0.37.0
 	github.com/testcontainers/testcontainers-go/modules/postgres v0.37.0
@@ -30,6 +31,7 @@ require (
 	go.opentelemetry.io/otel/sdk v1.35.0
 	go.opentelemetry.io/otel/trace v1.35.0
 	golang.org/x/crypto v0.37.0
+	gorm.io/driver/postgres v1.5.9
 	gorm.io/gorm v1.25.12
 )
 
@@ -117,7 +119,6 @@ require (
 	github.com/shirou/gopsutil v3.21.4-0.20210419000835-c7a38de76ee5+incompatible // indirect
 	github.com/shirou/gopsutil/v4 v4.25.1 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
-	github.com/spruceid/siwe-go v0.2.1 // indirect
 	github.com/supranational/blst v0.3.14 // indirect
 	github.com/tklauser/go-sysconf v0.3.12 // indirect
 	github.com/tklauser/numcpus v0.6.1 // indirect

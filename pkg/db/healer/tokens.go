@@ -14,7 +14,6 @@ func (m *HealerRepository) SaveTokens(ctx context.Context, tokens []sqlc.Token) 
 
 	var addresses [][]byte
 	var chainIds []pgtype.Numeric
-	var protocols []string
 	var symbols []string
 	var decimals []pgtype.Numeric
 	var names []string
@@ -24,7 +23,6 @@ func (m *HealerRepository) SaveTokens(ctx context.Context, tokens []sqlc.Token) 
 	for _, token := range tokens {
 		addresses = append(addresses, token.Address)
 		chainIds = append(chainIds, token.ChainID)
-		protocols = append(protocols, token.Protocol)
 		symbols = append(symbols, token.Symbol)
 		decimals = append(decimals, token.Decimal)
 		names = append(names, token.Name)
@@ -35,12 +33,11 @@ func (m *HealerRepository) SaveTokens(ctx context.Context, tokens []sqlc.Token) 
 	return m.Queries.SaveTokens(ctx, sqlc.SaveTokensParams{
 		Column1: addresses, // address
 		Column2: chainIds,  // chain_id,
-		Column3: protocols, // protocol
-		Column4: symbols,   // symbol
-		Column5: decimals,  // decimal
-		Column6: names,     // name
-		Column7: avatars,   // avatar
-		Column8: actives,   // active,
+		Column3: symbols,   // symbol
+		Column4: decimals,  // decimal
+		Column5: names,     // name
+		Column6: avatars,   // avatar
+		Column7: actives,   // active,
 	})
 }
 

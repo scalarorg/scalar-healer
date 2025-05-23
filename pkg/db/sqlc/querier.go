@@ -17,7 +17,7 @@ type Querier interface {
 	GetCustodianGroupByUID(ctx context.Context, uid []byte) (CustodianGroup, error)
 	GetGatewayAddress(ctx context.Context, chainID pgtype.Numeric) ([]byte, error)
 	GetNonce(ctx context.Context, address []byte) (pgtype.Numeric, error)
-	GetProtocol(ctx context.Context, asset string) (Protocol, error)
+	GetProtocol(ctx context.Context, symbol string) (Protocol, error)
 	GetTokenAddressBySymbol(ctx context.Context, arg GetTokenAddressBySymbolParams) ([]byte, error)
 	GetTokenSymbolByAddress(ctx context.Context, arg GetTokenSymbolByAddressParams) (string, error)
 	GetUTXOs(ctx context.Context, arg GetUTXOsParams) ([]Utxo, error)

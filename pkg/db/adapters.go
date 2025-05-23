@@ -77,7 +77,8 @@ type HealderAdapter interface {
 }
 
 type IndexerAdapter interface {
-	GetSwitchedPhaseEvent(ctx context.Context, chain string) ([]chains.SwitchedPhase, error)
+	GetNumberOfLatestSwitchedPhaseEvents(ctx context.Context, numberOfEvents int, chain string, grUID string) ([]chains.SwitchedPhase, error)
+	GetBatchNumberOfLatestSwitchedPhaseEvents(ctx context.Context, numberOfEvents int, chain string, grUID []string) (map[string][]chains.SwitchedPhase, error)
 }
 
 type CombinedAdapter interface {

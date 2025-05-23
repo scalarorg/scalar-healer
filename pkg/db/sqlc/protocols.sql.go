@@ -12,21 +12,20 @@ import (
 )
 
 const getProtocol = `-- name: GetProtocol :one
-SELECT id, asset, name, custodian_group_name, custodian_group_uid, tag, liquidity_model, symbol, decimals, capacity, daily_mint_limit, avatar, created_at, updated_at FROM protocols WHERE asset = $1
+SELECT id, symbol, name, custodian_group_name, custodian_group_uid, tag, liquidity_model, decimals, capacity, daily_mint_limit, avatar, created_at, updated_at FROM protocols WHERE symbol = $1
 `
 
-func (q *Queries) GetProtocol(ctx context.Context, asset string) (Protocol, error) {
-	row := q.db.QueryRow(ctx, getProtocol, asset)
+func (q *Queries) GetProtocol(ctx context.Context, symbol string) (Protocol, error) {
+	row := q.db.QueryRow(ctx, getProtocol, symbol)
 	var i Protocol
 	err := row.Scan(
 		&i.ID,
-		&i.Asset,
+		&i.Symbol,
 		&i.Name,
 		&i.CustodianGroupName,
 		&i.CustodianGroupUid,
 		&i.Tag,
 		&i.LiquidityModel,
-		&i.Symbol,
 		&i.Decimals,
 		&i.Capacity,
 		&i.DailyMintLimit,
@@ -38,8 +37,8 @@ func (q *Queries) GetProtocol(ctx context.Context, asset string) (Protocol, erro
 }
 
 const saveProtocols = `-- name: SaveProtocols :exec
-INSERT INTO protocols (asset, name, custodian_group_name, custodian_group_uid, tag, liquidity_model, symbol, decimals, capacity, daily_mint_limit, avatar)
-VALUES(unnest($1::text[]), unnest($2::text[]), unnest($3::text[]), unnest($4::bytea[]), unnest($5::text[]), unnest($6::text[]), unnest($7::text[]), unnest($8::bigint[]), unnest($9::numeric[]), unnest($10::numeric[]), unnest($11::text[]))
+INSERT INTO protocols (symbol, name, custodian_group_name, custodian_group_uid, tag, liquidity_model, decimals, capacity, daily_mint_limit, avatar)
+VALUES(unnest($1::text[]), unnest($2::text[]), unnest($3::text[]), unnest($4::bytea[]), unnest($5::text[]), unnest($6::text[]), unnest($7::bigint[]), unnest($8::numeric[]), unnest($9::numeric[]), unnest($10::text[]))
 `
 
 type SaveProtocolsParams struct {
@@ -49,11 +48,10 @@ type SaveProtocolsParams struct {
 	Column4  [][]byte         `json:"column_4"`
 	Column5  []string         `json:"column_5"`
 	Column6  []string         `json:"column_6"`
-	Column7  []string         `json:"column_7"`
-	Column8  []int64          `json:"column_8"`
+	Column7  []int64          `json:"column_7"`
+	Column8  []pgtype.Numeric `json:"column_8"`
 	Column9  []pgtype.Numeric `json:"column_9"`
-	Column10 []pgtype.Numeric `json:"column_10"`
-	Column11 []string         `json:"column_11"`
+	Column10 []string         `json:"column_10"`
 }
 
 func (q *Queries) SaveProtocols(ctx context.Context, arg SaveProtocolsParams) error {
@@ -68,7 +66,6 @@ func (q *Queries) SaveProtocols(ctx context.Context, arg SaveProtocolsParams) er
 		arg.Column8,
 		arg.Column9,
 		arg.Column10,
-		arg.Column11,
 	)
 	return err
 }

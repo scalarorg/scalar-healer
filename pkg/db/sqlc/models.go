@@ -47,13 +47,12 @@ type Nonce struct {
 
 type Protocol struct {
 	ID                 int64            `json:"id"`
-	Asset              string           `json:"asset"`
+	Symbol             string           `json:"symbol"`
 	Name               string           `json:"name"`
 	CustodianGroupName string           `json:"custodian_group_name"`
 	CustodianGroupUid  []byte           `json:"custodian_group_uid"`
 	Tag                string           `json:"tag"`
 	LiquidityModel     string           `json:"liquidity_model"`
-	Symbol             string           `json:"symbol"`
 	Decimals           int64            `json:"decimals"`
 	Capacity           pgtype.Numeric   `json:"capacity"`
 	DailyMintLimit     pgtype.Numeric   `json:"daily_mint_limit"`
@@ -86,13 +85,12 @@ type Reservation struct {
 
 type Token struct {
 	ID        int64            `json:"id"`
-	Protocol  string           `json:"protocol"`
 	Symbol    string           `json:"symbol"`
+	Name      string           `json:"name"`
 	ChainID   pgtype.Numeric   `json:"chain_id"`
 	Active    bool             `json:"active"`
 	Address   []byte           `json:"address"`
 	Decimal   pgtype.Numeric   `json:"decimal"`
-	Name      string           `json:"name"`
 	Avatar    string           `json:"avatar"`
 	CreatedAt pgtype.Timestamp `json:"created_at"`
 	UpdatedAt pgtype.Timestamp `json:"updated_at"`

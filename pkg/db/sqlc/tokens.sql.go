@@ -44,7 +44,7 @@ func (q *Queries) GetTokenSymbolByAddress(ctx context.Context, arg GetTokenSymbo
 }
 
 const listTokens = `-- name: ListTokens :many
-SELECT id, protocol, symbol, chain_id, active, address, decimal, name, avatar, created_at, updated_at FROM tokens
+SELECT id, symbol, name, chain_id, active, address, decimal, avatar, created_at, updated_at FROM tokens
 `
 
 func (q *Queries) ListTokens(ctx context.Context) ([]Token, error) {
@@ -58,13 +58,12 @@ func (q *Queries) ListTokens(ctx context.Context) ([]Token, error) {
 		var i Token
 		if err := rows.Scan(
 			&i.ID,
-			&i.Protocol,
 			&i.Symbol,
+			&i.Name,
 			&i.ChainID,
 			&i.Active,
 			&i.Address,
 			&i.Decimal,
-			&i.Name,
 			&i.Avatar,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -80,19 +79,18 @@ func (q *Queries) ListTokens(ctx context.Context) ([]Token, error) {
 }
 
 const saveTokens = `-- name: SaveTokens :exec
-INSERT INTO tokens (address, chain_id, protocol, symbol, decimal, name, avatar, active)
-VALUES (unnest($1::bytea[]), unnest($2::numeric[]), unnest($3::text[]), unnest($4::text[]), unnest($5::numeric[]), unnest($6::text[]), unnest($7::text[]), unnest($8::boolean[]))
+INSERT INTO tokens (address, chain_id, symbol, decimal, name, avatar, active)
+VALUES (unnest($1::bytea[]), unnest($2::numeric[]), unnest($3::text[]), unnest($4::numeric[]), unnest($5::text[]), unnest($6::text[]), unnest($7::boolean[]))
 `
 
 type SaveTokensParams struct {
 	Column1 [][]byte         `json:"column_1"`
 	Column2 []pgtype.Numeric `json:"column_2"`
 	Column3 []string         `json:"column_3"`
-	Column4 []string         `json:"column_4"`
-	Column5 []pgtype.Numeric `json:"column_5"`
+	Column4 []pgtype.Numeric `json:"column_4"`
+	Column5 []string         `json:"column_5"`
 	Column6 []string         `json:"column_6"`
-	Column7 []string         `json:"column_7"`
-	Column8 []bool           `json:"column_8"`
+	Column7 []bool           `json:"column_7"`
 }
 
 func (q *Queries) SaveTokens(ctx context.Context, arg SaveTokensParams) error {
@@ -104,7 +102,6 @@ func (q *Queries) SaveTokens(ctx context.Context, arg SaveTokensParams) error {
 		arg.Column5,
 		arg.Column6,
 		arg.Column7,
-		arg.Column8,
 	)
 	return err
 }

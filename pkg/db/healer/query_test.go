@@ -60,14 +60,13 @@ func TestCreateTokens(t *testing.T) {
 	testutils.RunWithTestDB(func(ctx context.Context, repo db.HealderAdapter) error {
 		err := repo.SaveTokens(ctx, []sqlc.Token{
 			{
-				Symbol:   "ETH",
-				ChainID:  db.ConvertUint64ToNumeric(1),
-				Protocol: "SCALAR",
-				Address:  common.MaxAddress.Bytes(),
-				Name:     "Ethereum",
-				Decimal:  db.ConvertUint64ToNumeric(8),
-				Avatar:   "",
-				Active:   true,
+				Symbol:  "ETH",
+				ChainID: db.ConvertUint64ToNumeric(1),
+				Address: common.MaxAddress.Bytes(),
+				Name:    "Ethereum",
+				Decimal: db.ConvertUint64ToNumeric(8),
+				Avatar:  "",
+				Active:  true,
 			},
 		})
 		if err != nil {
@@ -128,13 +127,12 @@ func TestSaveProtocols(t *testing.T) {
 	testutils.RunWithTestDB(func(ctx context.Context, repo db.HealderAdapter) error {
 		err := repo.SaveProtocols(ctx, []sqlc.Protocol{
 			{
-				Asset:              "BTC",
+				Symbol:             "BTC",
 				Name:               "Bitcoin",
 				CustodianGroupName: "test",
 				CustodianGroupUid:  []byte{0x1, 0x2, 0x3},
 				Tag:                "test",
 				LiquidityModel:     "test",
-				Symbol:             "BTC",
 				Decimals:           int64(8),
 				Capacity:           db.ConvertUint64ToNumeric(100000000),
 				DailyMintLimit:     db.ConvertUint64ToNumeric(100000000),
@@ -150,7 +148,6 @@ func TestSaveProtocols(t *testing.T) {
 		if err != nil {
 			t.Errorf("failed to get protocol: %v", err)
 		}
-		assert.Equal(t, "BTC", protocol.Asset)
 		assert.Equal(t, "Bitcoin", protocol.Name)
 		assert.Equal(t, "test", protocol.CustodianGroupName)
 		assert.Equal(t, []byte{0x1, 0x2, 0x3}, protocol.CustodianGroupUid)
