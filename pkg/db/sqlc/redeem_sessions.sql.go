@@ -10,23 +10,17 @@ import (
 )
 
 const saveRedeemSessions = `-- name: SaveRedeemSessions :exec
-INSERT INTO redeem_sessions (custodian_group_uid, sequence, chain, current_phase)
-VALUES (unnest($1::bytea[]), unnest($2::bigint[]), unnest($3::text[]), unnest($4::text[])::redeem_phase)
+INSERT INTO redeem_sessions (custodian_group_uid, sequence, current_phase)
+VALUES (unnest($1::bytea[]), unnest($2::bigint[]), unnest($3::text[])::redeem_phase)
 `
 
 type SaveRedeemSessionsParams struct {
 	Column1 [][]byte `json:"column_1"`
 	Column2 []int64  `json:"column_2"`
 	Column3 []string `json:"column_3"`
-	Column4 []string `json:"column_4"`
 }
 
 func (q *Queries) SaveRedeemSessions(ctx context.Context, arg SaveRedeemSessionsParams) error {
-	_, err := q.db.Exec(ctx, saveRedeemSessions,
-		arg.Column1,
-		arg.Column2,
-		arg.Column3,
-		arg.Column4,
-	)
+	_, err := q.db.Exec(ctx, saveRedeemSessions, arg.Column1, arg.Column2, arg.Column3)
 	return err
 }

@@ -133,9 +133,8 @@ CREATE TYPE REDEEM_PHASE as ENUM ('PREPARING', 'EXECUTING');
 
 CREATE TABLE IF NOT EXISTS redeem_sessions (
     id BIGSERIAL PRIMARY KEY,
-    custodian_group_uid BYTEA NOT NULL,
+    custodian_group_uid BYTEA UNIQUE NOT NULL,
     sequence BIGINT NOT NULL CHECK (sequence >= 0),
-    chain TEXT NOT NULL,
     current_phase REDEEM_PHASE NOT NULL,
     last_redeem_tx BYTEA,
     is_switching BOOLEAN,
@@ -145,4 +144,19 @@ CREATE TABLE IF NOT EXISTS redeem_sessions (
 );
 
 ALTER TABLE redeem_sessions ADD FOREIGN KEY (custodian_group_uid) REFERENCES custodian_groups (uid) ON DELETE CASCADE;
-CREATE UNIQUE INDEX IF NOT EXISTS redeem_sessions_custodian_group_uid_chain_idx ON redeem_sessions (custodian_group_uid, chain);
+
+CREATE TABLE IF NOT EXISTS chain_redeem_sessions (
+    id BIGSERIAL PRIMARY KEY,
+    
+    chain TEXT NOT NULL,
+    custodian_group_uid BYTEA NOT NULL,
+    sequence BIGINT NOT NULL CHECK (sequence >= 0),
+    current_phase REDEEM_PHASE NOT NULL,
+
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS chain_redeem_sessions_custodian_group_uid_chain_idx ON chain_redeem_sessions (custodian_group_uid, chain);
+
+ALTER TABLE chain_redeem_sessions ADD FOREIGN KEY (custodian_group_uid) REFERENCES custodian_groups (uid) ON DELETE CASCADE;

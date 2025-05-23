@@ -63,3 +63,26 @@ func (r *IndexerRepository) GetBatchNumberOfLatestSwitchedPhaseEvents(
 
 	return switchedPhasesMap, nil
 }
+
+func (r *IndexerRepository) GetBatchLastestSwitchedPhaseEvents(
+	ctx context.Context,
+	chain string,
+	grUID []string) (
+	map[string]chains.SwitchedPhase, error) {
+
+	var switchedPhases []chains.SwitchedPhase
+	query :=
+		`SELECT DISTINCT ON (custodian_group_uid) *
+	FROM switched_phases
+	WHERE chain = ? AND custodian_group_uid IN (?)
+	ORDER BY custodian_group_uid, block_number DESC`
+	if err := r.DB.Raw(query, chain, grUID).Scan(&switchedPhases).Error; err != nil {
+		return nil, err
+	}
+
+	switchedPhasesMap := make(map[string]chains.SwitchedPhase)
+	for _, switchedPhase := range switchedPhases {
+		switchedPhasesMap[switchedPhase.CustodianGroupUid] = switchedPhase
+	}
+	return switchedPhasesMap, nil
+}

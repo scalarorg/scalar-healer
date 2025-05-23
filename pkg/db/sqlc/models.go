@@ -64,6 +64,16 @@ type BridgeRequest struct {
 	UpdatedAt pgtype.Timestamp `json:"updated_at"`
 }
 
+type ChainRedeemSession struct {
+	ID                int64            `json:"id"`
+	Chain             string           `json:"chain"`
+	CustodianGroupUid []byte           `json:"custodian_group_uid"`
+	Sequence          int64            `json:"sequence"`
+	CurrentPhase      RedeemPhase      `json:"current_phase"`
+	CreatedAt         pgtype.Timestamp `json:"created_at"`
+	UpdatedAt         pgtype.Timestamp `json:"updated_at"`
+}
+
 type CustodianGroup struct {
 	ID            int64            `json:"id"`
 	Uid           []byte           `json:"uid"`
@@ -122,9 +132,8 @@ type RedeemSession struct {
 	ID                int64            `json:"id"`
 	CustodianGroupUid []byte           `json:"custodian_group_uid"`
 	Sequence          int64            `json:"sequence"`
-	Chain             string           `json:"chain"`
 	CurrentPhase      RedeemPhase      `json:"current_phase"`
-	LastRedeemTx      interface{}      `json:"last_redeem_tx"`
+	LastRedeemTx      []byte           `json:"last_redeem_tx"`
 	IsSwitching       pgtype.Bool      `json:"is_switching"`
 	PhaseExpiredAt    pgtype.Int8      `json:"phase_expired_at"`
 	CreatedAt         pgtype.Timestamp `json:"created_at"`

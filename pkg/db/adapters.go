@@ -75,6 +75,7 @@ type HealderAdapter interface {
 
 	// redeem sessions
 	SaveRedeemSessions(ctx context.Context, redeemSessions []sqlc.RedeemSession) error
+	SaveChainRedeemSessions(ctx context.Context, redeemSessions []sqlc.ChainRedeemSession) error
 
 	Close()
 }

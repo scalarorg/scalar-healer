@@ -8,12 +8,17 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/rs/zerolog/log"
-	"github.com/scalarorg/data-models/chains"
 	"github.com/scalarorg/scalar-healer/pkg/db/sqlc"
 	"github.com/scalarorg/scalar-healer/pkg/evm"
 	contracts "github.com/scalarorg/scalar-healer/pkg/evm/contracts/generated"
 	"github.com/scalarorg/scalar-healer/pkg/utils"
 )
+
+type redeemSessionResult struct {
+	chainId  string
+	sessions []sqlc.ChainRedeemSession
+	err      error
+}
 
 func (s *Service) RecoverEvmSessions(ctx context.Context) {
 	groups, err := s.CombinedAdapter.GetAllCustodianGroups(ctx)
@@ -31,116 +36,140 @@ func (s *Service) RecoverEvmSessions(ctx context.Context) {
 		return hex.EncodeToString(group.Uid)
 	})
 
+	resultChan := make(chan *redeemSessionResult, len(s.EvmClients))
 	wg := sync.WaitGroup{}
-	recoverSessions := NewCustodiansRecoverRedeemSessions()
+
 	for _, client := range s.EvmClients {
 		wg.Add(1)
-		go func() {
+
+		go func(c *evm.EvmClient) {
 			defer wg.Done()
+			chainId := c.EvmConfig.GetId()
 
-			chainRedeemSessions, err := s.recoverRedeemSession(ctx, client.EvmConfig.GetId(), groupIds)
-			if err != nil {
-				log.Error().Err(err).Msgf("[Service][RecoverEvmSessions] recover session error: %s", err)
-				panic(fmt.Sprintf("[Service][RecoverEvmSessions] cannot recover sessions for evm client %s", client.EvmConfig.GetId()))
+			batch, aErr := s.CombinedAdapter.GetBatchNumberOfLatestSwitchedPhaseEvents(ctx, 1, chainId, groupIds)
+			if aErr != nil {
+				resultChan <- &redeemSessionResult{
+					chainId:  chainId,
+					sessions: nil,
+					err:      aErr,
+				}
+				return
 			}
-			log.Info().
-				Str("chainId", client.EvmConfig.GetId()).
-				Msg("[Service][RecoverEvmSessions] add evm session")
 
-			recoverSessions.AddRecoverSessions(client.EvmConfig.GetId(), chainRedeemSessions)
+			sessions := make([]sqlc.ChainRedeemSession, 0)
+			for _, events := range batch {
+				if len(events) == 0 {
+					continue
+				}
+				for _, event := range events {
+					sessions = append(sessions, sqlc.ChainRedeemSession{
+						Chain:             chainId,
+						CustodianGroupUid: common.HexToHash(event.CustodianGroupUid).Bytes(),
+						Sequence:          int64(event.SessionSequence),
+						CurrentPhase:      sqlc.PhaseFromUint8(event.To),
+					})
+				}
+			}
 
-		}()
+			resultChan <- &redeemSessionResult{
+				chainId:  chainId,
+				sessions: sessions,
+				err:      aErr,
+			}
+		}(client)
 	}
-	wg.Wait()
-	log.Info().Msgf("[Service][RecoverEvmSessions] finished get SwitchPhase And redeemTx from evm chains")
 
-	recoverSessions.ConstructSessions()
+	go func() {
+		wg.Wait()
+		close(resultChan)
+		log.Info().Msgf("[Service][RecoverEvmSessions] finished get SwitchPhase And redeemTx from evm chains")
+	}()
 
-	redeemSessions := make([]sqlc.RedeemSession, 0)
-	for _, groupRedeemSessions := range recoverSessions {
-		for chain, event := range groupRedeemSessions.SwitchPhaseEvents {
-			if len(event) == 0 {
-				continue
-			}
-			for _, event := range event {
-				redeemSessions = append(redeemSessions, sqlc.RedeemSession{
-					CustodianGroupUid: event.CustodianGroupId[:],
-					Sequence:          int64(event.Sequence),
-					Chain:             chain,
-					CurrentPhase:      sqlc.PhaseFromUint8(event.To),
-				})
-			}
+	sessions := make([]sqlc.ChainRedeemSession, 0)
+	for result := range resultChan {
+		if result.err != nil {
+			log.Error().Err(result.err).
+				Str("chainId", result.chainId).
+				Msgf("[Service][RecoverEvmSessions] recover session error")
+			panic(fmt.Sprintf("[Service][RecoverEvmSessions] cannot recover sessions for evm client %s", result.chainId))
 		}
+
+		sessions = append(sessions, result.sessions...)
+
+		log.Info().
+			Str("chainId", result.chainId).
+			Msg("[Service][RecoverEvmSessions] add evm session")
 	}
 
 	log.Info().
-		Interface("recoverSessions", recoverSessions).
-		Msg("[Service][RecoverEvmSessions] recover sessions")
+		Int("len(sessions)", len(sessions)).
+		Interface("sessions", sessions).
+		Msg("[Service][RecoverEvmSessions] start recover evm sessions")
 
-	err = s.CombinedAdapter.SaveRedeemSessions(ctx, redeemSessions)
+	err = s.CombinedAdapter.SaveChainRedeemSessions(ctx, sessions)
 	if err != nil {
 		log.Error().Err(err).Msgf("[Service][RecoverEvmSessions] cannot save redeem sessions")
-		panic(fmt.Sprintf("[Service][RecoverEvmSessions] cannot save redeem sessions"))
+		panic(err)
 	}
 
 	log.Info().Msgf("[Service][RecoverEvmSessions] finished RecoverEvmSessions")
 }
 
-func (s *Service) recoverRedeemSession(ctx context.Context, chainId string, groups []string) (*evm.ChainRedeemSessions, error) {
-	redeemSessions := evm.NewChainRedeemSessions()
+// func (s *Service) recoverRedeemSession(ctx context.Context, chainId string, groups []string) (*evm.ChainRedeemSessions, error) {
+// 	redeemSessions := evm.NewChainRedeemSessions()
 
-	batch, err := s.CombinedAdapter.GetBatchNumberOfLatestSwitchedPhaseEvents(ctx, 2, chainId, groups)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get batch number of latest switched phase events: %+v", err)
-	}
+// 	batch, err := s.CombinedAdapter.GetBatchNumberOfLatestSwitchedPhaseEvents(ctx, 1, chainId, groups)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed to get batch number of latest switched phase events: %+v", err)
+// 	}
 
-	if len(batch) == 0 {
-		return nil, fmt.Errorf("batch switched phase events is empty: %+v", err)
-	}
+// 	if len(batch) == 0 {
+// 		return nil, fmt.Errorf("batch switched phase events is empty: %+v", err)
+// 	}
 
-	for _, events := range batch {
-		if err := s.processEventsInBatch(events, redeemSessions); err != nil {
-			return nil, err
-		}
-	}
+// 	for _, events := range batch {
+// 		if err := s.processEventsInBatch(events, redeemSessions); err != nil {
+// 			return nil, err
+// 		}
+// 	}
 
-	return redeemSessions, nil
-}
+// 	return redeemSessions, nil
+// }
 
-func (s *Service) processEventsInBatch(events []chains.SwitchedPhase, redeemSessions *evm.ChainRedeemSessions) error {
-	switch len(events) {
-	case 2:
-		return s.processTwoEvents(events, redeemSessions)
-	case 1:
-		return s.processFirstEvent(events[0], redeemSessions)
-	default:
-		return fmt.Errorf("invalid number of events in batch: %d", len(events))
-	}
-}
+// func (s *Service) processEventsInBatch(events []chains.SwitchedPhase, redeemSessions *evm.ChainRedeemSessions) error {
+// 	switch len(events) {
+// 	case 2:
+// 		return s.processTwoEvents(events, redeemSessions)
+// 	case 1:
+// 		return s.processFirstEvent(events[0], redeemSessions)
+// 	default:
+// 		return fmt.Errorf("invalid number of events in batch: %d", len(events))
+// 	}
+// }
 
-func (s *Service) processTwoEvents(events []chains.SwitchedPhase, redeemSessions *evm.ChainRedeemSessions) error {
-	for _, event := range events {
-		s.appendSwitchPhaseEvent(event, redeemSessions)
-	}
-	return nil
-}
+// func (s *Service) processTwoEvents(events []chains.SwitchedPhase, redeemSessions *evm.ChainRedeemSessions) error {
+// 	for _, event := range events {
+// 		s.appendSwitchPhaseEvent(event, redeemSessions)
+// 	}
+// 	return nil
+// }
 
-func (s *Service) processFirstEvent(event chains.SwitchedPhase, redeemSessions *evm.ChainRedeemSessions) error {
-	if event.To != sqlc.RedeemPhasePREPARING.Uint8() || event.SessionSequence != 1 {
-		return fmt.Errorf("invalid first event: phase=%d, sequence=%d", event.To, event.SessionSequence)
-	}
-	s.appendSwitchPhaseEvent(event, redeemSessions)
-	return nil
-}
+// func (s *Service) processFirstEvent(event chains.SwitchedPhase, redeemSessions *evm.ChainRedeemSessions) error {
+// 	if event.To != sqlc.RedeemPhasePREPARING.Uint8() || event.SessionSequence != 1 {
+// 		return fmt.Errorf("invalid first event: phase=%d, sequence=%d", event.To, event.SessionSequence)
+// 	}
+// 	s.appendSwitchPhaseEvent(event, redeemSessions)
+// 	return nil
+// }
 
-func (s *Service) appendSwitchPhaseEvent(event chains.SwitchedPhase, redeemSessions *evm.ChainRedeemSessions) {
-	redeemSessions.AppendSwitchPhaseEvent(event.CustodianGroupUid, &contracts.IScalarGatewaySwitchPhase{
-		CustodianGroupId: common.HexToHash(event.CustodianGroupUid),
-		Sequence:         event.SessionSequence,
-		From:             event.From,
-		To:               event.To,
-	})
-}
+// func (s *Service) appendSwitchPhaseEvent(event chains.SwitchedPhase, redeemSessions *evm.ChainRedeemSessions) {
+// 	redeemSessions.AppendSwitchPhaseEvent(event.CustodianGroupUid, &contracts.IScalarGatewaySwitchPhase{
+// 		CustodianGroupId: common.HexToHash(event.CustodianGroupUid),
+// 		Sequence:         event.SessionSequence,
+// 		From:             event.From,
+// 		To:               event.To,
+// 	})
+// }
 
 // func (s *Service) processRecoverExecutingPhase(ctx context.Context, groupUid string, groupRedeemSessions *GroupRedeemSessions) error {
 // 	log.Info().Str("groupUid", groupUid).
