@@ -125,3 +125,24 @@ CREATE TABLE IF NOT EXISTS reservations (
 CREATE UNIQUE INDEX IF NOT EXISTS reservations_utxo_tx_id_vout_idx ON reservations (utxo_tx_id, utxo_vout);
 
 ALTER TABLE reservations ADD FOREIGN KEY (utxo_tx_id, utxo_vout) REFERENCES utxos (tx_id, vout) ON DELETE CASCADE;
+
+
+-- Redeem session
+
+CREATE TYPE REDEEM_PHASE as ENUM ('PREPARING', 'EXECUTING'); 
+
+CREATE TABLE IF NOT EXISTS redeem_sessions (
+    id BIGSERIAL PRIMARY KEY,
+    custodian_group_uid BYTEA NOT NULL,
+    sequence BIGINT NOT NULL CHECK (sequence >= 0),
+    chain TEXT NOT NULL,
+    current_phase REDEEM_PHASE NOT NULL,
+    last_redeem_tx BYTEA NOT NULL,
+    is_switching BOOLEAN NOT NULL,
+    phase_expired_at BIGINT NOT NULL CHECK (phase_expired_at >= 0),
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE redeem_sessions ADD FOREIGN KEY (custodian_group_uid) REFERENCES custodian_groups (uid) ON DELETE CASCADE;
+CREATE UNIQUE INDEX IF NOT EXISTS redeem_sessions_custodian_group_uid_chain_idx ON redeem_sessions (custodian_group_uid, chain);

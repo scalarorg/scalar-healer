@@ -9,7 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/rs/zerolog/log"
-	"github.com/scalarorg/scalar-healer/pkg/db"
+	"github.com/scalarorg/scalar-healer/pkg/db/sqlc"
 	contracts "github.com/scalarorg/scalar-healer/pkg/evm/contracts/generated"
 )
 
@@ -347,7 +347,7 @@ func (c *EvmClient) RecoverRedeemSessions(ctx context.Context, groups []common.H
 					}
 
 					counter := redeemSessions.AppendSwitchPhaseEvent(gr.Hex(), switchedPhaseEvent)
-					if counter == 2 || switchedPhaseEvent.To == uint8(db.Preparing) && switchedPhaseEvent.Sequence == 1 {
+					if counter == 2 || switchedPhaseEvent.To == sqlc.RedeemPhasePREPARING.Uint8() && switchedPhaseEvent.Sequence == 1 {
 						log.Debug().
 							Str("Chain", c.EvmConfig.ID).
 							Str("Group", gr.String()).

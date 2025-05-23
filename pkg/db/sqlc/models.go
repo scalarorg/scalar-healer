@@ -5,8 +5,53 @@
 package sqlc
 
 import (
+	"database/sql/driver"
+	"fmt"
+
 	"github.com/jackc/pgx/v5/pgtype"
 )
+
+type RedeemPhase string
+
+const (
+	RedeemPhasePREPARING RedeemPhase = "PREPARING"
+	RedeemPhaseEXECUTING RedeemPhase = "EXECUTING"
+)
+
+func (e *RedeemPhase) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = RedeemPhase(s)
+	case string:
+		*e = RedeemPhase(s)
+	default:
+		return fmt.Errorf("unsupported scan type for RedeemPhase: %T", src)
+	}
+	return nil
+}
+
+type NullRedeemPhase struct {
+	RedeemPhase RedeemPhase `json:"redeem_phase"`
+	Valid       bool        `json:"valid"` // Valid is true if RedeemPhase is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullRedeemPhase) Scan(value interface{}) error {
+	if value == nil {
+		ns.RedeemPhase, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.RedeemPhase.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullRedeemPhase) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.RedeemPhase), nil
+}
 
 type BridgeRequest struct {
 	ID        int64            `json:"id"`
@@ -71,6 +116,19 @@ type RedeemRequest struct {
 	Nonce     pgtype.Numeric   `json:"nonce"`
 	CreatedAt pgtype.Timestamp `json:"created_at"`
 	UpdatedAt pgtype.Timestamp `json:"updated_at"`
+}
+
+type RedeemSession struct {
+	ID                int64            `json:"id"`
+	CustodianGroupUid []byte           `json:"custodian_group_uid"`
+	Sequence          int64            `json:"sequence"`
+	Chain             string           `json:"chain"`
+	CurrentPhase      RedeemPhase      `json:"current_phase"`
+	LastRedeemTx      []byte           `json:"last_redeem_tx"`
+	IsSwitching       bool             `json:"is_switching"`
+	PhaseExpiredAt    int64            `json:"phase_expired_at"`
+	CreatedAt         pgtype.Timestamp `json:"created_at"`
+	UpdatedAt         pgtype.Timestamp `json:"updated_at"`
 }
 
 type Reservation struct {

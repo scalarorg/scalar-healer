@@ -40,7 +40,7 @@ type HealderAdapter interface {
 	UpdateLastEventCheckPoint(ctx context.Context, lastCheckPoint *scalarnet.EventCheckPoint) error
 
 	// session
-	GetRedeemSession(ctx context.Context, chainId string, groupUid string) *RedeemSession
+	GetRedeemSession(ctx context.Context, chainId string, groupUid string) *sqlc.RedeemSession
 	SaveSwitchPhaseValue(ctx context.Context, event *chains.SwitchedPhase) error
 
 	// token-sent

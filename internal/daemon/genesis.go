@@ -33,7 +33,7 @@ func (s *Service) initCustodianGroups(ctx context.Context) {
 		}
 	}
 
-	err = s.DbAdapter.SaveCustodianGroups(ctx, custodianGroups)
+	err = s.CombinedAdapter.SaveCustodianGroups(ctx, custodianGroups)
 	if err != nil {
 		panic(err)
 	}
@@ -52,7 +52,7 @@ func (s *Service) initProtocols(ctx context.Context) {
 		protocol.CustodianGroupUid = uid[:]
 		protocols[ind] = protocol
 	}
-	s.DbAdapter.SaveProtocols(ctx, newProtocols)
+	s.CombinedAdapter.SaveProtocols(ctx, newProtocols)
 
 	s.initTokens(ctx, protocols)
 }
@@ -66,17 +66,16 @@ func (s *Service) initTokens(ctx context.Context, protocols []sqlc.Protocol) {
 				panic(fmt.Sprintf("Token address not found for symbol %s", protocol.Symbol))
 			}
 			token := sqlc.Token{
-				Protocol: protocol.Name,
-				Address:  tokenAddr.Bytes(),
-				ChainID:  db.ConvertUint64ToNumeric(evmClient.EvmConfig.ChainID),
-				Active:   true,
-				Decimal:  db.ConvertUint64ToNumeric(uint64(protocol.Decimals)),
-				Symbol:   protocol.Symbol,
-				Name:     protocol.Asset,
-				Avatar:   protocol.Avatar,
+				Address: tokenAddr.Bytes(),
+				ChainID: db.ConvertUint64ToNumeric(evmClient.EvmConfig.ChainID),
+				Active:  true,
+				Decimal: db.ConvertUint64ToNumeric(uint64(protocol.Decimals)),
+				Symbol:  protocol.Symbol,
+				Avatar:  protocol.Avatar,
+				Name:    protocol.Name,
 			}
 			tokens = append(tokens, token)
 		}
 	}
-	s.DbAdapter.SaveTokens(ctx, tokens)
+	s.CombinedAdapter.SaveTokens(ctx, tokens)
 }

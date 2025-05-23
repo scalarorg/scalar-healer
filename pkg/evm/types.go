@@ -15,7 +15,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/scalarorg/bitcoin-vault/go-utils/encode"
 	"github.com/scalarorg/bitcoin-vault/go-utils/types"
-	"github.com/scalarorg/scalar-healer/pkg/db"
+	"github.com/scalarorg/scalar-healer/pkg/db/sqlc"
 	contracts "github.com/scalarorg/scalar-healer/pkg/evm/contracts/generated"
 )
 
@@ -295,10 +295,10 @@ func (s *ChainRedeemSessions) AppendSwitchPhaseEvent(groupUid string, event *con
 		Any("incomming element", event).
 		Msg("[ChainRedeemSessions] [AppendSwitchPhaseEvent] switch phase event has the same sequence")
 	if currentPhase.Sequence == event.Sequence {
-		if currentPhase.To == uint8(db.Preparing) && event.To == uint8(db.Executing) {
+		if currentPhase.To == sqlc.RedeemPhasePREPARING.Uint8() && event.To == sqlc.RedeemPhaseEXECUTING.Uint8() {
 			s.SwitchPhaseEvents[groupUid] = append(switchPhaseEvents, event)
 			return 2
-		} else if currentPhase.To == uint8(db.Executing) && event.To == uint8(db.Preparing) {
+		} else if currentPhase.To == sqlc.RedeemPhaseEXECUTING.Uint8() && event.To == sqlc.RedeemPhasePREPARING.Uint8() {
 			s.SwitchPhaseEvents[groupUid] = []*contracts.IScalarGatewaySwitchPhase{event, currentPhase}
 			return 2
 		} else {
@@ -306,7 +306,7 @@ func (s *ChainRedeemSessions) AppendSwitchPhaseEvent(groupUid string, event *con
 			return 1
 		}
 	} else if event.Sequence < currentPhase.Sequence {
-		if event.Sequence == currentPhase.Sequence-1 && event.To == uint8(db.Executing) && currentPhase.To == uint8(db.Preparing) {
+		if event.Sequence == currentPhase.Sequence-1 && event.To == sqlc.RedeemPhaseEXECUTING.Uint8() && currentPhase.To == sqlc.RedeemPhasePREPARING.Uint8() {
 			s.SwitchPhaseEvents[groupUid] = []*contracts.IScalarGatewaySwitchPhase{event, currentPhase}
 			return 2
 		}
@@ -314,7 +314,7 @@ func (s *ChainRedeemSessions) AppendSwitchPhaseEvent(groupUid string, event *con
 		return 1
 	} else {
 		//event.Sequence > currentPhase.Sequence
-		if currentPhase.Sequence == event.Sequence-1 && currentPhase.To == uint8(db.Executing) && event.To == uint8(db.Preparing) {
+		if currentPhase.Sequence == event.Sequence-1 && currentPhase.To == sqlc.RedeemPhaseEXECUTING.Uint8() && event.To == sqlc.RedeemPhasePREPARING.Uint8() {
 			s.SwitchPhaseEvents[groupUid] = []*contracts.IScalarGatewaySwitchPhase{currentPhase, event}
 			return 2
 		}

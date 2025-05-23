@@ -12,11 +12,11 @@ import (
 )
 
 type Service struct {
-	ConfigPath   string
-	DbAdapter    db.HealderAdapter
-	ElectrClient *electrs.Client
-	BtcClient    *btc.BtcClient
-	EvmClients   []*evm.EvmClient
+	ConfigPath      string
+	CombinedAdapter db.CombinedAdapter
+	ElectrClient    *electrs.Client
+	BtcClient       *btc.BtcClient
+	EvmClients      []*evm.EvmClient
 }
 
 func NewService(configPath string, evmPrivKey string, dbAdapter db.CombinedAdapter) *Service {
@@ -33,11 +33,11 @@ func NewService(configPath string, evmPrivKey string, dbAdapter db.CombinedAdapt
 		panic(err)
 	}
 	return &Service{
-		ConfigPath:   configPath,
-		DbAdapter:    dbAdapter,
-		ElectrClient: electrsClient,
-		BtcClient:    btcClient,
-		EvmClients:   evmClients,
+		ConfigPath:      configPath,
+		CombinedAdapter: dbAdapter,
+		ElectrClient:    electrsClient,
+		BtcClient:       btcClient,
+		EvmClients:      evmClients,
 	}
 }
 
@@ -48,7 +48,7 @@ func (s *Service) Start(ctx context.Context) error {
 	log.Debug().Msg("[Service] starting")
 	// go s.ElectrClient.Start(ctx)
 
-	// go s.RecoverEvmSessions(ctx)
+	go s.RecoverEvmSessions(ctx)
 
 	// s.ProcessMissingLogs(ctx)
 

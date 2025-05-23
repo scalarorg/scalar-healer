@@ -4,10 +4,10 @@ import (
 	"context"
 
 	"github.com/scalarorg/data-models/chains"
-	"github.com/scalarorg/scalar-healer/pkg/db"
+	"github.com/scalarorg/scalar-healer/pkg/db/sqlc"
 )
 
-func (m *HealerRepository) GetRedeemSession(ctx context.Context, chainId string, groupUid string) *db.RedeemSession {
+func (m *HealerRepository) GetRedeemSession(ctx context.Context, chainId string, groupUid string) *sqlc.RedeemSession {
 	return nil
 }
 

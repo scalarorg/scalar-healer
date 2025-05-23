@@ -4,7 +4,7 @@ import (
 	"math"
 
 	"github.com/rs/zerolog/log"
-	"github.com/scalarorg/scalar-healer/pkg/db"
+	"github.com/scalarorg/scalar-healer/pkg/db/sqlc"
 	"github.com/scalarorg/scalar-healer/pkg/evm"
 	contracts "github.com/scalarorg/scalar-healer/pkg/evm/contracts/generated"
 )
@@ -13,8 +13,8 @@ import (
 // with the first element is switch to Preparing phase
 type GroupRedeemSessions struct {
 	GroupUid          string
-	MaxSession        db.Session
-	MinSession        db.Session
+	MaxSession        sqlc.RedeemSession
+	MinSession        sqlc.RedeemSession
 	SwitchPhaseEvents map[string][]*contracts.IScalarGatewaySwitchPhase //Map by chainId
 	RedeemTokenEvents map[string][]*contracts.IScalarGatewayRedeemToken
 }
@@ -27,34 +27,35 @@ func (s *GroupRedeemSessions) Construct() {
 	//Find the max, min session
 	for _, switchPhaseEvent := range s.SwitchPhaseEvents {
 		lastEvent := switchPhaseEvent[len(switchPhaseEvent)-1]
-		if s.MaxSession.Sequence < lastEvent.Sequence {
-			s.MaxSession.Sequence = lastEvent.Sequence
-			s.MaxSession.Phase = db.Phase(lastEvent.To)
-		} else if s.MaxSession.Sequence == lastEvent.Sequence && uint8(s.MaxSession.Phase) < lastEvent.To {
-			s.MaxSession.Phase = db.Phase(lastEvent.To)
+		if s.MaxSession.Sequence < int64(lastEvent.Sequence) {
+			s.MaxSession.Sequence = int64(lastEvent.Sequence)
+			s.MaxSession.CurrentPhase = sqlc.PhaseFromUint8(lastEvent.To)
+		} else if s.MaxSession.Sequence == int64(lastEvent.Sequence) && s.MaxSession.CurrentPhase.Uint8() < lastEvent.To {
+			s.MaxSession.CurrentPhase = sqlc.PhaseFromUint8(lastEvent.To)
 		}
-		if s.MinSession.Sequence > lastEvent.Sequence {
-			s.MinSession.Sequence = lastEvent.Sequence
-			s.MinSession.Phase = db.Phase(lastEvent.To)
-		} else if s.MinSession.Sequence == lastEvent.Sequence && s.MinSession.Phase > db.Phase(lastEvent.To) {
-			s.MinSession.Phase = db.Phase(lastEvent.To)
+		if s.MinSession.Sequence > int64(lastEvent.Sequence) {
+			s.MinSession.Sequence = int64(lastEvent.Sequence)
+			s.MinSession.CurrentPhase = sqlc.PhaseFromUint8(lastEvent.To)
+		} else if s.MinSession.Sequence == int64(lastEvent.Sequence) && s.MinSession.CurrentPhase.Uint8() > lastEvent.To {
+			s.MinSession.CurrentPhase = sqlc.PhaseFromUint8(lastEvent.To)
 		}
 	}
-	diff := s.MaxSession.Cmp(&s.MinSession)
-	log.Info().Str("groupUid", s.GroupUid).Int64("diff", diff).
-		Any("maxSession", s.MaxSession).
-		Any("minSession", s.MinSession).
-		Msg("[GroupRedeemSessions] [ConstructPreparingPhase]")
 
-	if s.MaxSession.Phase == db.Preparing {
+	if s.MaxSession.CurrentPhase == sqlc.RedeemPhasePREPARING {
 		s.ConstructPreparingPhase()
-	} else if s.MaxSession.Phase == db.Executing {
+	} else if s.MaxSession.CurrentPhase == sqlc.RedeemPhaseEXECUTING {
 		s.ConstructExecutingPhase()
 	}
 }
 
 func (s *GroupRedeemSessions) ConstructPreparingPhase() {
 	diff := s.MaxSession.Cmp(&s.MinSession)
+
+	log.Info().Str("groupUid", s.GroupUid).Int64("diff", diff).
+		Any("maxSession", s.MaxSession).
+		Any("minSession", s.MinSession).
+		Msg("[GroupRedeemSessions] [ConstructPreparingPhase]")
+
 	if diff == 0 {
 		log.Warn().Str("groupUid", s.GroupUid).Msg("[GroupRedeemSessions] [ConstructPreparingPhase] max session and min session are the same")
 		//Each chain keep only one switch phase event to Preparing phase
@@ -70,7 +71,7 @@ func (s *GroupRedeemSessions) ConstructPreparingPhase() {
 		for chainId, redeemTokenEvents := range s.RedeemTokenEvents {
 			currentSessionEvents := make([]*contracts.IScalarGatewayRedeemToken, 0)
 			for _, redeemTokenEvent := range redeemTokenEvents {
-				if redeemTokenEvent.Sequence == s.MaxSession.Sequence {
+				if int64(redeemTokenEvent.Sequence) == s.MaxSession.Sequence {
 					currentSessionEvents = append(currentSessionEvents, redeemTokenEvent)
 				}
 			}
@@ -85,8 +86,8 @@ func (s *GroupRedeemSessions) ConstructPreparingPhase() {
 		//Find all chains with 2 events [Preparing, Executing], remove the first event
 		for chainId, switchPhaseEvent := range s.SwitchPhaseEvents {
 			if len(switchPhaseEvent) == 2 &&
-				switchPhaseEvent[0].To == uint8(db.Preparing) &&
-				switchPhaseEvent[1].To == uint8(db.Executing) {
+				switchPhaseEvent[0].To == sqlc.RedeemPhasePREPARING.Uint8() &&
+				switchPhaseEvent[1].To == sqlc.RedeemPhaseEXECUTING.Uint8() {
 				s.SwitchPhaseEvents[chainId] = switchPhaseEvent[1:]
 			}
 		}
@@ -97,7 +98,7 @@ func (s *GroupRedeemSessions) ConstructExecutingPhase() {
 	//For both case diff == 0 and diff = 1, we need to resend the redeem transaction to the scalar network
 	//Expecting all chains are switching to the executing phase
 	for chainId, switchPhaseEvent := range s.SwitchPhaseEvents {
-		if switchPhaseEvent[0].Sequence < s.MaxSession.Sequence {
+		if int64(switchPhaseEvent[0].Sequence) < s.MaxSession.Sequence {
 			log.Warn().Str("chainId", chainId).Any("First preparing event", switchPhaseEvent[0]).
 				Msg("[Service][RecoverRedeemSessions] Session is too low. Some thing wrong")
 		}
@@ -105,7 +106,7 @@ func (s *GroupRedeemSessions) ConstructExecutingPhase() {
 	//We resend to the scalar network onlye the redeem transaction of the last session
 	for chainId, redeemTokenEvent := range s.RedeemTokenEvents {
 		for _, event := range redeemTokenEvent {
-			if event.Sequence < s.MaxSession.Sequence {
+			if int64(event.Sequence) < s.MaxSession.Sequence {
 				log.Warn().Str("chainId", chainId).Any("Redeem transaction", event).
 					Msg("[Service][RecoverRedeemSessions] Redeem transaction is too low. Some thing wrong")
 			}

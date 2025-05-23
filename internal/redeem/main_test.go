@@ -41,7 +41,6 @@ func TestMain(m *testing.M) {
 			{
 				Symbol:   "ETH",
 				ChainID:  db.ConvertUint64ToNumeric(1),
-				Protocol: "SCALAR",
 				Address:  common.MaxAddress.Bytes(),
 				Name:     "Ethereum",
 				Decimal:  db.ConvertUint64ToNumeric(8),
