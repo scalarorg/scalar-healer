@@ -137,9 +137,9 @@ CREATE TABLE IF NOT EXISTS redeem_sessions (
     sequence BIGINT NOT NULL CHECK (sequence >= 0),
     chain TEXT NOT NULL,
     current_phase REDEEM_PHASE NOT NULL,
-    last_redeem_tx BYTEA NOT NULL,
-    is_switching BOOLEAN NOT NULL,
-    phase_expired_at BIGINT NOT NULL CHECK (phase_expired_at >= 0),
+    last_redeem_tx BYTEA,
+    is_switching BOOLEAN,
+    phase_expired_at BIGINT,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );

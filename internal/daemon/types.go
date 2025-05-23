@@ -115,19 +115,18 @@ func (s *GroupRedeemSessions) ConstructExecutingPhase() {
 }
 
 // Store all evm recovering redeem sessions
-type CustodiansRecoverRedeemSessions struct {
-	RecoverSessions map[string]*GroupRedeemSessions
+type custodiansRecoverRedeemSessions map[string]*GroupRedeemSessions
+
+func NewCustodiansRecoverRedeemSessions() custodiansRecoverRedeemSessions {
+	return make(custodiansRecoverRedeemSessions)
 }
 
-func (s *CustodiansRecoverRedeemSessions) AddRecoverSessions(chainId string, chainRedeemSessions *evm.ChainRedeemSessions) {
-	if s.RecoverSessions == nil {
-		s.RecoverSessions = make(map[string]*GroupRedeemSessions)
-	}
+func (s custodiansRecoverRedeemSessions) AddRecoverSessions(chainId string, chainRedeemSessions *evm.ChainRedeemSessions) {
 	for groupUid, switchPhaseEvent := range chainRedeemSessions.SwitchPhaseEvents {
 		if len(switchPhaseEvent) == 0 {
 			continue
 		}
-		groupSession, ok := s.RecoverSessions[groupUid]
+		groupSession, ok := s[groupUid]
 		if !ok {
 			groupSession = &GroupRedeemSessions{
 				GroupUid:          groupUid,
@@ -136,13 +135,13 @@ func (s *CustodiansRecoverRedeemSessions) AddRecoverSessions(chainId string, cha
 			}
 		}
 		groupSession.SwitchPhaseEvents[chainId] = switchPhaseEvent
-		s.RecoverSessions[groupUid] = groupSession
+		s[groupUid] = groupSession
 	}
 	for groupUid, redeemTokenEvent := range chainRedeemSessions.RedeemTokenEvents {
 		if len(redeemTokenEvent) == 0 {
 			continue
 		}
-		groupSession, ok := s.RecoverSessions[groupUid]
+		groupSession, ok := s[groupUid]
 		if !ok {
 			log.Warn().Msgf("[Service][AddRecoverSessions] no recover session found for group %s", groupUid)
 			groupSession = &GroupRedeemSessions{
@@ -152,20 +151,20 @@ func (s *CustodiansRecoverRedeemSessions) AddRecoverSessions(chainId string, cha
 			}
 		}
 		groupSession.RedeemTokenEvents[chainId] = redeemTokenEvent
-		s.RecoverSessions[groupUid] = groupSession
+		s[groupUid] = groupSession
 	}
 }
 
-func (s *CustodiansRecoverRedeemSessions) ConstructSessions() {
+func (s custodiansRecoverRedeemSessions) ConstructSessions() {
 	log.Info().Msg("[Service][ConstructSessions] start construct sessions")
-	for _, groupSession := range s.RecoverSessions {
+	for _, groupSession := range s {
 		groupSession.Construct()
 	}
 }
 
-func (s *CustodiansRecoverRedeemSessions) GroupByChain() map[string]*evm.ChainRedeemSessions {
+func (s custodiansRecoverRedeemSessions) GroupByChain() map[string]*evm.ChainRedeemSessions {
 	mapChainRedeemSessions := make(map[string]*evm.ChainRedeemSessions)
-	for groupUid, groupSession := range s.RecoverSessions {
+	for groupUid, groupSession := range s {
 		for chainId, switchPhaseEvent := range groupSession.SwitchPhaseEvents {
 			mapChainRedeemSessions[chainId] = &evm.ChainRedeemSessions{
 				SwitchPhaseEvents: map[string][]*contracts.IScalarGatewaySwitchPhase{groupUid: switchPhaseEvent},

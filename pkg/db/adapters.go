@@ -73,6 +73,9 @@ type HealderAdapter interface {
 	// accounts
 	GetNonce(ctx context.Context, address common.Address) uint64
 
+	// redeem sessions
+	SaveRedeemSessions(ctx context.Context, redeemSessions []sqlc.RedeemSession) error
+
 	Close()
 }
 

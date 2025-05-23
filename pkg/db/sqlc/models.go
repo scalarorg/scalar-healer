@@ -124,9 +124,9 @@ type RedeemSession struct {
 	Sequence          int64            `json:"sequence"`
 	Chain             string           `json:"chain"`
 	CurrentPhase      RedeemPhase      `json:"current_phase"`
-	LastRedeemTx      []byte           `json:"last_redeem_tx"`
-	IsSwitching       bool             `json:"is_switching"`
-	PhaseExpiredAt    int64            `json:"phase_expired_at"`
+	LastRedeemTx      interface{}      `json:"last_redeem_tx"`
+	IsSwitching       pgtype.Bool      `json:"is_switching"`
+	PhaseExpiredAt    pgtype.Int8      `json:"phase_expired_at"`
 	CreatedAt         pgtype.Timestamp `json:"created_at"`
 	UpdatedAt         pgtype.Timestamp `json:"updated_at"`
 }

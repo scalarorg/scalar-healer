@@ -32,7 +32,7 @@ func (s *Service) RecoverEvmSessions(ctx context.Context) {
 	})
 
 	wg := sync.WaitGroup{}
-	recoverSessions := CustodiansRecoverRedeemSessions{}
+	recoverSessions := NewCustodiansRecoverRedeemSessions()
 	for _, client := range s.EvmClients {
 		wg.Add(1)
 		go func() {
@@ -56,9 +56,32 @@ func (s *Service) RecoverEvmSessions(ctx context.Context) {
 
 	recoverSessions.ConstructSessions()
 
+	redeemSessions := make([]sqlc.RedeemSession, 0)
+	for _, groupRedeemSessions := range recoverSessions {
+		for chain, event := range groupRedeemSessions.SwitchPhaseEvents {
+			if len(event) == 0 {
+				continue
+			}
+			for _, event := range event {
+				redeemSessions = append(redeemSessions, sqlc.RedeemSession{
+					CustodianGroupUid: event.CustodianGroupId[:],
+					Sequence:          int64(event.Sequence),
+					Chain:             chain,
+					CurrentPhase:      sqlc.PhaseFromUint8(event.To),
+				})
+			}
+		}
+	}
+
 	log.Info().
 		Interface("recoverSessions", recoverSessions).
 		Msg("[Service][RecoverEvmSessions] recover sessions")
+
+	err = s.CombinedAdapter.SaveRedeemSessions(ctx, redeemSessions)
+	if err != nil {
+		log.Error().Err(err).Msgf("[Service][RecoverEvmSessions] cannot save redeem sessions")
+		panic(fmt.Sprintf("[Service][RecoverEvmSessions] cannot save redeem sessions"))
+	}
 
 	log.Info().Msgf("[Service][RecoverEvmSessions] finished RecoverEvmSessions")
 }
