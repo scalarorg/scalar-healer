@@ -30,6 +30,7 @@ type Querier interface {
 	ListTransferRequests(ctx context.Context, arg ListTransferRequestsParams) ([]TransferRequest, error)
 	SaveBridgeRequest(ctx context.Context, arg SaveBridgeRequestParams) error
 	SaveChainRedeemSessions(ctx context.Context, arg SaveChainRedeemSessionsParams) error
+	SaveCommands(ctx context.Context, arg SaveCommandsParams) error
 	SaveCustodianGroups(ctx context.Context, arg SaveCustodianGroupsParams) error
 	SaveProtocols(ctx context.Context, arg SaveProtocolsParams) error
 	SaveRedeemRequest(ctx context.Context, arg SaveRedeemRequestParams) error

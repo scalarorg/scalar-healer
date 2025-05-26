@@ -70,11 +70,15 @@ type HealderAdapter interface {
 	GetNonce(ctx context.Context, address common.Address) uint64
 
 	// redeem sessions
-	SaveRedeemSessionAndChainRedeemSessionsTx(ctx context.Context, chainRedeemSessions []sqlc.ChainRedeemSession) (outdatedSession []sqlc.ChainRedeemSession, err error)
+	SaveRedeemSessionAndChainRedeemSessionsTx(ctx context.Context, chainRedeemSessions []sqlc.ChainRedeemSession) (outdatedSessionsByGroup map[string][]sqlc.ChainRedeemSessionUpdate, err error)
 	GetRedeemSession(ctx context.Context, uid []byte) (*sqlc.RedeemSession, error)
 
 	// chain redeem sessions
 	GetChainRedeemSession(ctx context.Context, grUID []byte, chain string) (*sqlc.ChainRedeemSession, error)
+
+	// commands
+	SaveCommands(ctx context.Context, commands []sqlc.Command) error
+
 	Close()
 }
 

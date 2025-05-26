@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/rs/zerolog/log"
 	"github.com/scalarorg/scalar-healer/pkg/db/sqlc"
 	"github.com/scalarorg/scalar-healer/pkg/evm"
@@ -102,7 +103,7 @@ func (s *Service) RecoverEvmSessions(ctx context.Context) {
 		Interface("sessions", sessions).
 		Msg("[Service][RecoverEvmSessions] start recover evm sessions")
 
-	outdatedSessions, err := s.CombinedAdapter.SaveRedeemSessionAndChainRedeemSessionsTx(ctx, sessions)
+	outdatedSessionsByGroup, err := s.CombinedAdapter.SaveRedeemSessionAndChainRedeemSessionsTx(ctx, sessions)
 	if err != nil {
 		log.Error().Err(err).Msgf("[Service][RecoverEvmSessions] cannot save redeem sessions")
 		panic(err)
@@ -110,6 +111,38 @@ func (s *Service) RecoverEvmSessions(ctx context.Context) {
 
 	log.Info().Msgf("[Service][RecoverEvmSessions] finished RecoverEvmSessions")
 
-	// TODO: handle outdatedSessions
-	_ = outdatedSessions
+	if len(outdatedSessionsByGroup) == 0 {
+		return
+	}
+
+	switchPhaseCmds := make([]sqlc.Command, 0)
+
+	for groupUid, sessions := range outdatedSessionsByGroup {
+		grUidbz := common.HexToHash(groupUid).Bytes()
+		for _, session := range sessions {
+			id := make([]byte, 0)
+			id = append(id, grUidbz...)
+			id = append(id, byte(session.Sequence))
+			id = append(id, session.CurrentPhase.Bytes())
+
+			switchPhaseCmds = append(switchPhaseCmds, sqlc.Command{
+				CommandID:   sqlc.NewCommandID(id, session.Chain).Bytes(),
+				CommandType: sqlc.CommandTypeSwitchPhase,
+				Params:      evm.CreateSwitchPhaseParams(grUidbz, session.NewPhase),
+				Chain:       session.Chain,
+				Status: pgtype.Int4{
+					Int32: sqlc.COMMAND_STATUS_PENDING.Int32(),
+					Valid: true,
+				},
+			})
+		}
+	}
+
+	err = s.CombinedAdapter.SaveCommands(ctx, switchPhaseCmds)
+	if err != nil {
+		log.Error().Err(err).Msgf("[Service][RecoverEvmSessions] cannot save switch phase commands")
+		panic(err)
+	}
+
+	return
 }

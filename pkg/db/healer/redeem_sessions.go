@@ -3,13 +3,16 @@ package healer
 import (
 	"context"
 	"encoding/hex"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/scalarorg/scalar-healer/pkg/db/sqlc"
 )
 
-func (m *HealerRepository) SaveRedeemSessionAndChainRedeemSessionsTx(ctx context.Context, chainRedeemSessions []sqlc.ChainRedeemSession) ([]sqlc.ChainRedeemSession, error) {
-	var outdatedSession []sqlc.ChainRedeemSession
+func (m *HealerRepository) SaveRedeemSessionAndChainRedeemSessionsTx(ctx context.Context, chainRedeemSessions []sqlc.ChainRedeemSession) (map[string][]sqlc.ChainRedeemSessionUpdate, error) {
+	var outdatedSessionsByGroup map[string][]sqlc.ChainRedeemSessionUpdate
+
+	expiredAt := time.Now().Add(time.Hour * 2).Unix()
 
 	err := m.execTx(ctx, func(q *sqlc.Queries) error {
 		// 1. Group redeem sessions by group id
@@ -26,6 +29,8 @@ func (m *HealerRepository) SaveRedeemSessionAndChainRedeemSessionsTx(ctx context
 
 		// 2. Compare the latest redeem session with the chain redeem session
 		for _, sessions := range sessionsByGroup {
+			outdatedSessions := make([]sqlc.ChainRedeemSessionUpdate, 0)
+
 			lastestRedeemSessionMap := make(map[int]bool)
 			latestRedeemSession := sessions[0]
 			lastestRedeemSessionMap[0] = true
@@ -41,20 +46,39 @@ func (m *HealerRepository) SaveRedeemSessionAndChainRedeemSessionsTx(ctx context
 			// 3. Save the outdated redeem session
 			for index, session := range sessions {
 				if _, ok := lastestRedeemSessionMap[index]; !ok {
-					outdatedSession = append(outdatedSession, session)
+					outdatedSessions = append(outdatedSessions, sqlc.ChainRedeemSessionUpdate{
+						Chain:             session.Chain,
+						CustodianGroupUid: session.CustodianGroupUid,
+						Sequence:          session.Sequence,
+						CurrentPhase:      session.CurrentPhase,
+						NewPhase:          latestRedeemSession.CurrentPhase,
+					})
 				}
 			}
 
+			if len(outdatedSessions) > 0 {
+				if outdatedSessionsByGroup == nil {
+					outdatedSessionsByGroup = make(map[string][]sqlc.ChainRedeemSessionUpdate)
+				}
+				outdatedSessionsByGroup[hex.EncodeToString(latestRedeemSession.CustodianGroupUid)] = outdatedSessions
+			}
+
 			// 4. Collect the redeem session for group
-			redeemSessions = append(redeemSessions, sqlc.RedeemSession{
+			rs := sqlc.RedeemSession{
 				CustodianGroupUid: latestRedeemSession.CustodianGroupUid,
 				Sequence:          latestRedeemSession.Sequence,
 				CurrentPhase:      latestRedeemSession.CurrentPhase,
 				IsSwitching: pgtype.Bool{
-					Bool:  len(outdatedSession) > 0,
+					Bool:  len(outdatedSessions) > 0,
 					Valid: true,
 				},
-			})
+			}
+
+			if len(outdatedSessions) == 0 {
+				rs.PhaseExpiredAt = expiredAt
+			}
+
+			redeemSessions = append(redeemSessions, rs)
 		}
 
 		// 5. Save the chain redeem session
@@ -72,7 +96,7 @@ func (m *HealerRepository) SaveRedeemSessionAndChainRedeemSessionsTx(ctx context
 		return nil
 	})
 
-	return outdatedSession, err
+	return outdatedSessionsByGroup, err
 }
 
 func (m *HealerRepository) saveRedeemSessions(ctx context.Context, redeemSessions []sqlc.RedeemSession) error {
@@ -80,12 +104,14 @@ func (m *HealerRepository) saveRedeemSessions(ctx context.Context, redeemSession
 	var sequences []int64
 	var currentPhases []string
 	var isSwitchings []bool
+	var expiredAts []int64
 
 	for _, session := range redeemSessions {
 		uids = append(uids, session.CustodianGroupUid)
 		sequences = append(sequences, session.Sequence)
 		currentPhases = append(currentPhases, string(session.CurrentPhase))
 		isSwitchings = append(isSwitchings, session.IsSwitching.Bool)
+		expiredAts = append(expiredAts, session.PhaseExpiredAt)
 	}
 
 	return m.Queries.SaveRedeemSessions(ctx, sqlc.SaveRedeemSessionsParams{
@@ -93,6 +119,7 @@ func (m *HealerRepository) saveRedeemSessions(ctx context.Context, redeemSession
 		Column2: sequences,
 		Column3: currentPhases,
 		Column4: isSwitchings,
+		Column5: expiredAts,
 	})
 }
 

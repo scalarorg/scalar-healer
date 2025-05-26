@@ -1,6 +1,6 @@
 -- name: SaveRedeemSessions :exec
-INSERT INTO redeem_sessions (custodian_group_uid, sequence, current_phase, is_switching)
-VALUES (unnest($1::bytea[]), unnest($2::bigint[]), unnest($3::text[])::redeem_phase, unnest($4::boolean[]));
+INSERT INTO redeem_sessions (custodian_group_uid, sequence, current_phase, is_switching, phase_expired_at)
+VALUES (unnest($1::bytea[]), unnest($2::bigint[]), unnest($3::text[])::redeem_phase, unnest($4::boolean[]), unnest($5::bigint[]));
 
 -- name: GetRedeemSession :one
 SELECT * FROM redeem_sessions WHERE custodian_group_uid = $1;

@@ -79,8 +79,8 @@ func (q *Queries) SaveChainRedeemSessions(ctx context.Context, arg SaveChainRede
 }
 
 const saveRedeemSessions = `-- name: SaveRedeemSessions :exec
-INSERT INTO redeem_sessions (custodian_group_uid, sequence, current_phase, is_switching)
-VALUES (unnest($1::bytea[]), unnest($2::bigint[]), unnest($3::text[])::redeem_phase, unnest($4::boolean[]))
+INSERT INTO redeem_sessions (custodian_group_uid, sequence, current_phase, is_switching, phase_expired_at)
+VALUES (unnest($1::bytea[]), unnest($2::bigint[]), unnest($3::text[])::redeem_phase, unnest($4::boolean[]), unnest($5::bigint[]))
 `
 
 type SaveRedeemSessionsParams struct {
@@ -88,6 +88,7 @@ type SaveRedeemSessionsParams struct {
 	Column2 []int64  `json:"column_2"`
 	Column3 []string `json:"column_3"`
 	Column4 []bool   `json:"column_4"`
+	Column5 []int64  `json:"column_5"`
 }
 
 func (q *Queries) SaveRedeemSessions(ctx context.Context, arg SaveRedeemSessionsParams) error {
@@ -96,6 +97,7 @@ func (q *Queries) SaveRedeemSessions(ctx context.Context, arg SaveRedeemSessions
 		arg.Column2,
 		arg.Column3,
 		arg.Column4,
+		arg.Column5,
 	)
 	return err
 }

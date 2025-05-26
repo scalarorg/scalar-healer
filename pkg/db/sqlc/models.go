@@ -126,11 +126,11 @@ type ChainRedeemSession struct {
 type Command struct {
 	ID             int64            `json:"id"`
 	CommandID      []byte           `json:"command_id"`
+	Chain          string           `json:"chain"`
 	CommandBatchID []byte           `json:"command_batch_id"`
 	Params         []byte           `json:"params"`
 	Status         pgtype.Int4      `json:"status"`
 	CommandType    CommandType      `json:"command_type"`
-	Payload        []byte           `json:"payload"`
 	CreatedAt      pgtype.Timestamp `json:"created_at"`
 	UpdatedAt      pgtype.Timestamp `json:"updated_at"`
 }
@@ -138,6 +138,7 @@ type Command struct {
 type CommandBatch struct {
 	ID             int64            `json:"id"`
 	CommandBatchID []byte           `json:"command_batch_id"`
+	Chain          string           `json:"chain"`
 	Data           []byte           `json:"data"`
 	SigHash        []byte           `json:"sig_hash"`
 	Signature      []byte           `json:"signature"`
@@ -207,7 +208,7 @@ type RedeemSession struct {
 	CurrentPhase      RedeemPhase      `json:"current_phase"`
 	LastRedeemTx      []byte           `json:"last_redeem_tx"`
 	IsSwitching       pgtype.Bool      `json:"is_switching"`
-	PhaseExpiredAt    pgtype.Int8      `json:"phase_expired_at"`
+	PhaseExpiredAt    int64            `json:"phase_expired_at"`
 	CreatedAt         pgtype.Timestamp `json:"created_at"`
 	UpdatedAt         pgtype.Timestamp `json:"updated_at"`
 }

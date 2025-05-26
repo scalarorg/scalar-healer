@@ -27,6 +27,8 @@ var (
 
 	RedeemTokenPayloadArguments = abi.Arguments{{Type: uint64Type}, {Type: bytesType}, {Type: stringArrayType}, {Type: uint32ArrayType}, {Type: uint64ArrayType}, {Type: bytes32Type}}
 	RedeemTokenArguments        = abi.Arguments{{Type: stringType}, {Type: stringType}, {Type: bytesType}, {Type: stringType}, {Type: uint256Type}, {Type: bytes32Type}, {Type: uint64Type}}
+
+	SwitchPhaseArguments = abi.Arguments{{Type: uint8Type}, {Type: bytes32Type}}
 )
 
 var (

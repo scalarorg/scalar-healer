@@ -2,6 +2,8 @@ package sqlc
 
 import (
 	"math"
+
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 func (e RedeemPhase) Uint8() uint8 {
@@ -13,6 +15,10 @@ func (e RedeemPhase) Uint8() uint8 {
 	default:
 		return math.MaxUint8
 	}
+}
+
+func (e RedeemPhase) Bytes() byte {
+	return byte(e.Uint8())
 }
 
 func PhaseFromUint8(phase uint8) RedeemPhase {
@@ -47,6 +53,9 @@ const (
 	COMMAND_STATUS_EXECUTED CommandStatus = 2
 )
 
+func (s CommandStatus) Int32() int32 {
+	return int32(s)
+}
 
 type CommandBatchStatus uint8
 
@@ -54,3 +63,30 @@ const (
 	COMMAND_BATCH_STATUS_PENDING  CommandBatchStatus = 0
 	COMMAND_BATCH_STATUS_EXECUTED CommandBatchStatus = 1
 )
+
+func (s CommandBatchStatus) Int32() int32 {
+	return int32(s)
+}
+
+type ChainRedeemSessionUpdate struct {
+	Chain             string
+	CustodianGroupUid []byte
+	Sequence          int64
+	CurrentPhase      RedeemPhase
+	NewPhase          RedeemPhase
+}
+
+const commandIDSize = 32
+
+type CommandID [commandIDSize]byte
+
+func NewCommandID(data []byte, chainID string) CommandID {
+	var commandID CommandID
+	copy(commandID[:], crypto.Keccak256(append(data, []byte(chainID)...))[:commandIDSize])
+
+	return commandID
+}
+
+func (c CommandID) Bytes() []byte {
+	return c[:]
+}

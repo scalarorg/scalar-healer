@@ -24,7 +24,7 @@ func TestSaveRedeemSessionAndChainRedeemSessionsTx(t *testing.T) {
 		name    string
 		input   []sqlc.ChainRedeemSession
 		wantErr bool
-		check   func(t *testing.T, repo *healer.HealerRepository, outdated []sqlc.ChainRedeemSession)
+		check   func(t *testing.T, repo *healer.HealerRepository, outdated map[string][]sqlc.ChainRedeemSessionUpdate)
 	}{
 		{
 			name: "single group with no outdated sessions",
@@ -37,7 +37,7 @@ func TestSaveRedeemSessionAndChainRedeemSessionsTx(t *testing.T) {
 				},
 			},
 			wantErr: false,
-			check: func(t *testing.T, repo *healer.HealerRepository, outdated []sqlc.ChainRedeemSession) {
+			check: func(t *testing.T, repo *healer.HealerRepository, outdated map[string][]sqlc.ChainRedeemSessionUpdate) {
 				session, err := repo.GetRedeemSession(context.Background(), mockCustodianGroup.Uid)
 				assert.NoError(t, err)
 				assert.Empty(t, outdated)
@@ -71,8 +71,9 @@ func TestSaveRedeemSessionAndChainRedeemSessionsTx(t *testing.T) {
 				},
 			},
 			wantErr: false,
-			check: func(t *testing.T, repo *healer.HealerRepository, outdated []sqlc.ChainRedeemSession) {
-				assert.Len(t, outdated, 1)
+			check: func(t *testing.T, repo *healer.HealerRepository, sessions map[string][]sqlc.ChainRedeemSessionUpdate) {
+				assert.Len(t, sessions, 1)
+				outdated := sessions["01"]
 				assert.Equal(t, int64(1), outdated[0].Sequence)
 
 				session, err := repo.GetRedeemSession(context.Background(), mockCustodianGroup.Uid)
@@ -113,7 +114,7 @@ func TestSaveRedeemSessionAndChainRedeemSessionsTx(t *testing.T) {
 				},
 			},
 			wantErr: false,
-			check: func(t *testing.T, repo *healer.HealerRepository, outdated []sqlc.ChainRedeemSession) {
+			check: func(t *testing.T, repo *healer.HealerRepository, outdated map[string][]sqlc.ChainRedeemSessionUpdate) {
 				assert.Empty(t, outdated)
 				session, err := repo.GetRedeemSession(context.Background(), mockCustodianGroup.Uid)
 				assert.NoError(t, err)

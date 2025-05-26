@@ -137,7 +137,7 @@ CREATE TABLE IF NOT EXISTS redeem_sessions (
     current_phase REDEEM_PHASE NOT NULL,
     last_redeem_tx BYTEA,
     is_switching BOOLEAN,
-    phase_expired_at BIGINT,
+    phase_expired_at BIGINT NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
@@ -178,6 +178,7 @@ CREATE TYPE COMMAND_TYPE as ENUM (
 CREATE TABLE IF NOT EXISTS commands (
     id BIGSERIAL PRIMARY KEY,
     command_id BYTEA UNIQUE NOT NULL,
+    chain TEXT NOT NULL,
     command_batch_id BYTEA NULL,
     params BYTEA NOT NULL,
     status INT CHECK (status IN (0, 1, 2)),
@@ -185,7 +186,6 @@ CREATE TABLE IF NOT EXISTS commands (
     -- 1 = QUEUED, included in the batch command
     -- 2 = EXECUTED, executed
     command_type COMMAND_TYPE NOT NULL,
-    payload BYTEA NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
@@ -193,6 +193,7 @@ CREATE TABLE IF NOT EXISTS commands (
 CREATE TABLE IF NOT EXISTS command_batchs (
     id BIGSERIAL PRIMARY KEY,
     command_batch_id  BYTEA UNIQUE NOT NULL,
+    chain TEXT NOT NULL,
     data BYTEA NOT NULL,
     sig_hash BYTEA NOT NULL,
     signature BYTEA NOT NULL,
