@@ -10,6 +10,7 @@ import (
 
 func (m *HealerRepository) SaveRedeemSessionAndChainRedeemSessionsTx(ctx context.Context, chainRedeemSessions []sqlc.ChainRedeemSession) ([]sqlc.ChainRedeemSession, error) {
 	var outdatedSession []sqlc.ChainRedeemSession
+
 	err := m.execTx(ctx, func(q *sqlc.Queries) error {
 		// 1. Group redeem sessions by group id
 		sessionsByGroup := make(map[string][]sqlc.ChainRedeemSession)

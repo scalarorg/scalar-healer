@@ -11,6 +11,55 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type CommandType string
+
+const (
+	CommandTypeBurnToken                   CommandType = "burnToken"
+	CommandTypeDeployToken                 CommandType = "deployToken"
+	CommandTypeMintToken                   CommandType = "mintToken"
+	CommandTypeApproveContractCall         CommandType = "approveContractCall"
+	CommandTypeApproveContractCallWithMint CommandType = "approveContractCallWithMint"
+	CommandTypeTransferOperatorship        CommandType = "transferOperatorship"
+	CommandTypeSwitchPhase                 CommandType = "switchPhase"
+	CommandTypeRegisterCustodianGroup      CommandType = "registerCustodianGroup"
+	CommandTypeRedeemToken                 CommandType = "redeemToken"
+)
+
+func (e *CommandType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = CommandType(s)
+	case string:
+		*e = CommandType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for CommandType: %T", src)
+	}
+	return nil
+}
+
+type NullCommandType struct {
+	CommandType CommandType `json:"command_type"`
+	Valid       bool        `json:"valid"` // Valid is true if CommandType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullCommandType) Scan(value interface{}) error {
+	if value == nil {
+		ns.CommandType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.CommandType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullCommandType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.CommandType), nil
+}
+
 type RedeemPhase string
 
 const (
@@ -72,6 +121,29 @@ type ChainRedeemSession struct {
 	CurrentPhase      RedeemPhase      `json:"current_phase"`
 	CreatedAt         pgtype.Timestamp `json:"created_at"`
 	UpdatedAt         pgtype.Timestamp `json:"updated_at"`
+}
+
+type Command struct {
+	ID             int64            `json:"id"`
+	CommandID      []byte           `json:"command_id"`
+	CommandBatchID []byte           `json:"command_batch_id"`
+	Params         []byte           `json:"params"`
+	Status         pgtype.Int4      `json:"status"`
+	CommandType    CommandType      `json:"command_type"`
+	Payload        []byte           `json:"payload"`
+	CreatedAt      pgtype.Timestamp `json:"created_at"`
+	UpdatedAt      pgtype.Timestamp `json:"updated_at"`
+}
+
+type CommandBatch struct {
+	ID             int64            `json:"id"`
+	CommandBatchID []byte           `json:"command_batch_id"`
+	Data           []byte           `json:"data"`
+	SigHash        []byte           `json:"sig_hash"`
+	Signature      []byte           `json:"signature"`
+	Status         pgtype.Int4      `json:"status"`
+	CreatedAt      pgtype.Timestamp `json:"created_at"`
+	UpdatedAt      pgtype.Timestamp `json:"updated_at"`
 }
 
 type CustodianGroup struct {

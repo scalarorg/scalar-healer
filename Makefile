@@ -59,8 +59,8 @@ shutdown:
 	docker compose down --remove-orphans
 
 .PHONY: sqlc migrate-up migrate-down new-migration
+# @rm -rf pkg/db/sqlc/*.sql.go
 sqlc:
-	@rm -rf pkg/db/sqlc/*.sql.go
 	@./scripts/sqlc-generate.sh
 
 migrate-up:

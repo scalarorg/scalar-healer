@@ -38,3 +38,19 @@ func (s *ChainRedeemSession) Cmp(other *ChainRedeemSession) int64 {
 
 	return int64(s.CurrentPhase.Uint8()) - int64(other.CurrentPhase.Uint8())
 }
+
+type CommandStatus uint8
+
+const (
+	COMMAND_STATUS_PENDING  CommandStatus = 0
+	COMMAND_STATUS_QUEUED   CommandStatus = 1
+	COMMAND_STATUS_EXECUTED CommandStatus = 2
+)
+
+
+type CommandBatchStatus uint8
+
+const (
+	COMMAND_BATCH_STATUS_PENDING  CommandBatchStatus = 0
+	COMMAND_BATCH_STATUS_EXECUTED CommandBatchStatus = 1
+)
