@@ -14,10 +14,12 @@ type Querier interface {
 	CreateGatewayAddress(ctx context.Context, arg CreateGatewayAddressParams) error
 	DeleteUTXOs(ctx context.Context, dollar_1 []byte) error
 	GetAllCustodianGroups(ctx context.Context) ([]CustodianGroup, error)
+	GetChainRedeemSession(ctx context.Context, arg GetChainRedeemSessionParams) (ChainRedeemSession, error)
 	GetCustodianGroupByUID(ctx context.Context, uid []byte) (CustodianGroup, error)
 	GetGatewayAddress(ctx context.Context, chainID pgtype.Numeric) ([]byte, error)
 	GetNonce(ctx context.Context, address []byte) (pgtype.Numeric, error)
 	GetProtocol(ctx context.Context, symbol string) (Protocol, error)
+	GetRedeemSession(ctx context.Context, custodianGroupUid []byte) (RedeemSession, error)
 	GetTokenAddressBySymbol(ctx context.Context, arg GetTokenAddressBySymbolParams) ([]byte, error)
 	GetTokenSymbolByAddress(ctx context.Context, arg GetTokenSymbolByAddressParams) (string, error)
 	GetUTXOs(ctx context.Context, arg GetUTXOsParams) ([]Utxo, error)

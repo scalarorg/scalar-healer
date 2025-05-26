@@ -9,18 +9,93 @@ import (
 	"context"
 )
 
+const getChainRedeemSession = `-- name: GetChainRedeemSession :one
+SELECT id, chain, custodian_group_uid, sequence, current_phase, created_at, updated_at FROM chain_redeem_sessions WHERE custodian_group_uid = $1 AND chain = $2
+`
+
+type GetChainRedeemSessionParams struct {
+	CustodianGroupUid []byte `json:"custodian_group_uid"`
+	Chain             string `json:"chain"`
+}
+
+func (q *Queries) GetChainRedeemSession(ctx context.Context, arg GetChainRedeemSessionParams) (ChainRedeemSession, error) {
+	row := q.db.QueryRow(ctx, getChainRedeemSession, arg.CustodianGroupUid, arg.Chain)
+	var i ChainRedeemSession
+	err := row.Scan(
+		&i.ID,
+		&i.Chain,
+		&i.CustodianGroupUid,
+		&i.Sequence,
+		&i.CurrentPhase,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getRedeemSession = `-- name: GetRedeemSession :one
+SELECT id, custodian_group_uid, sequence, current_phase, last_redeem_tx, is_switching, phase_expired_at, created_at, updated_at FROM redeem_sessions WHERE custodian_group_uid = $1
+`
+
+func (q *Queries) GetRedeemSession(ctx context.Context, custodianGroupUid []byte) (RedeemSession, error) {
+	row := q.db.QueryRow(ctx, getRedeemSession, custodianGroupUid)
+	var i RedeemSession
+	err := row.Scan(
+		&i.ID,
+		&i.CustodianGroupUid,
+		&i.Sequence,
+		&i.CurrentPhase,
+		&i.LastRedeemTx,
+		&i.IsSwitching,
+		&i.PhaseExpiredAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const saveChainRedeemSessions = `-- name: SaveChainRedeemSessions :exec
+INSERT INTO chain_redeem_sessions (chain, custodian_group_uid, sequence, current_phase)
+VALUES (unnest($1::text[]), unnest($2::bytea[]), unnest($3::bigint[]), unnest($4::text[])::redeem_phase)
+ON CONFLICT (chain, custodian_group_uid) DO UPDATE
+SET sequence = EXCLUDED.sequence, current_phase = EXCLUDED.current_phase
+`
+
+type SaveChainRedeemSessionsParams struct {
+	Column1 []string `json:"column_1"`
+	Column2 [][]byte `json:"column_2"`
+	Column3 []int64  `json:"column_3"`
+	Column4 []string `json:"column_4"`
+}
+
+func (q *Queries) SaveChainRedeemSessions(ctx context.Context, arg SaveChainRedeemSessionsParams) error {
+	_, err := q.db.Exec(ctx, saveChainRedeemSessions,
+		arg.Column1,
+		arg.Column2,
+		arg.Column3,
+		arg.Column4,
+	)
+	return err
+}
+
 const saveRedeemSessions = `-- name: SaveRedeemSessions :exec
-INSERT INTO redeem_sessions (custodian_group_uid, sequence, current_phase)
-VALUES (unnest($1::bytea[]), unnest($2::bigint[]), unnest($3::text[])::redeem_phase)
+INSERT INTO redeem_sessions (custodian_group_uid, sequence, current_phase, is_switching)
+VALUES (unnest($1::bytea[]), unnest($2::bigint[]), unnest($3::text[])::redeem_phase, unnest($4::boolean[]))
 `
 
 type SaveRedeemSessionsParams struct {
 	Column1 [][]byte `json:"column_1"`
 	Column2 []int64  `json:"column_2"`
 	Column3 []string `json:"column_3"`
+	Column4 []bool   `json:"column_4"`
 }
 
 func (q *Queries) SaveRedeemSessions(ctx context.Context, arg SaveRedeemSessionsParams) error {
-	_, err := q.db.Exec(ctx, saveRedeemSessions, arg.Column1, arg.Column2, arg.Column3)
+	_, err := q.db.Exec(ctx, saveRedeemSessions,
+		arg.Column1,
+		arg.Column2,
+		arg.Column3,
+		arg.Column4,
+	)
 	return err
 }

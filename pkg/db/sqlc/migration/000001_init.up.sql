@@ -126,7 +126,6 @@ CREATE UNIQUE INDEX IF NOT EXISTS reservations_utxo_tx_id_vout_idx ON reservatio
 
 ALTER TABLE reservations ADD FOREIGN KEY (utxo_tx_id, utxo_vout) REFERENCES utxos (tx_id, vout) ON DELETE CASCADE;
 
-
 -- Redeem session
 
 CREATE TYPE REDEEM_PHASE as ENUM ('PREPARING', 'EXECUTING'); 

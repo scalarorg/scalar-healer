@@ -26,23 +26,15 @@ func PhaseFromUint8(phase uint8) RedeemPhase {
 	}
 }
 
-func (s *RedeemSession) Cmp(other *RedeemSession) int64 {
+func (s *ChainRedeemSession) Cmp(other *ChainRedeemSession) int64 {
 	if other == nil {
 		return math.MaxInt64
 	}
-	var diffSeq, diffPhase int64
-	if s.Sequence >= other.Sequence {
-		diffSeq = s.Sequence - other.Sequence
-	} else {
-		diffSeq = -int64(other.Sequence - s.Sequence)
+	diffSeq := s.Sequence - other.Sequence
+
+	if diffSeq != 0 {
+		return diffSeq
 	}
 
-	if s.CurrentPhase.Uint8() >= other.CurrentPhase.Uint8() {
-		diffPhase = int64(s.CurrentPhase.Uint8() - other.CurrentPhase.Uint8())
-
-	} else {
-		diffPhase = -int64(other.CurrentPhase.Uint8() - s.CurrentPhase.Uint8())
-	}
-
-	return diffSeq*2 + diffPhase
+	return int64(s.CurrentPhase.Uint8()) - int64(other.CurrentPhase.Uint8())
 }

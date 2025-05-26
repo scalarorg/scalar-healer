@@ -2,6 +2,7 @@ package indexer
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/scalarorg/data-models/chains"
 )
@@ -67,7 +68,7 @@ func (r *IndexerRepository) GetBatchNumberOfLatestSwitchedPhaseEvents(
 func (r *IndexerRepository) GetBatchLastestSwitchedPhaseEvents(
 	ctx context.Context,
 	chain string,
-	grUID []string) (
+	grUIDs []string) (
 	map[string]chains.SwitchedPhase, error) {
 
 	var switchedPhases []chains.SwitchedPhase
@@ -76,12 +77,24 @@ func (r *IndexerRepository) GetBatchLastestSwitchedPhaseEvents(
 	FROM switched_phases
 	WHERE chain = ? AND custodian_group_uid IN (?)
 	ORDER BY custodian_group_uid, block_number DESC`
-	if err := r.DB.Raw(query, chain, grUID).Scan(&switchedPhases).Error; err != nil {
+	if err := r.DB.Raw(query, chain, grUIDs).Scan(&switchedPhases).Error; err != nil {
 		return nil, err
+	}
+
+	if len(switchedPhases) == 0 {
+		return nil, fmt.Errorf("no switched phases found")
+	}
+
+	grUIDsMap := make(map[string]bool)
+	for _, grUID := range grUIDs {
+		grUIDsMap[grUID] = true
 	}
 
 	switchedPhasesMap := make(map[string]chains.SwitchedPhase)
 	for _, switchedPhase := range switchedPhases {
+		if _, ok := grUIDsMap[switchedPhase.CustodianGroupUid]; !ok {
+			return nil, fmt.Errorf("no switched phases found for custodian group uid: %s", switchedPhase.CustodianGroupUid)
+		}
 		switchedPhasesMap[switchedPhase.CustodianGroupUid] = switchedPhase
 	}
 	return switchedPhasesMap, nil

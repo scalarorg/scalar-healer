@@ -39,10 +39,6 @@ type HealderAdapter interface {
 	GetLastEventCheckPoint(ctx context.Context, chainName, eventName string, fromBlock uint64) (*scalarnet.EventCheckPoint, error)
 	UpdateLastEventCheckPoint(ctx context.Context, lastCheckPoint *scalarnet.EventCheckPoint) error
 
-	// session
-	GetRedeemSession(ctx context.Context, chainId string, groupUid string) *sqlc.RedeemSession
-	SaveSwitchPhaseValue(ctx context.Context, event *chains.SwitchedPhase) error
-
 	// token-sent
 	SaveTokenSent(ctx context.Context, tokenSent *chains.TokenSent, eventCheckPoint *scalarnet.EventCheckPoint) error
 	SaveTokenSents(ctx context.Context, tokenSents []chains.TokenSent) error
@@ -74,15 +70,18 @@ type HealderAdapter interface {
 	GetNonce(ctx context.Context, address common.Address) uint64
 
 	// redeem sessions
-	SaveRedeemSessions(ctx context.Context, redeemSessions []sqlc.RedeemSession) error
-	SaveChainRedeemSessions(ctx context.Context, redeemSessions []sqlc.ChainRedeemSession) error
+	SaveRedeemSessionAndChainRedeemSessionsTx(ctx context.Context, chainRedeemSessions []sqlc.ChainRedeemSession) (outdatedSession []sqlc.ChainRedeemSession, err error)
+	GetRedeemSession(ctx context.Context, uid []byte) (*sqlc.RedeemSession, error)
 
+	// chain redeem sessions
+	GetChainRedeemSession(ctx context.Context, grUID []byte, chain string) (*sqlc.ChainRedeemSession, error)
 	Close()
 }
 
 type IndexerAdapter interface {
 	GetNumberOfLatestSwitchedPhaseEvents(ctx context.Context, numberOfEvents int, chain string, grUID string) ([]chains.SwitchedPhase, error)
 	GetBatchNumberOfLatestSwitchedPhaseEvents(ctx context.Context, numberOfEvents int, chain string, grUID []string) (map[string][]chains.SwitchedPhase, error)
+	GetBatchLastestSwitchedPhaseEvents(ctx context.Context, chain string, grUID []string) (map[string]chains.SwitchedPhase, error)
 }
 
 type CombinedAdapter interface {
