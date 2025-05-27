@@ -3,6 +3,7 @@ package healer
 import (
 	"context"
 	"encoding/binary"
+	"encoding/json"
 	"math/big"
 	"time"
 
@@ -11,15 +12,17 @@ import (
 	"github.com/scalarorg/scalar-healer/pkg/db/sqlc"
 	"github.com/scalarorg/scalar-healer/pkg/evm"
 	"github.com/scalarorg/scalar-healer/pkg/utils/chains"
+	"github.com/scalarorg/scalar-healer/pkg/utils/slices"
 )
 
-func (m *HealerRepository) SaveCommands(ctx context.Context, commands []sqlc.Command) error {
+func (m *HealerRepository) SaveCommands(ctx context.Context, commands []*sqlc.Command) error {
 	var (
 		commandIds [][]byte
 		chains     []string
 		params     [][]byte
 		status     []int32
-		types      []sqlc.CommandType
+		types      []string
+		payloads   [][]byte
 	)
 
 	for _, command := range commands {
@@ -27,7 +30,8 @@ func (m *HealerRepository) SaveCommands(ctx context.Context, commands []sqlc.Com
 		chains = append(chains, command.Chain)
 		params = append(params, command.Params)
 		status = append(status, command.Status.Int32)
-		types = append(types, command.CommandType)
+		types = append(types, command.CommandType.String())
+		payloads = append(payloads, command.Payload)
 	}
 
 	return m.Queries.SaveCommands(ctx, sqlc.SaveCommandsParams{
@@ -36,19 +40,72 @@ func (m *HealerRepository) SaveCommands(ctx context.Context, commands []sqlc.Com
 		Column3: params,
 		Column4: status,
 		Column5: types,
+		Column6: payloads,
+	})
+}
+
+func (m *HealerRepository) SaveCommandBatches(ctx context.Context, commandBatches []*sqlc.CommandBatch) error {
+	var (
+		commandBatchIds [][]byte
+		chains          []string
+		bunchData       [][]byte
+		sigHashes       [][]byte
+		status          []int32
+		bunchExtraData  [][]byte
+	)
+
+	for _, commandBatch := range commandBatches {
+		commandBatchIds = append(commandBatchIds, commandBatch.CommandBatchID)
+		chains = append(chains, commandBatch.Chain)
+		bunchData = append(bunchData, commandBatch.Data)
+		sigHashes = append(sigHashes, commandBatch.SigHash)
+		status = append(status, commandBatch.Status.Int32)
+		bunchExtraData = append(bunchExtraData, commandBatch.ExtraData)
+	}
+
+	return m.Queries.SaveCommandBatches(ctx, sqlc.SaveCommandBatchesParams{
+		Column1: commandBatchIds,
+		Column2: chains,
+		Column3: bunchData,
+		Column4: sigHashes,
+		Column5: status,
+		Column6: bunchExtraData,
 	})
 }
 
 func (m *HealerRepository) SaveCommandsAndBatchCommandsTx(ctx context.Context, commands []sqlc.Command) error {
 	return m.execTx(ctx, func(q *sqlc.Queries) error {
-		err := m.SaveCommands(ctx, commands)
+		var err error
+
+		cmds := slices.Map(commands, func(cmd sqlc.Command) *sqlc.Command {
+			return &cmd
+		})
+
+		batches, err := NewCommandBatches(cmds)
+		if err != nil {
+			return err
+		}
+
+		err = m.SaveCommands(ctx, cmds)
+		if err != nil {
+			return err
+		}
+
+		err = m.SaveCommandBatches(ctx, batches)
 		if err != nil {
 			return err
 		}
 
 		return nil
-
 	})
+}
+
+func (m *HealerRepository) GetCommandBatches(ctx context.Context) ([]sqlc.CommandBatch, error) {
+	return m.Queries.GetCommandBatches(ctx)
+}
+
+func (m *HealerRepository) GetCommandBatchByID(ctx context.Context, commandBatchID []byte) (sqlc.CommandBatch, error) {
+	return m.Queries.GetCommandBatchByID(ctx, commandBatchID)
 }
 
 func NewCommandBatches(cmds []*sqlc.Command) ([]*sqlc.CommandBatch, error) {
@@ -112,12 +169,17 @@ func newCommandBatch(chain string, chainID *big.Int, cmds []*sqlc.Command) (*sql
 		cmd.CommandBatchID = commandBatchID
 	}
 
+	encodedExtraData, err := json.Marshal(extraData)
+	if err != nil {
+		return nil, err
+	}
+
 	return &sqlc.CommandBatch{
 		CommandBatchID: commandBatchID,
-		Data:      data,
-		SigHash:   evm.GetSignHash(data).Bytes(),
-		Status:    sqlc.COMMAND_BATCH_STATUS_PENDING.ToPgType(),
-		Chain:     chain,
-		ExtraData: extraData,
+		Data:           data,
+		SigHash:        evm.GetSignHash(data).Bytes(),
+		Status:         sqlc.COMMAND_BATCH_STATUS_PENDING.ToPgType(),
+		Chain:          chain,
+		ExtraData:      encodedExtraData,
 	}, nil
 }

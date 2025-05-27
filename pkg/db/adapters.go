@@ -77,8 +77,12 @@ type HealderAdapter interface {
 	GetChainRedeemSession(ctx context.Context, grUID []byte, chain string) (*sqlc.ChainRedeemSession, error)
 
 	// commands
-	SaveCommands(ctx context.Context, commands []sqlc.Command) error
+	SaveCommands(ctx context.Context, commands []*sqlc.Command) error
+	SaveCommandBatches(ctx context.Context, commandBatches []*sqlc.CommandBatch) error
 	SaveCommandsAndBatchCommandsTx(ctx context.Context, commands []sqlc.Command) error
+
+	GetCommandBatchByID(ctx context.Context, commandBatchID []byte) (sqlc.CommandBatch, error)
+	GetCommandBatches(ctx context.Context) ([]sqlc.CommandBatch, error)
 
 	Close()
 }

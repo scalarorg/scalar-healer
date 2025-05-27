@@ -9,17 +9,101 @@ import (
 	"context"
 )
 
+const getCommandBatchByID = `-- name: GetCommandBatchByID :one
+SELECT id, command_batch_id, chain, data, sig_hash, signature, status, extra_data, created_at, updated_at FROM command_batchs WHERE command_batch_id = $1
+`
+
+func (q *Queries) GetCommandBatchByID(ctx context.Context, commandBatchID []byte) (CommandBatch, error) {
+	row := q.db.QueryRow(ctx, getCommandBatchByID, commandBatchID)
+	var i CommandBatch
+	err := row.Scan(
+		&i.ID,
+		&i.CommandBatchID,
+		&i.Chain,
+		&i.Data,
+		&i.SigHash,
+		&i.Signature,
+		&i.Status,
+		&i.ExtraData,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getCommandBatches = `-- name: GetCommandBatches :many
+SELECT id, command_batch_id, chain, data, sig_hash, signature, status, extra_data, created_at, updated_at FROM command_batchs
+`
+
+func (q *Queries) GetCommandBatches(ctx context.Context) ([]CommandBatch, error) {
+	rows, err := q.db.Query(ctx, getCommandBatches)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []CommandBatch{}
+	for rows.Next() {
+		var i CommandBatch
+		if err := rows.Scan(
+			&i.ID,
+			&i.CommandBatchID,
+			&i.Chain,
+			&i.Data,
+			&i.SigHash,
+			&i.Signature,
+			&i.Status,
+			&i.ExtraData,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const saveCommandBatches = `-- name: SaveCommandBatches :exec
+INSERT INTO command_batchs (command_batch_id, chain, data, sig_hash, status, extra_data)
+VALUES (unnest($1::bytea[]), unnest($2::text[]), unnest($3::bytea[]), unnest($4::bytea[]), unnest($5::int[]), unnest($6::bytea[]))
+`
+
+type SaveCommandBatchesParams struct {
+	Column1 [][]byte `json:"column_1"`
+	Column2 []string `json:"column_2"`
+	Column3 [][]byte `json:"column_3"`
+	Column4 [][]byte `json:"column_4"`
+	Column5 []int32  `json:"column_5"`
+	Column6 [][]byte `json:"column_6"`
+}
+
+func (q *Queries) SaveCommandBatches(ctx context.Context, arg SaveCommandBatchesParams) error {
+	_, err := q.db.Exec(ctx, saveCommandBatches,
+		arg.Column1,
+		arg.Column2,
+		arg.Column3,
+		arg.Column4,
+		arg.Column5,
+		arg.Column6,
+	)
+	return err
+}
+
 const saveCommands = `-- name: SaveCommands :exec
-INSERT INTO commands (command_id, chain, params, status, command_type)
-VALUES (unnest($1::bytea[]), unnest($2::text[]), unnest($3::bytea[]), unnest($4::int[]), unnest($5::command_type[]))
+INSERT INTO commands (command_id, chain, params, status, command_type, payload)
+VALUES (unnest($1::bytea[]), unnest($2::text[]), unnest($3::bytea[]), unnest($4::int[]), unnest($5::text[])::command_type, unnest($6::bytea[]))
 `
 
 type SaveCommandsParams struct {
-	Column1 [][]byte      `json:"column_1"`
-	Column2 []string      `json:"column_2"`
-	Column3 [][]byte      `json:"column_3"`
-	Column4 []int32       `json:"column_4"`
-	Column5 []CommandType `json:"column_5"`
+	Column1 [][]byte `json:"column_1"`
+	Column2 []string `json:"column_2"`
+	Column3 [][]byte `json:"column_3"`
+	Column4 []int32  `json:"column_4"`
+	Column5 []string `json:"column_5"`
+	Column6 [][]byte `json:"column_6"`
 }
 
 func (q *Queries) SaveCommands(ctx context.Context, arg SaveCommandsParams) error {
@@ -29,6 +113,7 @@ func (q *Queries) SaveCommands(ctx context.Context, arg SaveCommandsParams) erro
 		arg.Column3,
 		arg.Column4,
 		arg.Column5,
+		arg.Column6,
 	)
 	return err
 }

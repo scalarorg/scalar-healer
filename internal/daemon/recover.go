@@ -130,17 +130,18 @@ func (s *Service) RecoverEvmSessions(ctx context.Context) {
 				Params:      evm.CreateSwitchPhaseParams(grUidbz, session.NewPhase),
 				Chain:       session.Chain,
 				Status:      sqlc.COMMAND_STATUS_PENDING.ToPgType(),
+				Payload:     nil,
 			})
 		}
 	}
 
-	err = s.CombinedAdapter.SaveCommands(ctx, switchPhaseCmds)
+	err = s.CombinedAdapter.SaveCommandsAndBatchCommandsTx(ctx, switchPhaseCmds)
 	if err != nil {
 		log.Error().Err(err).Msgf("[Service][RecoverEvmSessions] cannot save switch phase commands")
 		panic(err)
 	}
 
-	// create batch command
+	// TODO: Simulate switch phase
 
 	return
 }

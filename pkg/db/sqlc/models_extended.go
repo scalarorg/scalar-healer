@@ -1,6 +1,7 @@
 package sqlc
 
 import (
+	"encoding/json"
 	"math"
 
 	"github.com/ethereum/go-ethereum/crypto"
@@ -108,4 +109,13 @@ func NewCommandID(data []byte, chainID string) CommandID {
 
 func (c CommandID) Bytes() []byte {
 	return c[:]
+}
+
+func (c *CommandBatch) GetExtraData() ([][]byte, error) {
+	var extraData [][]byte
+	err := json.Unmarshal(c.ExtraData, &extraData)
+	if err != nil {
+		return nil, err
+	}
+	return extraData, nil
 }

@@ -200,13 +200,13 @@ CREATE TABLE IF NOT EXISTS command_batchs (
     chain TEXT NOT NULL,
     data BYTEA NOT NULL,
     sig_hash BYTEA NOT NULL,
-    signature BYTEA NOT NULL,
+    signature BYTEA,
     status INT CHECK (status IN (0, 1)),
     -- 0 = PENDING, not included in the batch command
     -- 1 = EXECUTED, executed
 
-    -- array of bytea
-    extra_data BYTEA[] NOT NULL,
+    -- json format of byte array 
+    extra_data BYTEA NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
@@ -214,4 +214,4 @@ CREATE TABLE IF NOT EXISTS command_batchs (
 CREATE INDEX IF NOT EXISTS command_batchs_command_batch_id_idx ON command_batchs (command_batch_id);
 CREATE INDEX IF NOT EXISTS command_batchs_chain ON command_batchs (chain);
 
-ALTER TABLE commands ADD FOREIGN KEY (command_id) REFERENCES command_batchs (command_batch_id);
+ALTER TABLE commands ADD FOREIGN KEY (command_batch_id) REFERENCES command_batchs (command_batch_id);

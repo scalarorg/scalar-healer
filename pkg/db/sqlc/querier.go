@@ -15,6 +15,8 @@ type Querier interface {
 	DeleteUTXOs(ctx context.Context, dollar_1 []byte) error
 	GetAllCustodianGroups(ctx context.Context) ([]CustodianGroup, error)
 	GetChainRedeemSession(ctx context.Context, arg GetChainRedeemSessionParams) (ChainRedeemSession, error)
+	GetCommandBatchByID(ctx context.Context, commandBatchID []byte) (CommandBatch, error)
+	GetCommandBatches(ctx context.Context) ([]CommandBatch, error)
 	GetCustodianGroupByUID(ctx context.Context, uid []byte) (CustodianGroup, error)
 	GetGatewayAddress(ctx context.Context, chainID pgtype.Numeric) ([]byte, error)
 	GetNonce(ctx context.Context, address []byte) (pgtype.Numeric, error)
@@ -30,6 +32,7 @@ type Querier interface {
 	ListTransferRequests(ctx context.Context, arg ListTransferRequestsParams) ([]TransferRequest, error)
 	SaveBridgeRequest(ctx context.Context, arg SaveBridgeRequestParams) error
 	SaveChainRedeemSessions(ctx context.Context, arg SaveChainRedeemSessionsParams) error
+	SaveCommandBatches(ctx context.Context, arg SaveCommandBatchesParams) error
 	SaveCommands(ctx context.Context, arg SaveCommandsParams) error
 	SaveCustodianGroups(ctx context.Context, arg SaveCustodianGroupsParams) error
 	SaveProtocols(ctx context.Context, arg SaveProtocolsParams) error
