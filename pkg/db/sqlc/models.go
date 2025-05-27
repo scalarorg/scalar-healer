@@ -210,7 +210,7 @@ type RedeemSession struct {
 	CurrentPhase      RedeemPhase      `json:"current_phase"`
 	LastRedeemTx      []byte           `json:"last_redeem_tx"`
 	IsSwitching       pgtype.Bool      `json:"is_switching"`
-	PhaseExpiredAt    int64            `json:"phase_expired_at"`
+	PhaseExpiredAt    pgtype.Timestamp `json:"phase_expired_at"`
 	CreatedAt         pgtype.Timestamp `json:"created_at"`
 	UpdatedAt         pgtype.Timestamp `json:"updated_at"`
 }

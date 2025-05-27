@@ -72,6 +72,7 @@ type HealderAdapter interface {
 	// redeem sessions
 	SaveRedeemSessionAndChainRedeemSessionsTx(ctx context.Context, chainRedeemSessions []sqlc.ChainRedeemSession) (outdatedSessionsByGroup map[string][]sqlc.ChainRedeemSessionUpdate, err error)
 	GetRedeemSession(ctx context.Context, uid []byte) (*sqlc.RedeemSession, error)
+	GetCompletedRedeemSessions(ctx context.Context) ([]sqlc.RedeemSession, error)
 
 	// chain redeem sessions
 	GetChainRedeemSession(ctx context.Context, grUID []byte, chain string) (*sqlc.ChainRedeemSession, error)

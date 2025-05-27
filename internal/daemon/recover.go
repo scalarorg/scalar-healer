@@ -111,6 +111,7 @@ func (s *Service) RecoverEvmSessions(ctx context.Context) {
 	log.Info().Msgf("[Service][RecoverEvmSessions] finished RecoverEvmSessions")
 
 	if len(outdatedSessionsByGroup) == 0 {
+		log.Info().Msgf("[Service][RecoverEvmSessions] no outdated sessions")
 		return
 	}
 

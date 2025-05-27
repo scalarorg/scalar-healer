@@ -7,6 +7,8 @@ package sqlc
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const getChainRedeemSession = `-- name: GetChainRedeemSession :one
@@ -31,6 +33,40 @@ func (q *Queries) GetChainRedeemSession(ctx context.Context, arg GetChainRedeemS
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const getCompletedRedeemSessions = `-- name: GetCompletedRedeemSessions :many
+SELECT id, custodian_group_uid, sequence, current_phase, last_redeem_tx, is_switching, phase_expired_at, created_at, updated_at FROM redeem_sessions WHERE is_switching = false
+`
+
+func (q *Queries) GetCompletedRedeemSessions(ctx context.Context) ([]RedeemSession, error) {
+	rows, err := q.db.Query(ctx, getCompletedRedeemSessions)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []RedeemSession{}
+	for rows.Next() {
+		var i RedeemSession
+		if err := rows.Scan(
+			&i.ID,
+			&i.CustodianGroupUid,
+			&i.Sequence,
+			&i.CurrentPhase,
+			&i.LastRedeemTx,
+			&i.IsSwitching,
+			&i.PhaseExpiredAt,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getRedeemSession = `-- name: GetRedeemSession :one
@@ -80,15 +116,17 @@ func (q *Queries) SaveChainRedeemSessions(ctx context.Context, arg SaveChainRede
 
 const saveRedeemSessions = `-- name: SaveRedeemSessions :exec
 INSERT INTO redeem_sessions (custodian_group_uid, sequence, current_phase, is_switching, phase_expired_at)
-VALUES (unnest($1::bytea[]), unnest($2::bigint[]), unnest($3::text[])::redeem_phase, unnest($4::boolean[]), unnest($5::bigint[]))
+VALUES (unnest($1::bytea[]), unnest($2::bigint[]), unnest($3::text[])::redeem_phase, unnest($4::boolean[]), unnest($5::timestamp[]))
+ON CONFLICT (custodian_group_uid) DO UPDATE
+SET sequence = EXCLUDED.sequence, current_phase = EXCLUDED.current_phase, is_switching = EXCLUDED.is_switching, phase_expired_at = EXCLUDED.phase_expired_at
 `
 
 type SaveRedeemSessionsParams struct {
-	Column1 [][]byte `json:"column_1"`
-	Column2 []int64  `json:"column_2"`
-	Column3 []string `json:"column_3"`
-	Column4 []bool   `json:"column_4"`
-	Column5 []int64  `json:"column_5"`
+	Column1 [][]byte           `json:"column_1"`
+	Column2 []int64            `json:"column_2"`
+	Column3 []string           `json:"column_3"`
+	Column4 []bool             `json:"column_4"`
+	Column5 []pgtype.Timestamp `json:"column_5"`
 }
 
 func (q *Queries) SaveRedeemSessions(ctx context.Context, arg SaveRedeemSessionsParams) error {

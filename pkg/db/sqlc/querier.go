@@ -17,6 +17,7 @@ type Querier interface {
 	GetChainRedeemSession(ctx context.Context, arg GetChainRedeemSessionParams) (ChainRedeemSession, error)
 	GetCommandBatchByID(ctx context.Context, commandBatchID []byte) (CommandBatch, error)
 	GetCommandBatches(ctx context.Context) ([]CommandBatch, error)
+	GetCompletedRedeemSessions(ctx context.Context) ([]RedeemSession, error)
 	GetCustodianGroupByUID(ctx context.Context, uid []byte) (CustodianGroup, error)
 	GetGatewayAddress(ctx context.Context, chainID pgtype.Numeric) ([]byte, error)
 	GetNonce(ctx context.Context, address []byte) (pgtype.Numeric, error)

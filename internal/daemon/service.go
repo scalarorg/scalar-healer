@@ -2,6 +2,7 @@ package daemon
 
 import (
 	"context"
+	"sync"
 
 	"github.com/rs/zerolog/log"
 	"github.com/scalarorg/scalar-healer/pkg/btc"
@@ -46,11 +47,23 @@ func (s *Service) Start(ctx context.Context) error {
 
 	s.initGenesis(ctx)
 	log.Debug().Msg("[Service] starting")
-	// go s.ElectrClient.Start(ctx)
 
-	go s.RecoverEvmSessions(ctx)
+	wg := sync.WaitGroup{}
+	wg.Add(2)
 
-	// s.ProcessMissingLogs(ctx)
+	// go func() {
+	// 	defer wg.Done()
+	// 	s.ElectrClient.Start(ctx)
+	// }()
+
+	go func() {
+		defer wg.Done()
+		s.RecoverEvmSessions(ctx)
+	}()
+
+	wg.Wait()
+
+	// s.DoJob(ctx)
 
 	select {
 	case <-ctx.Done():
