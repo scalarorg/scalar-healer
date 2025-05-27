@@ -6,6 +6,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/labstack/echo/v4"
 	"github.com/scalarorg/scalar-healer/constants"
+	"github.com/scalarorg/scalar-healer/internal/middleware"
 	"github.com/scalarorg/scalar-healer/pkg/crypto/eip712"
 	"github.com/scalarorg/scalar-healer/pkg/db"
 	"github.com/scalarorg/scalar-healer/pkg/utils"
@@ -18,6 +19,9 @@ type CreateBridgeRequest struct {
 
 func CreateBridge(c echo.Context) error {
 	var body CreateBridgeRequest
+
+	body.Address = *middleware.GetAddress(c)
+
 	if err := utils.BindAndValidate(c, &body); err != nil {
 		return err
 	}
@@ -40,7 +44,7 @@ func CreateBridge(c echo.Context) error {
 	}
 
 	// Save redeem request
-	err = db.SaveBridgeRequest(ctx, body.ChainID, common.HexToAddress(body.Address), common.FromHex(body.Signature), txHash.Bytes(), body.Nonce)
+	err = db.SaveBridgeRequest(ctx, body.ChainID, body.Address, common.FromHex(body.Signature), txHash.Bytes(), body.Nonce)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to save bridge request")
 	}

@@ -54,7 +54,7 @@ func CreateTransfer(c echo.Context) error {
 	}
 
 	// Save redeem request
-	err = db.SaveTransferRequest(ctx, body.ChainID, common.HexToAddress(body.Address), common.FromHex(body.Signature), amountz, body.DestinationChain, &destAddress, body.Symbol, body.Nonce)
+	err = db.SaveTransferRequest(ctx, body.ChainID, body.Address, common.FromHex(body.Signature), amountz, body.DestinationChain, &destAddress, body.Symbol, body.Nonce)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to save bridge request")
 	}

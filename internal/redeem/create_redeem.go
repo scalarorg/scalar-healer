@@ -6,6 +6,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/labstack/echo/v4"
 	"github.com/scalarorg/scalar-healer/constants"
+	"github.com/scalarorg/scalar-healer/internal/middleware"
 	"github.com/scalarorg/scalar-healer/pkg/crypto/eip712"
 	"github.com/scalarorg/scalar-healer/pkg/db"
 	"github.com/scalarorg/scalar-healer/pkg/utils"
@@ -19,6 +20,7 @@ type CreateRedeemRequest struct {
 
 func CreateRedeem(c echo.Context) error {
 	var body CreateRedeemRequest
+	body.Address = *middleware.GetAddress(c)
 	if err := utils.BindAndValidate(c, &body); err != nil {
 		return err
 	}
@@ -51,7 +53,7 @@ func CreateRedeem(c echo.Context) error {
 	}
 
 	// Save redeem request
-	err = db.SaveRedeemRequest(ctx, body.ChainID, common.HexToAddress(body.Address), common.FromHex(body.Signature), amountz, body.Symbol, body.Nonce)
+	err = db.SaveRedeemRequest(ctx, body.ChainID, body.Address, common.FromHex(body.Signature), amountz, body.Symbol, body.Nonce)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to save redeem request")
 	}
