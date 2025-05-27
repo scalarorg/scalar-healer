@@ -5,8 +5,12 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/rs/zerolog/log"
+	"github.com/scalarorg/scalar-healer/pkg/db/sqlc"
+	"github.com/scalarorg/scalar-healer/pkg/utils/slices"
 )
 
 func DecodeExecuteData(executeData string) (*DecodedExecuteData, error) {
@@ -135,4 +139,32 @@ func DecodeGroupUid(groupHex string) ([32]byte, error) {
 	groupBytes32 := [32]byte{}
 	copy(groupBytes32[:], groupBytes)
 	return groupBytes32, nil
+}
+
+func PackArguments(chainID *big.Int, commandIDs []sqlc.CommandID, commands []sqlc.CommandType, commandParams [][]byte) ([]byte, error) {
+	if len(commandIDs) != len(commands) || len(commandIDs) != len(commandParams) {
+		return nil, fmt.Errorf("length mismatch for command arguments")
+	}
+
+	arguments := abi.Arguments{{Type: uint256Type}, {Type: bytes32ArrayType}, {Type: stringArrayType}, {Type: bytesArrayType}}
+	result, err := arguments.Pack(
+		chainID,
+		commandIDs,
+		slices.Map(commands, sqlc.CommandType.String),
+		commandParams,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+func GetSignHash(commandData []byte) common.Hash {
+	hash := crypto.Keccak256(commandData)
+
+	// TODO: is this the same across any EVM chain?
+	msg := fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(hash), hash)
+
+	return crypto.Keccak256Hash([]byte(msg))
 }

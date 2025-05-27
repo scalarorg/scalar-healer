@@ -131,6 +131,7 @@ type Command struct {
 	Params         []byte           `json:"params"`
 	Status         pgtype.Int4      `json:"status"`
 	CommandType    CommandType      `json:"command_type"`
+	Payload        []byte           `json:"payload"`
 	CreatedAt      pgtype.Timestamp `json:"created_at"`
 	UpdatedAt      pgtype.Timestamp `json:"updated_at"`
 }
@@ -143,6 +144,7 @@ type CommandBatch struct {
 	SigHash        []byte           `json:"sig_hash"`
 	Signature      []byte           `json:"signature"`
 	Status         pgtype.Int4      `json:"status"`
+	ExtraData      [][]byte         `json:"extra_data"`
 	CreatedAt      pgtype.Timestamp `json:"created_at"`
 	UpdatedAt      pgtype.Timestamp `json:"updated_at"`
 }

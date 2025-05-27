@@ -186,9 +186,13 @@ CREATE TABLE IF NOT EXISTS commands (
     -- 1 = QUEUED, included in the batch command
     -- 2 = EXECUTED, executed
     command_type COMMAND_TYPE NOT NULL,
+    payload BYTEA NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
+
+CREATE INDEX IF NOT EXISTS commands_command_id_idx ON commands (command_id);
+CREATE INDEX IF NOT EXISTS commands_chain ON commands (chain);
 
 CREATE TABLE IF NOT EXISTS command_batchs (
     id BIGSERIAL PRIMARY KEY,
@@ -200,8 +204,14 @@ CREATE TABLE IF NOT EXISTS command_batchs (
     status INT CHECK (status IN (0, 1)),
     -- 0 = PENDING, not included in the batch command
     -- 1 = EXECUTED, executed
+
+    -- array of bytea
+    extra_data BYTEA[] NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
+
+CREATE INDEX IF NOT EXISTS command_batchs_command_batch_id_idx ON command_batchs (command_batch_id);
+CREATE INDEX IF NOT EXISTS command_batchs_chain ON command_batchs (chain);
 
 ALTER TABLE commands ADD FOREIGN KEY (command_id) REFERENCES command_batchs (command_batch_id);

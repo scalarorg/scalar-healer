@@ -4,6 +4,7 @@ import (
 	"math"
 
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 func (e RedeemPhase) Uint8() uint8 {
@@ -45,6 +46,10 @@ func (s *ChainRedeemSession) Cmp(other *ChainRedeemSession) int64 {
 	return int64(s.CurrentPhase.Uint8()) - int64(other.CurrentPhase.Uint8())
 }
 
+func (c CommandType) String() string {
+	return string(c)
+}
+
 type CommandStatus uint8
 
 const (
@@ -57,12 +62,26 @@ func (s CommandStatus) Int32() int32 {
 	return int32(s)
 }
 
+func (c CommandStatus) ToPgType() pgtype.Int4 {
+	return pgtype.Int4{
+		Int32: c.Int32(),
+		Valid: true,
+	}
+}
+
 type CommandBatchStatus uint8
 
 const (
 	COMMAND_BATCH_STATUS_PENDING  CommandBatchStatus = 0
 	COMMAND_BATCH_STATUS_EXECUTED CommandBatchStatus = 1
 )
+
+func (c CommandBatchStatus) ToPgType() pgtype.Int4 {
+	return pgtype.Int4{
+		Int32: c.Int32(),
+		Valid: true,
+	}
+}
 
 func (s CommandBatchStatus) Int32() int32 {
 	return int32(s)

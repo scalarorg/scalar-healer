@@ -64,7 +64,7 @@ type HealderAdapter interface {
 	SaveContractCallWithToken(ctx context.Context, contractCallWithToken *chains.ContractCallWithToken, eventCheckPoint *scalarnet.EventCheckPoint) error
 
 	// command executed
-	UpdateEvmCommandExecuted(ctx context.Context, cmdExecuted *chains.CommandExecuted) error
+	// UpdateEvmCommandExecuted(ctx context.Context, cmdExecuted *chains.CommandExecuted) error
 
 	// accounts
 	GetNonce(ctx context.Context, address common.Address) uint64
@@ -78,6 +78,7 @@ type HealderAdapter interface {
 
 	// commands
 	SaveCommands(ctx context.Context, commands []sqlc.Command) error
+	SaveCommandsAndBatchCommandsTx(ctx context.Context, commands []sqlc.Command) error
 
 	Close()
 }

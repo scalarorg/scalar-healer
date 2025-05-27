@@ -328,13 +328,13 @@ func (ec *EvmClient) preprocessContractCallApproved(event *contracts.IScalarGate
 
 func (ec *EvmClient) HandleCommandExecuted(ctx context.Context, event *contracts.IScalarGatewayExecuted) error {
 	//0. Preprocess the event
-	ec.preprocessCommandExecuted(event)
-	//1. Convert into a RelayData instance then store to the db
-	cmdExecuted := ec.CommandExecutedEvent2Model(event)
-	err := ec.dbAdapter.UpdateEvmCommandExecuted(ctx, &cmdExecuted)
-	if err != nil {
-		log.Error().Err(err).Msg("[EvmClient] HandleCommandExecuted failed")
-	}
+	// ec.preprocessCommandExecuted(event)
+	// //1. Convert into a RelayData instance then store to the db
+	// cmdExecuted := ec.CommandExecutedEvent2Model(event)
+	// err := ec.dbAdapter.UpdateEvmCommandExecuted(ctx, &cmdExecuted)
+	// if err != nil {
+	// 	log.Error().Err(err).Msg("[EvmClient] HandleCommandExecuted failed")
+	// }
 	return nil
 }
 
