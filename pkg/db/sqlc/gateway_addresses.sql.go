@@ -26,6 +26,21 @@ func (q *Queries) CreateGatewayAddress(ctx context.Context, arg CreateGatewayAdd
 	return err
 }
 
+const createGatewayAddresses = `-- name: CreateGatewayAddresses :exec
+INSERT INTO gateway_addresses (address, chain_id)
+VALUES (unnest($1::bytea[]), unnest($2::numeric[]))
+`
+
+type CreateGatewayAddressesParams struct {
+	Column1 [][]byte         `json:"column_1"`
+	Column2 []pgtype.Numeric `json:"column_2"`
+}
+
+func (q *Queries) CreateGatewayAddresses(ctx context.Context, arg CreateGatewayAddressesParams) error {
+	_, err := q.db.Exec(ctx, createGatewayAddresses, arg.Column1, arg.Column2)
+	return err
+}
+
 const getGatewayAddress = `-- name: GetGatewayAddress :one
 SELECT address
 FROM gateway_addresses

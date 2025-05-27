@@ -3,18 +3,23 @@ package daemon
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
 	"fmt"
+	"strings"
 
 	"github.com/rs/zerolog/log"
 	"github.com/scalarorg/scalar-healer/config"
 	"github.com/scalarorg/scalar-healer/pkg/db"
 	"github.com/scalarorg/scalar-healer/pkg/db/sqlc"
+	"github.com/scalarorg/scalar-healer/pkg/evm"
+	"github.com/scalarorg/scalar-healer/pkg/utils/funcs"
 	"golang.org/x/crypto/sha3"
 )
 
 func (s *Service) initGenesis(ctx context.Context) {
 	s.initCustodianGroups(ctx)
 	s.initProtocols(ctx)
+	s.initGatewayAddresses(ctx)
 }
 
 func (s *Service) initCustodianGroups(ctx context.Context) {
@@ -55,6 +60,28 @@ func (s *Service) initProtocols(ctx context.Context) {
 	s.CombinedAdapter.SaveProtocols(ctx, newProtocols)
 
 	s.initTokens(ctx, protocols)
+}
+
+func (s *Service) initGatewayAddresses(ctx context.Context) {
+	evmCfgPath := fmt.Sprintf("%s/evm.json", s.ConfigPath)
+	configs, err := config.ReadJsonArrayConfig[evm.EvmNetworkConfig](evmCfgPath)
+	if err != nil {
+		panic(err)
+	}
+
+	chainIds := make([]uint64, 0)
+	gatewayAddresses := make([][]byte, 0)
+
+	for _, config := range configs {
+		chainIds = append(chainIds, config.ChainID)
+		add := funcs.Must(hex.DecodeString(strings.TrimPrefix(config.Gateway, "0x")))
+		gatewayAddresses = append(gatewayAddresses, add)
+	}
+
+	err = s.CombinedAdapter.CreateGatewayAddresses(ctx, gatewayAddresses, chainIds)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (s *Service) initTokens(ctx context.Context, protocols []sqlc.Protocol) {

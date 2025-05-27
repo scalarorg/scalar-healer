@@ -23,6 +23,7 @@ type HealderAdapter interface {
 
 	// gateways
 	GetGatewayAddress(ctx context.Context, chainId uint64) (*common.Address, error)
+	CreateGatewayAddresses(ctx context.Context, addresses [][]byte, chainIds []uint64) error
 
 	// chain
 	GetChainName(ctx context.Context, chainType string, chainId uint64) (string, error)
