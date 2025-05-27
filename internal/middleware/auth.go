@@ -35,7 +35,7 @@ func Authenticate(next echo.HandlerFunc) echo.HandlerFunc {
 	}
 }
 
-func GetAddress(c echo.Context) *common.Address {
+func GetAddressFromContext(c echo.Context) *common.Address {
 	address := c.Get(constants.AUTH_ADDRESS_KEY)
 	if address == nil {
 		return nil

@@ -20,7 +20,7 @@ type CreateRedeemRequest struct {
 
 func CreateRedeem(c echo.Context) error {
 	var body CreateRedeemRequest
-	body.Address = *middleware.GetAddress(c)
+	body.Address = *middleware.GetAddressFromContext(c)
 	if err := utils.BindAndValidate(c, &body); err != nil {
 		return err
 	}
@@ -32,7 +32,6 @@ func CreateRedeem(c echo.Context) error {
 	gatewayAddress, err := db.GetGatewayAddress(ctx, body.ChainID)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, constants.ErrNotFoundGateway)
-
 	}
 
 	_, err = db.GetTokenAddressBySymbol(ctx, body.ChainID, body.Symbol)

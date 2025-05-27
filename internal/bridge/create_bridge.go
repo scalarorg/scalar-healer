@@ -20,7 +20,7 @@ type CreateBridgeRequest struct {
 func CreateBridge(c echo.Context) error {
 	var body CreateBridgeRequest
 
-	body.Address = *middleware.GetAddress(c)
+	body.Address = *middleware.GetAddressFromContext(c)
 
 	if err := utils.BindAndValidate(c, &body); err != nil {
 		return err
