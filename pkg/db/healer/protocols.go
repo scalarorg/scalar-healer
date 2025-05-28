@@ -50,3 +50,8 @@ func (m *HealerRepository) GetProtocol(ctx context.Context, name string) (*sqlc.
 	protocol, err := m.Queries.GetProtocol(ctx, name)
 	return &protocol, err
 }
+
+func (m *HealerRepository) GetProtocols(ctx context.Context) ([]sqlc.Protocol, error) {
+	protocols, err := m.Queries.GetProtocols(ctx)
+	return protocols, err
+}

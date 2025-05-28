@@ -83,7 +83,7 @@ CREATE TABLE IF NOT EXISTS protocols (
     symbol TEXT UNIQUE NOT NULL CHECK (symbol <> ''),
     name TEXT NOT NULL,
     custodian_group_name TEXT NOT NULL,
-    custodian_group_uid BYTEA UNIQUE NOT NULL,
+    custodian_group_uid BYTEA NOT NULL,
     tag TEXT NOT NULL,
     liquidity_model TEXT NOT NULL,
     decimals BIGINT NOT NULL,
@@ -93,6 +93,8 @@ CREATE TABLE IF NOT EXISTS protocols (
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE protocols ADD FOREIGN KEY (custodian_group_uid) REFERENCES custodian_groups (uid) ON DELETE CASCADE;
 
 CREATE INDEX IF NOT EXISTS protocols_symbol_idx ON protocols (symbol);
 

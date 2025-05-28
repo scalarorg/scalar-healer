@@ -42,6 +42,7 @@ type ServerEnv struct {
 	CLIENTS_CONFIG_PATH string `validate:"min=1"`
 	EVM_PRIVATE_KEY     string `validate:"min=1"`
 	IS_TEST             bool
+	IS_DEV              bool
 
 	JWT_SECRET   string        `validate:"min=10"`
 	JWT_DURATION time.Duration `validate:"min=0m"`
@@ -152,6 +153,7 @@ func loadEnv() {
 		AUTH_DOMAIN:         os.Getenv("AUTH_DOMAIN"),
 
 		IS_TEST: env == "test",
+		IS_DEV:  env == "development",
 	}
 
 	validate := validator.New()

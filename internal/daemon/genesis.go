@@ -51,13 +51,17 @@ func (s *Service) initProtocols(ctx context.Context) {
 		panic(err)
 	}
 
-	newProtocols := make([]sqlc.Protocol, len(protocols))
 	for ind, protocol := range protocols {
 		uid := sha3.Sum256([]byte(protocol.CustodianGroupName))
 		protocol.CustodianGroupUid = uid[:]
 		protocols[ind] = protocol
 	}
-	s.CombinedAdapter.SaveProtocols(ctx, newProtocols)
+
+	log.Info().Msgf("protocols: %v", protocols)
+	err = s.CombinedAdapter.SaveProtocols(ctx, protocols)
+	if err != nil {
+		panic(err)
+	}
 
 	s.initTokens(ctx, protocols)
 }

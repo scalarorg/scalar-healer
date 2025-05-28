@@ -36,6 +36,44 @@ func (q *Queries) GetProtocol(ctx context.Context, symbol string) (Protocol, err
 	return i, err
 }
 
+const getProtocols = `-- name: GetProtocols :many
+SELECT id, symbol, name, custodian_group_name, custodian_group_uid, tag, liquidity_model, decimals, capacity, daily_mint_limit, avatar, created_at, updated_at FROM protocols
+`
+
+func (q *Queries) GetProtocols(ctx context.Context) ([]Protocol, error) {
+	rows, err := q.db.Query(ctx, getProtocols)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Protocol{}
+	for rows.Next() {
+		var i Protocol
+		if err := rows.Scan(
+			&i.ID,
+			&i.Symbol,
+			&i.Name,
+			&i.CustodianGroupName,
+			&i.CustodianGroupUid,
+			&i.Tag,
+			&i.LiquidityModel,
+			&i.Decimals,
+			&i.Capacity,
+			&i.DailyMintLimit,
+			&i.Avatar,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const saveProtocols = `-- name: SaveProtocols :exec
 INSERT INTO protocols (symbol, name, custodian_group_name, custodian_group_uid, tag, liquidity_model, decimals, capacity, daily_mint_limit, avatar)
 VALUES(unnest($1::text[]), unnest($2::text[]), unnest($3::text[]), unnest($4::bytea[]), unnest($5::text[]), unnest($6::text[]), unnest($7::bigint[]), unnest($8::numeric[]), unnest($9::numeric[]), unnest($10::text[]))
