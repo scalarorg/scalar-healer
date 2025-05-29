@@ -44,7 +44,7 @@ func (q *Queries) GetTokenSymbolByAddress(ctx context.Context, arg GetTokenSymbo
 }
 
 const listTokens = `-- name: ListTokens :many
-SELECT id, symbol, name, chain_id, active, address, decimal, avatar, created_at, updated_at FROM tokens
+SELECT id, symbol, chain_id, active, address, created_at, updated_at FROM tokens
 `
 
 func (q *Queries) ListTokens(ctx context.Context) ([]Token, error) {
@@ -59,12 +59,9 @@ func (q *Queries) ListTokens(ctx context.Context) ([]Token, error) {
 		if err := rows.Scan(
 			&i.ID,
 			&i.Symbol,
-			&i.Name,
 			&i.ChainID,
 			&i.Active,
 			&i.Address,
-			&i.Decimal,
-			&i.Avatar,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -79,18 +76,15 @@ func (q *Queries) ListTokens(ctx context.Context) ([]Token, error) {
 }
 
 const saveTokens = `-- name: SaveTokens :exec
-INSERT INTO tokens (address, chain_id, symbol, decimal, name, avatar, active)
-VALUES (unnest($1::bytea[]), unnest($2::numeric[]), unnest($3::text[]), unnest($4::numeric[]), unnest($5::text[]), unnest($6::text[]), unnest($7::boolean[]))
+INSERT INTO tokens (address, chain_id, symbol, active)
+VALUES (unnest($1::bytea[]), unnest($2::numeric[]), unnest($3::text[]), unnest($4::boolean[]))
 `
 
 type SaveTokensParams struct {
 	Column1 [][]byte         `json:"column_1"`
 	Column2 []pgtype.Numeric `json:"column_2"`
 	Column3 []string         `json:"column_3"`
-	Column4 []pgtype.Numeric `json:"column_4"`
-	Column5 []string         `json:"column_5"`
-	Column6 []string         `json:"column_6"`
-	Column7 []bool           `json:"column_7"`
+	Column4 []bool           `json:"column_4"`
 }
 
 func (q *Queries) SaveTokens(ctx context.Context, arg SaveTokensParams) error {
@@ -99,9 +93,6 @@ func (q *Queries) SaveTokens(ctx context.Context, arg SaveTokensParams) error {
 		arg.Column2,
 		arg.Column3,
 		arg.Column4,
-		arg.Column5,
-		arg.Column6,
-		arg.Column7,
 	)
 	return err
 }

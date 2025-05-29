@@ -14,8 +14,8 @@ import (
 
 type CreateRedeemRequest struct {
 	eip712.BaseRequest
-	Symbol string `json:"symbol" validate:"required"`
-	Amount string `json:"amount" validate:"required"` // bigint format
+	Symbol  string `json:"symbol" validate:"required"`
+	Amount  string `json:"amount" validate:"required"` // bigint format
 }
 
 func CreateRedeem(c echo.Context) error {

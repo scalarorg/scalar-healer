@@ -51,7 +51,47 @@ func (m *HealerRepository) GetProtocol(ctx context.Context, name string) (*sqlc.
 	return &protocol, err
 }
 
-func (m *HealerRepository) GetProtocols(ctx context.Context) ([]sqlc.Protocol, error) {
-	protocols, err := m.Queries.GetProtocols(ctx)
+func (m *HealerRepository) GetProtocols(ctx context.Context) ([]sqlc.ProtocolWithTokenDetails, error) {
+
+	result, err := m.Queries.GetProtocols(ctx)
+	mapResult := make(map[string]*sqlc.ProtocolWithTokenDetails)
+	for _, r := range result {
+		if protocol, ok := mapResult[r.Symbol]; !ok {
+			mapResult[r.Symbol] = &sqlc.ProtocolWithTokenDetails{
+				Protocol: &sqlc.Protocol{
+					ID:                 r.ID,
+					Symbol:             r.Symbol,
+					Name:               r.Name,
+					CustodianGroupName: r.CustodianGroupName,
+					CustodianGroupUid:  r.CustodianGroupUid,
+					Tag:                r.Tag,
+					LiquidityModel:     r.LiquidityModel,
+					Decimals:           r.Decimals,
+					Avatar:             r.Avatar,
+					Capacity:           r.Capacity,
+					DailyMintLimit:     r.DailyMintLimit,
+					CreatedAt:          r.CreatedAt,
+					UpdatedAt:          r.UpdatedAt,
+				},
+				Tokens: []sqlc.TokenDetails{
+					{
+						Address: r.Address,
+						ChainID: r.ChainID.Int.Int64(),
+					},
+				},
+			}
+		} else {
+			protocol.Tokens = append(protocol.Tokens, sqlc.TokenDetails{
+				Address: r.Address,
+				ChainID: r.ChainID.Int.Int64(),
+			})
+		}
+	}
+
+	var protocols []sqlc.ProtocolWithTokenDetails
+	for _, v := range mapResult {
+		protocols = append(protocols, *v)
+	}
+
 	return protocols, err
 }

@@ -179,14 +179,14 @@ type Protocol struct {
 	ID                 int64            `json:"id"`
 	Symbol             string           `json:"symbol"`
 	Name               string           `json:"name"`
+	Decimals           int64            `json:"decimals"`
+	Avatar             string           `json:"avatar"`
 	CustodianGroupName string           `json:"custodian_group_name"`
 	CustodianGroupUid  []byte           `json:"custodian_group_uid"`
 	Tag                string           `json:"tag"`
 	LiquidityModel     string           `json:"liquidity_model"`
-	Decimals           int64            `json:"decimals"`
 	Capacity           pgtype.Numeric   `json:"capacity"`
 	DailyMintLimit     pgtype.Numeric   `json:"daily_mint_limit"`
-	Avatar             string           `json:"avatar"`
 	CreatedAt          pgtype.Timestamp `json:"created_at"`
 	UpdatedAt          pgtype.Timestamp `json:"updated_at"`
 }
@@ -228,12 +228,9 @@ type Reservation struct {
 type Token struct {
 	ID        int64            `json:"id"`
 	Symbol    string           `json:"symbol"`
-	Name      string           `json:"name"`
 	ChainID   pgtype.Numeric   `json:"chain_id"`
 	Active    bool             `json:"active"`
 	Address   []byte           `json:"address"`
-	Decimal   pgtype.Numeric   `json:"decimal"`
-	Avatar    string           `json:"avatar"`
 	CreatedAt pgtype.Timestamp `json:"created_at"`
 	UpdatedAt pgtype.Timestamp `json:"updated_at"`
 }

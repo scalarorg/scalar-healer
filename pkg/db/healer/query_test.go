@@ -58,14 +58,12 @@ func TestCreateGatewayAddress(t *testing.T) {
 
 func TestCreateTokens(t *testing.T) {
 	testutils.RunWithTestDB(func(ctx context.Context, repo db.HealderAdapter) error {
+		// TODO: add query to add protocol first
 		err := repo.SaveTokens(ctx, []sqlc.Token{
 			{
 				Symbol:  "ETH",
 				ChainID: db.ConvertUint64ToNumeric(1),
 				Address: common.MaxAddress.Bytes(),
-				Name:    "Ethereum",
-				Decimal: db.ConvertUint64ToNumeric(8),
-				Avatar:  "",
 				Active:  true,
 			},
 		})

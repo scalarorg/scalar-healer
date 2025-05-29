@@ -97,13 +97,10 @@ func (s *Service) initTokens(ctx context.Context, protocols []sqlc.Protocol) {
 				panic(fmt.Sprintf("Token address not found for symbol %s", protocol.Symbol))
 			}
 			token := sqlc.Token{
+				Symbol:  protocol.Symbol,
 				Address: tokenAddr.Bytes(),
 				ChainID: db.ConvertUint64ToNumeric(evmClient.EvmConfig.ChainID),
 				Active:  true,
-				Decimal: db.ConvertUint64ToNumeric(uint64(protocol.Decimals)),
-				Symbol:  protocol.Symbol,
-				Avatar:  protocol.Avatar,
-				Name:    protocol.Name,
 			}
 			tokens = append(tokens, token)
 		}

@@ -15,7 +15,7 @@ type HealderAdapter interface {
 	// protocols
 	GetProtocol(ctx context.Context, asset string) (*sqlc.Protocol, error)
 	SaveProtocols(ctx context.Context, protocols []sqlc.Protocol) error
-	GetProtocols(ctx context.Context) ([]sqlc.Protocol, error)
+	GetProtocols(ctx context.Context) ([]sqlc.ProtocolWithTokenDetails, error)
 
 	// tokens
 	SaveTokens(ctx context.Context, tokens []sqlc.Token) error

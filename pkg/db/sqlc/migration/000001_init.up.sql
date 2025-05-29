@@ -43,20 +43,6 @@ CREATE TABLE IF NOT EXISTS gateway_addresses (
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS tokens (
-    id BIGSERIAL PRIMARY KEY,
-    symbol TEXT NOT NULL,
-    name TEXT NOT NULL,
-    chain_id NUMERIC NOT NULL,
-    active BOOLEAN NOT NULL,
-    address BYTEA NOT NULL,
-    decimal NUMERIC NOT NULL,
-    avatar TEXT NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-
-CREATE UNIQUE INDEX IF NOT EXISTS tokens_symbol_chain_id_idx ON tokens (symbol, chain_id);
 
 CREATE TABLE IF NOT EXISTS nonces (
     id BIGSERIAL PRIMARY KEY,
@@ -80,19 +66,41 @@ CREATE TABLE IF NOT EXISTS custodian_groups (
 
 CREATE TABLE IF NOT EXISTS protocols (
     id BIGSERIAL PRIMARY KEY,
+
     symbol TEXT UNIQUE NOT NULL CHECK (symbol <> ''),
     name TEXT NOT NULL,
+    decimals BIGINT NOT NULL,
+    avatar TEXT NOT NULL,
+    
     custodian_group_name TEXT NOT NULL,
     custodian_group_uid BYTEA NOT NULL,
     tag TEXT NOT NULL,
+    
     liquidity_model TEXT NOT NULL,
-    decimals BIGINT NOT NULL,
+   
     capacity NUMERIC NOT NULL,
     daily_mint_limit NUMERIC NOT NULL,
-    avatar TEXT NOT NULL,
+    
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
+
+
+CREATE TABLE IF NOT EXISTS tokens (
+    id BIGSERIAL PRIMARY KEY,
+
+    symbol TEXT NOT NULL,
+    chain_id NUMERIC NOT NULL,
+    active BOOLEAN NOT NULL,
+    address BYTEA NOT NULL,
+
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS tokens_symbol_chain_id_idx ON tokens (symbol, chain_id);
+
+ALTER TABLE tokens ADD FOREIGN KEY (symbol) REFERENCES protocols (symbol) ON DELETE CASCADE;
 
 ALTER TABLE protocols ADD FOREIGN KEY (custodian_group_uid) REFERENCES custodian_groups (uid) ON DELETE CASCADE;
 

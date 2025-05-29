@@ -119,3 +119,13 @@ func (c *CommandBatch) GetExtraData() ([][]byte, error) {
 	}
 	return extraData, nil
 }
+
+type TokenDetails struct {
+	Address []byte `json:"address"`
+	ChainID int64  `json:"chain_id"`
+}
+
+type ProtocolWithTokenDetails struct {
+	*Protocol
+	Tokens []TokenDetails `json:"token_details"`
+}

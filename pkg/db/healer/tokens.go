@@ -15,18 +15,12 @@ func (m *HealerRepository) SaveTokens(ctx context.Context, tokens []sqlc.Token) 
 	var addresses [][]byte
 	var chainIds []pgtype.Numeric
 	var symbols []string
-	var decimals []pgtype.Numeric
-	var names []string
-	var avatars []string
 	var actives []bool
 
 	for _, token := range tokens {
 		addresses = append(addresses, token.Address)
 		chainIds = append(chainIds, token.ChainID)
 		symbols = append(symbols, token.Symbol)
-		decimals = append(decimals, token.Decimal)
-		names = append(names, token.Name)
-		avatars = append(avatars, token.Avatar)
 		actives = append(actives, token.Active)
 	}
 
@@ -34,10 +28,7 @@ func (m *HealerRepository) SaveTokens(ctx context.Context, tokens []sqlc.Token) 
 		Column1: addresses, // address
 		Column2: chainIds,  // chain_id,
 		Column3: symbols,   // symbol
-		Column4: decimals,  // decimal
-		Column5: names,     // name
-		Column6: avatars,   // avatar
-		Column7: actives,   // active,
+		Column4: actives,   // active,
 	})
 }
 

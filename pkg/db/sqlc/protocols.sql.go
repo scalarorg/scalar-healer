@@ -12,7 +12,7 @@ import (
 )
 
 const getProtocol = `-- name: GetProtocol :one
-SELECT id, symbol, name, custodian_group_name, custodian_group_uid, tag, liquidity_model, decimals, capacity, daily_mint_limit, avatar, created_at, updated_at FROM protocols WHERE symbol = $1
+SELECT id, symbol, name, decimals, avatar, custodian_group_name, custodian_group_uid, tag, liquidity_model, capacity, daily_mint_limit, created_at, updated_at FROM protocols WHERE symbol = $1
 `
 
 func (q *Queries) GetProtocol(ctx context.Context, symbol string) (Protocol, error) {
@@ -22,14 +22,14 @@ func (q *Queries) GetProtocol(ctx context.Context, symbol string) (Protocol, err
 		&i.ID,
 		&i.Symbol,
 		&i.Name,
+		&i.Decimals,
+		&i.Avatar,
 		&i.CustodianGroupName,
 		&i.CustodianGroupUid,
 		&i.Tag,
 		&i.LiquidityModel,
-		&i.Decimals,
 		&i.Capacity,
 		&i.DailyMintLimit,
-		&i.Avatar,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -37,32 +37,73 @@ func (q *Queries) GetProtocol(ctx context.Context, symbol string) (Protocol, err
 }
 
 const getProtocols = `-- name: GetProtocols :many
-SELECT id, symbol, name, custodian_group_name, custodian_group_uid, tag, liquidity_model, decimals, capacity, daily_mint_limit, avatar, created_at, updated_at FROM protocols
+SELECT
+    p.id, p.symbol, p.name, p.decimals, p.avatar, p.custodian_group_name, p.custodian_group_uid, p.tag, p.liquidity_model, p.capacity, p.daily_mint_limit, p.created_at, p.updated_at, 
+    t.chain_id,
+    t.address
+FROM protocols p
+LEFT JOIN tokens t ON t.symbol = p.symbol
+GROUP BY 
+    p.id,
+    p.symbol,
+    p.name,
+    p.custodian_group_name,
+    p.custodian_group_uid,
+    p.tag,
+    p.decimals, 
+    p.liquidity_model,
+    p.avatar,
+    p.capacity,
+    p.daily_mint_limit,
+    p.created_at,
+    p.updated_at,
+    t.chain_id,
+    t.address
 `
 
-func (q *Queries) GetProtocols(ctx context.Context) ([]Protocol, error) {
+type GetProtocolsRow struct {
+	ID                 int64            `json:"id"`
+	Symbol             string           `json:"symbol"`
+	Name               string           `json:"name"`
+	Decimals           int64            `json:"decimals"`
+	Avatar             string           `json:"avatar"`
+	CustodianGroupName string           `json:"custodian_group_name"`
+	CustodianGroupUid  []byte           `json:"custodian_group_uid"`
+	Tag                string           `json:"tag"`
+	LiquidityModel     string           `json:"liquidity_model"`
+	Capacity           pgtype.Numeric   `json:"capacity"`
+	DailyMintLimit     pgtype.Numeric   `json:"daily_mint_limit"`
+	CreatedAt          pgtype.Timestamp `json:"created_at"`
+	UpdatedAt          pgtype.Timestamp `json:"updated_at"`
+	ChainID            pgtype.Numeric   `json:"chain_id"`
+	Address            []byte           `json:"address"`
+}
+
+func (q *Queries) GetProtocols(ctx context.Context) ([]GetProtocolsRow, error) {
 	rows, err := q.db.Query(ctx, getProtocols)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []Protocol{}
+	items := []GetProtocolsRow{}
 	for rows.Next() {
-		var i Protocol
+		var i GetProtocolsRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Symbol,
 			&i.Name,
+			&i.Decimals,
+			&i.Avatar,
 			&i.CustodianGroupName,
 			&i.CustodianGroupUid,
 			&i.Tag,
 			&i.LiquidityModel,
-			&i.Decimals,
 			&i.Capacity,
 			&i.DailyMintLimit,
-			&i.Avatar,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.ChainID,
+			&i.Address,
 		); err != nil {
 			return nil, err
 		}
@@ -76,7 +117,7 @@ func (q *Queries) GetProtocols(ctx context.Context) ([]Protocol, error) {
 
 const saveProtocols = `-- name: SaveProtocols :exec
 INSERT INTO protocols (symbol, name, custodian_group_name, custodian_group_uid, tag, liquidity_model, decimals, capacity, daily_mint_limit, avatar)
-VALUES(unnest($1::text[]), unnest($2::text[]), unnest($3::text[]), unnest($4::bytea[]), unnest($5::text[]), unnest($6::text[]), unnest($7::bigint[]), unnest($8::numeric[]), unnest($9::numeric[]), unnest($10::text[]))
+VALUES(unnest($1::text[]), unnest($2::text[]), unnest($3::text[]), unnest($4::bytea[]), unnest($5::text[]), unnest($6::text[]), unnest($7::bigint[]), unnest($8::numeric[]), unnest($9::numeric[]), unnest($10::text[])) ON CONFLICT DO NOTHING
 `
 
 type SaveProtocolsParams struct {

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/scalarorg/scalar-healer/cmd/api/server"
 	"github.com/scalarorg/scalar-healer/pkg/db"
 	"github.com/scalarorg/scalar-healer/pkg/db/healer"
@@ -37,15 +38,30 @@ func TestMain(m *testing.M) {
 			panic(err)
 		}
 
+		err = repo.SaveProtocols(ctx, []sqlc.Protocol{
+			{
+				CustodianGroupName: "test",
+				Symbol:             "ETH",
+				Decimals:           18,
+				Name:               "Ethereum",
+				Avatar:             "avatar",
+				CustodianGroupUid:  []byte("test"),
+				Tag:                "tag",
+				LiquidityModel:     "pool",
+				Capacity:           pgtype.Numeric{},
+				DailyMintLimit:     pgtype.Numeric{},
+			},
+		})
+		if err != nil {
+			panic(err)
+		}
+
 		err = repo.SaveTokens(ctx, []sqlc.Token{
 			{
-				Symbol:   "ETH",
-				ChainID:  db.ConvertUint64ToNumeric(1),
-				Address:  common.MaxAddress.Bytes(),
-				Name:     "Ethereum",
-				Decimal:  db.ConvertUint64ToNumeric(8),
-				Avatar:   "",
-				Active:   true,
+				Symbol:  "ETH",
+				ChainID: db.ConvertUint64ToNumeric(1),
+				Address: common.MaxAddress.Bytes(),
+				Active:  true,
 			},
 		})
 
