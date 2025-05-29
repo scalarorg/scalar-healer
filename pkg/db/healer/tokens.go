@@ -6,19 +6,20 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/scalarorg/scalar-healer/pkg/db"
 	"github.com/scalarorg/scalar-healer/pkg/db/sqlc"
 )
 
 func (m *HealerRepository) SaveTokens(ctx context.Context, tokens []sqlc.Token) error {
 
 	var addresses [][]byte
+	var chains []string
 	var chainIds []pgtype.Numeric
 	var symbols []string
 	var actives []bool
 
 	for _, token := range tokens {
 		addresses = append(addresses, token.Address)
+		chains = append(chains, token.Chain)
 		chainIds = append(chainIds, token.ChainID)
 		symbols = append(symbols, token.Symbol)
 		actives = append(actives, token.Active)
@@ -26,23 +27,24 @@ func (m *HealerRepository) SaveTokens(ctx context.Context, tokens []sqlc.Token) 
 
 	return m.Queries.SaveTokens(ctx, sqlc.SaveTokensParams{
 		Column1: addresses, // address
-		Column2: chainIds,  // chain_id,
-		Column3: symbols,   // symbol
-		Column4: actives,   // active,
+		Column2: chains,    // chain,
+		Column3: chainIds,  // chain_id,
+		Column4: symbols,   // symbol
+		Column5: actives,   // active,
 	})
 }
 
-func (m *HealerRepository) GetTokenSymbolByAddress(ctx context.Context, chainId uint64, tokenAddress *common.Address) (string, error) {
+func (m *HealerRepository) GetTokenSymbolByAddress(ctx context.Context, chain string, tokenAddress *common.Address) (string, error) {
 	return m.Queries.GetTokenSymbolByAddress(ctx, sqlc.GetTokenSymbolByAddressParams{
-		ChainID: db.ConvertUint64ToNumeric(chainId),
+		Chain:   chain,
 		Address: tokenAddress.Bytes(),
 	})
 }
 
-func (m *HealerRepository) GetTokenAddressBySymbol(ctx context.Context, chainId uint64, tokenSymbol string) (*common.Address, error) {
+func (m *HealerRepository) GetTokenAddressBySymbol(ctx context.Context, chain string, tokenSymbol string) (*common.Address, error) {
 	address, err := m.Queries.GetTokenAddressBySymbol(ctx, sqlc.GetTokenAddressBySymbolParams{
-		ChainID: db.ConvertUint64ToNumeric(chainId),
-		Symbol:  tokenSymbol,
+		Chain:  chain,
+		Symbol: tokenSymbol,
 	})
 	if err != nil {
 		tokens, _ := m.Queries.ListTokens(ctx)

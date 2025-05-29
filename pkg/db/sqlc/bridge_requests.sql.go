@@ -12,7 +12,7 @@ import (
 )
 
 const listBridgeRequests = `-- name: ListBridgeRequests :many
-SELECT id, address, signature, chain_id, tx_hash, nonce, created_at, updated_at
+SELECT id, address, signature, chain, tx_hash, nonce, created_at, updated_at
 FROM bridge_requests
 WHERE address = $1
 ORDER BY nonce DESC
@@ -38,7 +38,7 @@ func (q *Queries) ListBridgeRequests(ctx context.Context, arg ListBridgeRequests
 			&i.ID,
 			&i.Address,
 			&i.Signature,
-			&i.ChainID,
+			&i.Chain,
 			&i.TxHash,
 			&i.Nonce,
 			&i.CreatedAt,
@@ -55,14 +55,14 @@ func (q *Queries) ListBridgeRequests(ctx context.Context, arg ListBridgeRequests
 }
 
 const saveBridgeRequest = `-- name: SaveBridgeRequest :exec
-INSERT INTO bridge_requests (address, signature, chain_id, tx_hash, nonce)
+INSERT INTO bridge_requests (address, signature, chain, tx_hash, nonce)
 VALUES ($1, $2, $3, $4, $5)
 `
 
 type SaveBridgeRequestParams struct {
 	Address   []byte         `json:"address"`
 	Signature []byte         `json:"signature"`
-	ChainID   pgtype.Numeric `json:"chain_id"`
+	Chain     string         `json:"chain"`
 	TxHash    []byte         `json:"tx_hash"`
 	Nonce     pgtype.Numeric `json:"nonce"`
 }
@@ -71,7 +71,7 @@ func (q *Queries) SaveBridgeRequest(ctx context.Context, arg SaveBridgeRequestPa
 	_, err := q.db.Exec(ctx, saveBridgeRequest,
 		arg.Address,
 		arg.Signature,
-		arg.ChainID,
+		arg.Chain,
 		arg.TxHash,
 		arg.Nonce,
 	)

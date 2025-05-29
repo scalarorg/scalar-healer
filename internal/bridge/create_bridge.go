@@ -30,7 +30,7 @@ func CreateBridge(c echo.Context) error {
 
 	db := db.GetRepositoryFromContext(c)
 
-	gatewayAddress, err := db.GetGatewayAddress(ctx, body.ChainID)
+	gatewayAddress, err := db.GetGatewayAddress(ctx, body.Chain)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, constants.ErrNotFoundGateway)
 	}
@@ -44,7 +44,7 @@ func CreateBridge(c echo.Context) error {
 	}
 
 	// Save redeem request
-	err = db.SaveBridgeRequest(ctx, body.ChainID, body.Address, common.FromHex(body.Signature), txHash.Bytes(), body.Nonce)
+	err = db.SaveBridgeRequest(ctx, body.Chain, body.Address, common.FromHex(body.Signature), txHash.Bytes(), body.Nonce)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to save bridge request")
 	}

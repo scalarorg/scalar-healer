@@ -7,33 +7,31 @@ package sqlc
 
 import (
 	"context"
-
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createGatewayAddress = `-- name: CreateGatewayAddress :exec
-INSERT INTO gateway_addresses (address, chain_id)
+INSERT INTO gateway_addresses (address, chain)
 VALUES ($1, $2)
 `
 
 type CreateGatewayAddressParams struct {
-	Address []byte         `json:"address"`
-	ChainID pgtype.Numeric `json:"chain_id"`
+	Address []byte `json:"address"`
+	Chain   string `json:"chain"`
 }
 
 func (q *Queries) CreateGatewayAddress(ctx context.Context, arg CreateGatewayAddressParams) error {
-	_, err := q.db.Exec(ctx, createGatewayAddress, arg.Address, arg.ChainID)
+	_, err := q.db.Exec(ctx, createGatewayAddress, arg.Address, arg.Chain)
 	return err
 }
 
 const createGatewayAddresses = `-- name: CreateGatewayAddresses :exec
-INSERT INTO gateway_addresses (address, chain_id)
-VALUES (unnest($1::bytea[]), unnest($2::numeric[]))
+INSERT INTO gateway_addresses (address, chain)
+VALUES (unnest($1::bytea[]), unnest($2::text[]))
 `
 
 type CreateGatewayAddressesParams struct {
-	Column1 [][]byte         `json:"column_1"`
-	Column2 []pgtype.Numeric `json:"column_2"`
+	Column1 [][]byte `json:"column_1"`
+	Column2 []string `json:"column_2"`
 }
 
 func (q *Queries) CreateGatewayAddresses(ctx context.Context, arg CreateGatewayAddressesParams) error {
@@ -44,11 +42,11 @@ func (q *Queries) CreateGatewayAddresses(ctx context.Context, arg CreateGatewayA
 const getGatewayAddress = `-- name: GetGatewayAddress :one
 SELECT address
 FROM gateway_addresses
-WHERE chain_id = $1
+WHERE chain = $1
 `
 
-func (q *Queries) GetGatewayAddress(ctx context.Context, chainID pgtype.Numeric) ([]byte, error) {
-	row := q.db.QueryRow(ctx, getGatewayAddress, chainID)
+func (q *Queries) GetGatewayAddress(ctx context.Context, chain string) ([]byte, error) {
+	row := q.db.QueryRow(ctx, getGatewayAddress, chain)
 	var address []byte
 	err := row.Scan(&address)
 	return address, err

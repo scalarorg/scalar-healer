@@ -1,5 +1,5 @@
 -- name: SaveRedeemRequest :exec
-INSERT INTO redeem_requests (address,  signature, chain_id, symbol, amount, nonce)
+INSERT INTO redeem_requests (address,  signature, chain, symbol, amount, nonce)
 VALUES ($1, $2, $3, $4, $5, $6);
 
 -- name: ListRedeemRequests :many

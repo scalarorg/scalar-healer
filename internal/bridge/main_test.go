@@ -29,7 +29,7 @@ func TestMain(m *testing.M) {
 		}
 
 		err := pg.Queries.CreateGatewayAddress(ctx, sqlc.CreateGatewayAddressParams{
-			ChainID: db.ConvertUint64ToNumeric(1),
+			Chain:   "evm|1",
 			Address: gatewayAddr.Bytes(),
 		})
 

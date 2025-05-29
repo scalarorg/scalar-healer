@@ -2,7 +2,7 @@ CREATE TABLE IF NOT EXISTS bridge_requests (
     id BIGSERIAL PRIMARY KEY,
     address BYTEA NOT NULL,
     signature BYTEA NOT NULL,
-    chain_id NUMERIC NOT NULL,
+    chain TEXT NOT NULL,
     tx_hash BYTEA NOT NULL,
     nonce NUMERIC NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS redeem_requests (
     id BIGSERIAL PRIMARY KEY,
     address BYTEA NOT NULL,
     signature BYTEA NOT NULL,
-    chain_id NUMERIC NOT NULL,
+    chain TEXT NOT NULL,
     symbol TEXT NOT NULL,
     amount TEXT NOT NULL,
     nonce NUMERIC NOT NULL,
@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS transfer_requests (
     id BIGSERIAL PRIMARY KEY,
     address BYTEA NOT NULL,
     signature BYTEA NOT NULL,
-    chain_id NUMERIC NOT NULL,
+    chain TEXT NOT NULL,
     destination_chain TEXT NOT NULL,
     destination_address BYTEA NOT NULL,
     symbol TEXT NOT NULL,
@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS transfer_requests (
 CREATE TABLE IF NOT EXISTS gateway_addresses (
     id BIGSERIAL PRIMARY KEY,
     address BYTEA NOT NULL,
-    chain_id NUMERIC NOT NULL,
+    chain TEXT NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
@@ -90,6 +90,7 @@ CREATE TABLE IF NOT EXISTS tokens (
     id BIGSERIAL PRIMARY KEY,
 
     symbol TEXT NOT NULL,
+    chain TEXT NOT NULL,
     chain_id NUMERIC NOT NULL,
     active BOOLEAN NOT NULL,
     address BYTEA NOT NULL,
@@ -98,7 +99,7 @@ CREATE TABLE IF NOT EXISTS tokens (
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS tokens_symbol_chain_id_idx ON tokens (symbol, chain_id);
+CREATE UNIQUE INDEX IF NOT EXISTS tokens_symbol_chain_idx ON tokens (symbol, chain);
 
 ALTER TABLE tokens ADD FOREIGN KEY (symbol) REFERENCES protocols (symbol) ON DELETE CASCADE;
 

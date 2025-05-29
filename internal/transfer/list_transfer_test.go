@@ -18,7 +18,7 @@ import (
 )
 
 func TestListTransfer(t *testing.T) {
-	chainId := uint64(1)
+	chain := "evm|1"	
 	address := common.HexToAddress("0x24a1dB57Fa3ecAFcbaD91d6Ef068439acEeAe090")
 	signature, _ := hex.DecodeString("f6c5691b0cd1120058f8a4ed75cd67065a8cdcefaa34ff55678ce1fcab07e0c91357e525c94b97e78b558e3cfe44eb66e3de28cc0d65a6c11c910fff0fabad0100")
 	amount, _ := utils.StringToBigInt("123456")
@@ -40,7 +40,7 @@ func TestListTransfer(t *testing.T) {
 			page:    0,
 			size:    10,
 			setup: func(t *testing.T) {
-				err := dbAdapter.SaveTransferRequest(context.Background(), chainId, address, signature, amount, destChain, &destAddress, symbol, nonce.Int.Uint64())
+				err := dbAdapter.SaveTransferRequest(context.Background(), chain, address, signature, amount, destChain, &destAddress, symbol, nonce.Int.Uint64())
 				assert.NoError(t, err)
 			},
 			checkResponse: func(recoder *httptest.ResponseRecorder) {

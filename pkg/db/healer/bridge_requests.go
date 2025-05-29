@@ -9,7 +9,8 @@ import (
 	"github.com/scalarorg/scalar-healer/pkg/db/sqlc"
 )
 
-func (m *HealerRepository) SaveBridgeRequest(ctx context.Context, chainId uint64, address common.Address, signature []byte, txHash []byte, nonce uint64) error {
+func (m *HealerRepository) SaveBridgeRequest(ctx context.Context, chain string, address common.Address, signature []byte, txHash []byte, nonce uint64) error {
+	// TODO: verify chain
 	return m.execTx(ctx, func(q *sqlc.Queries) error {
 		currentNonce := m.GetNonce(ctx, address)
 		if nonce != currentNonce {
@@ -28,7 +29,7 @@ func (m *HealerRepository) SaveBridgeRequest(ctx context.Context, chainId uint64
 			Address:   address.Bytes(),
 			TxHash:    txHash,
 			Signature: signature,
-			ChainID:   db.ConvertUint64ToNumeric(chainId),
+			Chain:     chain,
 			Nonce:     db.ConvertUint64ToNumeric(nonce),
 		})
 	})

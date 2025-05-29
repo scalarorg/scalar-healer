@@ -52,7 +52,7 @@ func (c *Client) CreateTokenSent(ctx context.Context, vaultTx types.VaultTransac
 	}
 
 	tokenAddress := common.HexToAddress(strings.TrimPrefix(vaultTx.DestTokenAddress, "0x"))
-	symbol, err := c.dbAdapter.GetTokenSymbolByAddress(ctx, chainInfo.ChainID, &tokenAddress)
+	symbol, err := c.dbAdapter.GetTokenSymbolByAddress(ctx, chainInfo.ToBytes().String(), &tokenAddress)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get symbol: %w", err)
 	}

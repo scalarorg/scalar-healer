@@ -20,7 +20,7 @@ type Querier interface {
 	GetCommandBatches(ctx context.Context) ([]CommandBatch, error)
 	GetCompletedRedeemSessions(ctx context.Context) ([]RedeemSession, error)
 	GetCustodianGroupByUID(ctx context.Context, uid []byte) (CustodianGroup, error)
-	GetGatewayAddress(ctx context.Context, chainID pgtype.Numeric) ([]byte, error)
+	GetGatewayAddress(ctx context.Context, chain string) ([]byte, error)
 	GetNonce(ctx context.Context, address []byte) (pgtype.Numeric, error)
 	GetProtocol(ctx context.Context, symbol string) (Protocol, error)
 	GetProtocols(ctx context.Context) ([]GetProtocolsRow, error)

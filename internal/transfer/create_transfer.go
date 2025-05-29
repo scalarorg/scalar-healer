@@ -29,14 +29,14 @@ func CreateTransfer(c echo.Context) error {
 
 	db := db.GetRepositoryFromContext(c)
 
-	gatewayAddress, err := db.GetGatewayAddress(ctx, body.ChainID)
+	gatewayAddress, err := db.GetGatewayAddress(ctx, body.Chain)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, constants.ErrNotFoundGateway)
 
 	}
 
 	// TODO: validate body.symbol is valid on destination chain as well
-	_, err = db.GetTokenAddressBySymbol(ctx, body.ChainID, body.Symbol)
+	_, err = db.GetTokenAddressBySymbol(ctx, body.Chain, body.Symbol)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, constants.ErrTokenNotExists)
 	}
@@ -54,7 +54,7 @@ func CreateTransfer(c echo.Context) error {
 	}
 
 	// Save redeem request
-	err = db.SaveTransferRequest(ctx, body.ChainID, body.Address, common.FromHex(body.Signature), amountz, body.DestinationChain, &destAddress, body.Symbol, body.Nonce)
+	err = db.SaveTransferRequest(ctx, body.Chain, body.Address, common.FromHex(body.Signature), amountz, body.DestinationChain, &destAddress, body.Symbol, body.Nonce)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to save bridge request")
 	}

@@ -123,6 +123,7 @@ func (c *CommandBatch) GetExtraData() ([][]byte, error) {
 type TokenDetails struct {
 	Address []byte `json:"address"`
 	ChainID int64  `json:"chain_id"`
+	Chain   string `json:"chain"`
 }
 
 type ProtocolWithTokenDetails struct {

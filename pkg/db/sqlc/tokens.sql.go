@@ -12,39 +12,39 @@ import (
 )
 
 const getTokenAddressBySymbol = `-- name: GetTokenAddressBySymbol :one
-SELECT address FROM tokens WHERE chain_id = $1 AND symbol = $2
+SELECT address FROM tokens WHERE chain = $1 AND symbol = $2
 `
 
 type GetTokenAddressBySymbolParams struct {
-	ChainID pgtype.Numeric `json:"chain_id"`
-	Symbol  string         `json:"symbol"`
+	Chain  string `json:"chain"`
+	Symbol string `json:"symbol"`
 }
 
 func (q *Queries) GetTokenAddressBySymbol(ctx context.Context, arg GetTokenAddressBySymbolParams) ([]byte, error) {
-	row := q.db.QueryRow(ctx, getTokenAddressBySymbol, arg.ChainID, arg.Symbol)
+	row := q.db.QueryRow(ctx, getTokenAddressBySymbol, arg.Chain, arg.Symbol)
 	var address []byte
 	err := row.Scan(&address)
 	return address, err
 }
 
 const getTokenSymbolByAddress = `-- name: GetTokenSymbolByAddress :one
-SELECT symbol FROM tokens WHERE chain_id = $1 AND address = $2
+SELECT symbol FROM tokens WHERE chain = $1 AND address = $2
 `
 
 type GetTokenSymbolByAddressParams struct {
-	ChainID pgtype.Numeric `json:"chain_id"`
-	Address []byte         `json:"address"`
+	Chain   string `json:"chain"`
+	Address []byte `json:"address"`
 }
 
 func (q *Queries) GetTokenSymbolByAddress(ctx context.Context, arg GetTokenSymbolByAddressParams) (string, error) {
-	row := q.db.QueryRow(ctx, getTokenSymbolByAddress, arg.ChainID, arg.Address)
+	row := q.db.QueryRow(ctx, getTokenSymbolByAddress, arg.Chain, arg.Address)
 	var symbol string
 	err := row.Scan(&symbol)
 	return symbol, err
 }
 
 const listTokens = `-- name: ListTokens :many
-SELECT id, symbol, chain_id, active, address, created_at, updated_at FROM tokens
+SELECT id, symbol, chain, chain_id, active, address, created_at, updated_at FROM tokens
 `
 
 func (q *Queries) ListTokens(ctx context.Context) ([]Token, error) {
@@ -59,6 +59,7 @@ func (q *Queries) ListTokens(ctx context.Context) ([]Token, error) {
 		if err := rows.Scan(
 			&i.ID,
 			&i.Symbol,
+			&i.Chain,
 			&i.ChainID,
 			&i.Active,
 			&i.Address,
@@ -76,15 +77,17 @@ func (q *Queries) ListTokens(ctx context.Context) ([]Token, error) {
 }
 
 const saveTokens = `-- name: SaveTokens :exec
-INSERT INTO tokens (address, chain_id, symbol, active)
-VALUES (unnest($1::bytea[]), unnest($2::numeric[]), unnest($3::text[]), unnest($4::boolean[]))
+INSERT INTO tokens (address, chain, chain_id, symbol, active)
+VALUES (unnest($1::bytea[]), unnest($2::text[]), unnest($3::numeric[]), unnest($4::text[]), unnest($5::boolean[]))
+ON CONFLICT (symbol, chain) DO NOTHING
 `
 
 type SaveTokensParams struct {
 	Column1 [][]byte         `json:"column_1"`
-	Column2 []pgtype.Numeric `json:"column_2"`
-	Column3 []string         `json:"column_3"`
-	Column4 []bool           `json:"column_4"`
+	Column2 []string         `json:"column_2"`
+	Column3 []pgtype.Numeric `json:"column_3"`
+	Column4 []string         `json:"column_4"`
+	Column5 []bool           `json:"column_5"`
 }
 
 func (q *Queries) SaveTokens(ctx context.Context, arg SaveTokensParams) error {
@@ -93,6 +96,7 @@ func (q *Queries) SaveTokens(ctx context.Context, arg SaveTokensParams) error {
 		arg.Column2,
 		arg.Column3,
 		arg.Column4,
+		arg.Column5,
 	)
 	return err
 }

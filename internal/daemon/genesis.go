@@ -73,16 +73,16 @@ func (s *Service) initGatewayAddresses(ctx context.Context) {
 		panic(err)
 	}
 
-	chainIds := make([]uint64, 0)
+	chains := make([]string, 0)
 	gatewayAddresses := make([][]byte, 0)
 
 	for _, config := range configs {
-		chainIds = append(chainIds, config.ChainID)
+		chains = append(chains, config.ID)
 		add := funcs.Must(hex.DecodeString(strings.TrimPrefix(config.Gateway, "0x")))
 		gatewayAddresses = append(gatewayAddresses, add)
 	}
 
-	err = s.CombinedAdapter.CreateGatewayAddresses(ctx, gatewayAddresses, chainIds)
+	err = s.CombinedAdapter.CreateGatewayAddresses(ctx, gatewayAddresses, chains)
 	if err != nil {
 		panic(err)
 	}
@@ -97,6 +97,7 @@ func (s *Service) initTokens(ctx context.Context, protocols []sqlc.Protocol) {
 				panic(fmt.Sprintf("Token address not found for symbol %s", protocol.Symbol))
 			}
 			token := sqlc.Token{
+				Chain:   evmClient.EvmConfig.ID,
 				Symbol:  protocol.Symbol,
 				Address: tokenAddr.Bytes(),
 				ChainID: db.ConvertUint64ToNumeric(evmClient.EvmConfig.ChainID),
@@ -105,5 +106,8 @@ func (s *Service) initTokens(ctx context.Context, protocols []sqlc.Protocol) {
 			tokens = append(tokens, token)
 		}
 	}
-	s.CombinedAdapter.SaveTokens(ctx, tokens)
+	err := s.CombinedAdapter.SaveTokens(ctx, tokens)
+	if err != nil {
+		panic(err)
+	}
 }

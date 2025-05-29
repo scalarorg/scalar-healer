@@ -22,7 +22,7 @@ func (m *HealerRepository) SaveRedeemTxs(ctx context.Context, redeemTxs []chains
 	return nil
 }
 
-func (m *HealerRepository) SaveRedeemRequest(ctx context.Context, chainId uint64, address common.Address, signature []byte, amount *big.Int, symbol string, nonce uint64) error {
+func (m *HealerRepository) SaveRedeemRequest(ctx context.Context, chain string, address common.Address, signature []byte, amount *big.Int, symbol string, nonce uint64) error {
 	return m.execTx(ctx, func(q *sqlc.Queries) error {
 		currentNonce := m.GetNonce(ctx, address)
 		if nonce != currentNonce {
@@ -42,7 +42,7 @@ func (m *HealerRepository) SaveRedeemRequest(ctx context.Context, chainId uint64
 			Signature: signature,
 			Amount:    amount.String(),
 			Symbol:    symbol,
-			ChainID:   db.ConvertUint64ToNumeric(chainId),
+			Chain:     chain,
 			Nonce:     db.ConvertUint64ToNumeric(nonce),
 		})
 	})

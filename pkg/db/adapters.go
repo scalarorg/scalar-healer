@@ -19,12 +19,12 @@ type HealderAdapter interface {
 
 	// tokens
 	SaveTokens(ctx context.Context, tokens []sqlc.Token) error
-	GetTokenAddressBySymbol(ctx context.Context, chainId uint64, symbol string) (*common.Address, error)
-	GetTokenSymbolByAddress(ctx context.Context, chainId uint64, tokenAddress *common.Address) (string, error)
+	GetTokenAddressBySymbol(ctx context.Context, chain string, symbol string) (*common.Address, error)
+	GetTokenSymbolByAddress(ctx context.Context, chain string, tokenAddress *common.Address) (string, error)
 
 	// gateways
-	GetGatewayAddress(ctx context.Context, chainId uint64) (*common.Address, error)
-	CreateGatewayAddresses(ctx context.Context, addresses [][]byte, chainIds []uint64) error
+	GetGatewayAddress(ctx context.Context, chain string) (*common.Address, error)
+	CreateGatewayAddresses(ctx context.Context, addresses [][]byte, chains []string) error
 
 	// chain
 	GetChainName(ctx context.Context, chainType string, chainId uint64) (string, error)
@@ -47,11 +47,11 @@ type HealderAdapter interface {
 	FindPendingBtcTokenSent(ctx context.Context, chainId string, expectedConfirmBlock int32) ([]chains.TokenSent, error)
 
 	// bridge
-	SaveBridgeRequest(ctx context.Context, chainId uint64, address common.Address, signature []byte, txHash []byte, nonce uint64) error
+	SaveBridgeRequest(ctx context.Context, chain string, address common.Address, signature []byte, txHash []byte, nonce uint64) error
 	ListBridgeRequests(ctx context.Context, address common.Address, page, size int32) ([]sqlc.BridgeRequest, error)
 
 	// transfer
-	SaveTransferRequest(ctx context.Context, chainId uint64, address common.Address, signature []byte, amount *big.Int, destChain string, destAddress *common.Address, symbol string, nonce uint64) error
+	SaveTransferRequest(ctx context.Context, chain string, address common.Address, signature []byte, amount *big.Int, destChain string, destAddress *common.Address, symbol string, nonce uint64) error
 	ListTransferRequests(ctx context.Context, address common.Address, page, size int32) ([]sqlc.TransferRequest, error)
 
 	// redeem
@@ -59,7 +59,7 @@ type HealderAdapter interface {
 	FindPendingRedeemsTransaction(ctx context.Context, chainId string, expectedConfirmBlock int32) ([]chains.RedeemTx, error)
 	UpdateRedeemExecutedCommands(ctx context.Context, chainId string, txHashes []string) error
 
-	SaveRedeemRequest(ctx context.Context, chainId uint64, address common.Address, signature []byte, amount *big.Int, symbol string, nonce uint64) error
+	SaveRedeemRequest(ctx context.Context, chain string, address common.Address, signature []byte, amount *big.Int, symbol string, nonce uint64) error
 	ListRedeemRequests(ctx context.Context, address common.Address, page, size int32) ([]sqlc.RedeemRequest, error)
 
 	// contract calls

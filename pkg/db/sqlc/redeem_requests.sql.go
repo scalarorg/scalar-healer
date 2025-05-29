@@ -12,7 +12,7 @@ import (
 )
 
 const listRedeemRequests = `-- name: ListRedeemRequests :many
-SELECT id, address, signature, chain_id, symbol, amount, nonce, created_at, updated_at
+SELECT id, address, signature, chain, symbol, amount, nonce, created_at, updated_at
 FROM redeem_requests
 WHERE address = $1
 ORDER BY nonce DESC
@@ -38,7 +38,7 @@ func (q *Queries) ListRedeemRequests(ctx context.Context, arg ListRedeemRequests
 			&i.ID,
 			&i.Address,
 			&i.Signature,
-			&i.ChainID,
+			&i.Chain,
 			&i.Symbol,
 			&i.Amount,
 			&i.Nonce,
@@ -56,14 +56,14 @@ func (q *Queries) ListRedeemRequests(ctx context.Context, arg ListRedeemRequests
 }
 
 const saveRedeemRequest = `-- name: SaveRedeemRequest :exec
-INSERT INTO redeem_requests (address,  signature, chain_id, symbol, amount, nonce)
+INSERT INTO redeem_requests (address,  signature, chain, symbol, amount, nonce)
 VALUES ($1, $2, $3, $4, $5, $6)
 `
 
 type SaveRedeemRequestParams struct {
 	Address   []byte         `json:"address"`
 	Signature []byte         `json:"signature"`
-	ChainID   pgtype.Numeric `json:"chain_id"`
+	Chain     string         `json:"chain"`
 	Symbol    string         `json:"symbol"`
 	Amount    string         `json:"amount"`
 	Nonce     pgtype.Numeric `json:"nonce"`
@@ -73,7 +73,7 @@ func (q *Queries) SaveRedeemRequest(ctx context.Context, arg SaveRedeemRequestPa
 	_, err := q.db.Exec(ctx, saveRedeemRequest,
 		arg.Address,
 		arg.Signature,
-		arg.ChainID,
+		arg.Chain,
 		arg.Symbol,
 		arg.Amount,
 		arg.Nonce,

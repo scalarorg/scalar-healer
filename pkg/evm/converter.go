@@ -131,7 +131,7 @@ func (c *EvmClient) TokenSentEvent2Model(event *contracts.IScalarGatewayTokenSen
 	normalizedTxHash := utils.NormalizeHash(event.Raw.TxHash.String())
 	eventId := fmt.Sprintf("%s-%d", normalizedTxHash, event.Raw.Index)
 	senderAddress := event.Sender.String()
-	tokenContractAddress, err := c.dbAdapter.GetTokenAddressBySymbol(context.Background(), c.EvmConfig.GetChainId(), event.Symbol)
+	tokenContractAddress, err := c.dbAdapter.GetTokenAddressBySymbol(context.Background(), c.EvmConfig.GetId(), event.Symbol)
 	if err != nil {
 		return chains.TokenSent{}, fmt.Errorf("failed to get token address by symbol: %w", err)
 	}

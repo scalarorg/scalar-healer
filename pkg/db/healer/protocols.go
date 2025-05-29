@@ -77,6 +77,7 @@ func (m *HealerRepository) GetProtocols(ctx context.Context) ([]sqlc.ProtocolWit
 					{
 						Address: r.Address,
 						ChainID: r.ChainID.Int.Int64(),
+						Chain:   r.Chain.String,
 					},
 				},
 			}

@@ -1,5 +1,5 @@
 -- name: SaveBridgeRequest :exec
-INSERT INTO bridge_requests (address, signature, chain_id, tx_hash, nonce)
+INSERT INTO bridge_requests (address, signature, chain, tx_hash, nonce)
 VALUES ($1, $2, $3, $4, $5);
 
 -- name: ListBridgeRequests :many

@@ -12,7 +12,7 @@ import (
 )
 
 // SignTypedData signs EIP-712 typed data with the provided private key
-func SignTypedData(typedData apitypes.TypedData, privateKey *ecdsa.PrivateKey) ([]byte, error) {
+func SignTypedData(typedData *apitypes.TypedData, privateKey *ecdsa.PrivateKey) ([]byte, error) {
 	hash, err := HashTypedData(typedData)
 	if err != nil {
 		return nil, fmt.Errorf("hash typed data: %w", err)
@@ -26,7 +26,7 @@ func SignTypedData(typedData apitypes.TypedData, privateKey *ecdsa.PrivateKey) (
 	return signature, nil
 }
 
-func VerifySignTypedData(typedData apitypes.TypedData, address common.Address, signature []byte) error {
+func VerifySignTypedData(typedData *apitypes.TypedData, address common.Address, signature []byte) error {
 	hash, err := HashTypedData(typedData)
 	if err != nil {
 		return fmt.Errorf("hash typed data: %w", err)
@@ -47,7 +47,7 @@ func VerifySignTypedData(typedData apitypes.TypedData, address common.Address, s
 }
 
 // HashTypedData generates the hash of EIP-712 typed data according to the specification
-func HashTypedData(typedData apitypes.TypedData) ([]byte, error) {
+func HashTypedData(typedData *apitypes.TypedData) ([]byte, error) {
 	// Hash the domain separator
 	domainSeparator, err := typedData.HashStruct("EIP712Domain", typedData.Domain.Map())
 	if err != nil {
@@ -69,8 +69,8 @@ func HashTypedData(typedData apitypes.TypedData) ([]byte, error) {
 }
 
 // CreateTypedData creates an EIP-712 typed data structure for signing
-func CreateTypedData(types apitypes.Types, primaryType string, domain *TypedDataDomain, message map[string]interface{}) apitypes.TypedData {
-	return apitypes.TypedData{
+func CreateTypedData(types apitypes.Types, primaryType string, domain *TypedDataDomain, message map[string]interface{}) *apitypes.TypedData {
+	return &apitypes.TypedData{
 		Types:       types,
 		PrimaryType: primaryType,
 		Domain: apitypes.TypedDataDomain{

@@ -12,7 +12,7 @@ import (
 )
 
 const listTransferRequests = `-- name: ListTransferRequests :many
-SELECT id, address, signature, chain_id, destination_chain, destination_address, symbol, amount, nonce, created_at, updated_at
+SELECT id, address, signature, chain, destination_chain, destination_address, symbol, amount, nonce, created_at, updated_at
 FROM transfer_requests
 WHERE address = $1
 ORDER BY nonce DESC
@@ -38,7 +38,7 @@ func (q *Queries) ListTransferRequests(ctx context.Context, arg ListTransferRequ
 			&i.ID,
 			&i.Address,
 			&i.Signature,
-			&i.ChainID,
+			&i.Chain,
 			&i.DestinationChain,
 			&i.DestinationAddress,
 			&i.Symbol,
@@ -58,14 +58,14 @@ func (q *Queries) ListTransferRequests(ctx context.Context, arg ListTransferRequ
 }
 
 const saveTransferRequest = `-- name: SaveTransferRequest :exec
-INSERT INTO transfer_requests (address,  signature, chain_id, destination_chain, destination_address, symbol, amount, nonce)
+INSERT INTO transfer_requests (address,  signature, chain, destination_chain, destination_address, symbol, amount, nonce)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 `
 
 type SaveTransferRequestParams struct {
 	Address            []byte         `json:"address"`
 	Signature          []byte         `json:"signature"`
-	ChainID            pgtype.Numeric `json:"chain_id"`
+	Chain              string         `json:"chain"`
 	DestinationChain   string         `json:"destination_chain"`
 	DestinationAddress []byte         `json:"destination_address"`
 	Symbol             string         `json:"symbol"`
@@ -77,7 +77,7 @@ func (q *Queries) SaveTransferRequest(ctx context.Context, arg SaveTransferReque
 	_, err := q.db.Exec(ctx, saveTransferRequest,
 		arg.Address,
 		arg.Signature,
-		arg.ChainID,
+		arg.Chain,
 		arg.DestinationChain,
 		arg.DestinationAddress,
 		arg.Symbol,

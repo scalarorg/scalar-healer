@@ -4,6 +4,7 @@ SELECT * FROM protocols WHERE symbol = $1;
 -- name: GetProtocols :many
 SELECT
     p.*, 
+    t.chain,
     t.chain_id,
     t.address
 FROM protocols p
@@ -22,6 +23,7 @@ GROUP BY
     p.daily_mint_limit,
     p.created_at,
     p.updated_at,
+    t.chain,
     t.chain_id,
     t.address;
 

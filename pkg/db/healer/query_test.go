@@ -2,7 +2,6 @@ package healer_test
 
 import (
 	"context"
-	"math/big"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -16,7 +15,7 @@ import (
 
 func TestCreateBridge(t *testing.T) {
 	testutils.RunWithTestDB(func(ctx context.Context, repo db.HealderAdapter) error {
-		err := repo.SaveBridgeRequest(ctx, 222, common.Address{}, []byte{0x1, 0x2, 0x3}, []byte{0x1, 0x2, 0x3}, 0)
+		err := repo.SaveBridgeRequest(ctx, "evm|222", common.Address{}, []byte{0x1, 0x2, 0x3}, []byte{0x1, 0x2, 0x3}, 0)
 		if err != nil {
 			t.Errorf("failed to save bridge request: %v", err)
 		}
@@ -41,12 +40,7 @@ func TestCreateBridge(t *testing.T) {
 func TestCreateGatewayAddress(t *testing.T) {
 	testutils.RunWithTestDB(func(ctx context.Context, repo db.HealderAdapter) error {
 		err := (repo).(*healer.HealerRepository).CreateGatewayAddress(ctx, sqlc.CreateGatewayAddressParams{
-			ChainID: pgtype.Numeric{
-				Int:   big.NewInt(1),
-				Exp:   0,
-				NaN:   false,
-				Valid: true,
-			},
+			Chain:   "evm|1",
 			Address: common.MaxAddress.Bytes(),
 		})
 		if err != nil {

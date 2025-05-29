@@ -14,8 +14,8 @@ import (
 
 type CreateRedeemRequest struct {
 	eip712.BaseRequest
-	Symbol  string `json:"symbol" validate:"required"`
-	Amount  string `json:"amount" validate:"required"` // bigint format
+	Symbol string `json:"symbol" validate:"required"`
+	Amount string `json:"amount" validate:"required"` // bigint format
 }
 
 func CreateRedeem(c echo.Context) error {
@@ -29,12 +29,12 @@ func CreateRedeem(c echo.Context) error {
 
 	db := db.GetRepositoryFromContext(c)
 
-	gatewayAddress, err := db.GetGatewayAddress(ctx, body.ChainID)
+	gatewayAddress, err := db.GetGatewayAddress(ctx, body.Chain)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, constants.ErrNotFoundGateway)
 	}
 
-	_, err = db.GetTokenAddressBySymbol(ctx, body.ChainID, body.Symbol)
+	_, err = db.GetTokenAddressBySymbol(ctx, body.Chain, body.Symbol)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, constants.ErrTokenNotExists)
 	}
@@ -52,7 +52,7 @@ func CreateRedeem(c echo.Context) error {
 	}
 
 	// Save redeem request
-	err = db.SaveRedeemRequest(ctx, body.ChainID, body.Address, common.FromHex(body.Signature), amountz, body.Symbol, body.Nonce)
+	err = db.SaveRedeemRequest(ctx, body.Chain, body.Address, common.FromHex(body.Signature), amountz, body.Symbol, body.Nonce)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to save redeem request")
 	}

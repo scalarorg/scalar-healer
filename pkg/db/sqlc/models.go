@@ -106,7 +106,7 @@ type BridgeRequest struct {
 	ID        int64            `json:"id"`
 	Address   []byte           `json:"address"`
 	Signature []byte           `json:"signature"`
-	ChainID   pgtype.Numeric   `json:"chain_id"`
+	Chain     string           `json:"chain"`
 	TxHash    []byte           `json:"tx_hash"`
 	Nonce     pgtype.Numeric   `json:"nonce"`
 	CreatedAt pgtype.Timestamp `json:"created_at"`
@@ -162,7 +162,7 @@ type CustodianGroup struct {
 type GatewayAddress struct {
 	ID        int64            `json:"id"`
 	Address   []byte           `json:"address"`
-	ChainID   pgtype.Numeric   `json:"chain_id"`
+	Chain     string           `json:"chain"`
 	CreatedAt pgtype.Timestamp `json:"created_at"`
 	UpdatedAt pgtype.Timestamp `json:"updated_at"`
 }
@@ -195,7 +195,7 @@ type RedeemRequest struct {
 	ID        int64            `json:"id"`
 	Address   []byte           `json:"address"`
 	Signature []byte           `json:"signature"`
-	ChainID   pgtype.Numeric   `json:"chain_id"`
+	Chain     string           `json:"chain"`
 	Symbol    string           `json:"symbol"`
 	Amount    string           `json:"amount"`
 	Nonce     pgtype.Numeric   `json:"nonce"`
@@ -228,6 +228,7 @@ type Reservation struct {
 type Token struct {
 	ID        int64            `json:"id"`
 	Symbol    string           `json:"symbol"`
+	Chain     string           `json:"chain"`
 	ChainID   pgtype.Numeric   `json:"chain_id"`
 	Active    bool             `json:"active"`
 	Address   []byte           `json:"address"`
@@ -239,7 +240,7 @@ type TransferRequest struct {
 	ID                 int64            `json:"id"`
 	Address            []byte           `json:"address"`
 	Signature          []byte           `json:"signature"`
-	ChainID            pgtype.Numeric   `json:"chain_id"`
+	Chain              string           `json:"chain"`
 	DestinationChain   string           `json:"destination_chain"`
 	DestinationAddress []byte           `json:"destination_address"`
 	Symbol             string           `json:"symbol"`

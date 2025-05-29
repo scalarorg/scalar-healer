@@ -10,7 +10,7 @@ import (
 	"github.com/scalarorg/scalar-healer/pkg/db/sqlc"
 )
 
-func (m *HealerRepository) SaveTransferRequest(ctx context.Context, chainId uint64, address common.Address, signature []byte, amount *big.Int, destChain string, destAddress *common.Address, symbol string, nonce uint64) error {
+func (m *HealerRepository) SaveTransferRequest(ctx context.Context, chain string, address common.Address, signature []byte, amount *big.Int, destChain string, destAddress *common.Address, symbol string, nonce uint64) error {
 	return m.execTx(ctx, func(q *sqlc.Queries) error {
 		currentNonce := m.GetNonce(ctx, address)
 		if nonce != currentNonce {
@@ -26,7 +26,7 @@ func (m *HealerRepository) SaveTransferRequest(ctx context.Context, chainId uint
 		}
 
 		return m.Queries.SaveTransferRequest(ctx, sqlc.SaveTransferRequestParams{
-			ChainID:            db.ConvertUint64ToNumeric(chainId),
+			Chain:              chain,
 			Address:            address.Bytes(),
 			Signature:          signature,
 			Amount:             amount.String(),
