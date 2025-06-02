@@ -38,11 +38,13 @@ func (q *Queries) GetProtocol(ctx context.Context, symbol string) (Protocol, err
 
 const getProtocols = `-- name: GetProtocols :many
 SELECT
-    p.id, p.symbol, p.name, p.decimals, p.avatar, p.custodian_group_name, p.custodian_group_uid, p.tag, p.liquidity_model, p.capacity, p.daily_mint_limit, p.created_at, p.updated_at, 
+    p.id, p.symbol, p.name, p.decimals, p.avatar, p.custodian_group_name, p.custodian_group_uid, p.tag, p.liquidity_model, p.capacity, p.daily_mint_limit, p.created_at, p.updated_at,
+    cg.custodians,
     t.chain,
     t.chain_id,
     t.address
 FROM protocols p
+JOIN custodian_groups cg ON cg.uid = p.custodian_group_uid
 LEFT JOIN tokens t ON t.symbol = p.symbol
 GROUP BY 
     p.id,
@@ -50,6 +52,7 @@ GROUP BY
     p.name,
     p.custodian_group_name,
     p.custodian_group_uid,
+    cg.custodians,
     p.tag,
     p.decimals, 
     p.liquidity_model,
@@ -77,6 +80,7 @@ type GetProtocolsRow struct {
 	DailyMintLimit     pgtype.Numeric   `json:"daily_mint_limit"`
 	CreatedAt          pgtype.Timestamp `json:"created_at"`
 	UpdatedAt          pgtype.Timestamp `json:"updated_at"`
+	Custodians         []byte           `json:"custodians"`
 	Chain              pgtype.Text      `json:"chain"`
 	ChainID            pgtype.Numeric   `json:"chain_id"`
 	Address            []byte           `json:"address"`
@@ -105,6 +109,7 @@ func (q *Queries) GetProtocols(ctx context.Context) ([]GetProtocolsRow, error) {
 			&i.DailyMintLimit,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Custodians,
 			&i.Chain,
 			&i.ChainID,
 			&i.Address,

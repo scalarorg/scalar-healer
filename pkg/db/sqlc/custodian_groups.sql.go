@@ -10,7 +10,7 @@ import (
 )
 
 const getAllCustodianGroups = `-- name: GetAllCustodianGroups :many
-SELECT id, uid, name, bitcoin_pubkey, quorum, created_at, updated_at FROM custodian_groups
+SELECT id, uid, name, bitcoin_pubkey, quorum, custodians, created_at, updated_at FROM custodian_groups
 `
 
 func (q *Queries) GetAllCustodianGroups(ctx context.Context) ([]CustodianGroup, error) {
@@ -28,6 +28,7 @@ func (q *Queries) GetAllCustodianGroups(ctx context.Context) ([]CustodianGroup, 
 			&i.Name,
 			&i.BitcoinPubkey,
 			&i.Quorum,
+			&i.Custodians,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -42,7 +43,7 @@ func (q *Queries) GetAllCustodianGroups(ctx context.Context) ([]CustodianGroup, 
 }
 
 const getCustodianGroupByUID = `-- name: GetCustodianGroupByUID :one
-SELECT id, uid, name, bitcoin_pubkey, quorum, created_at, updated_at FROM custodian_groups WHERE uid = $1
+SELECT id, uid, name, bitcoin_pubkey, quorum, custodians, created_at, updated_at FROM custodian_groups WHERE uid = $1
 `
 
 func (q *Queries) GetCustodianGroupByUID(ctx context.Context, uid []byte) (CustodianGroup, error) {
@@ -54,6 +55,7 @@ func (q *Queries) GetCustodianGroupByUID(ctx context.Context, uid []byte) (Custo
 		&i.Name,
 		&i.BitcoinPubkey,
 		&i.Quorum,
+		&i.Custodians,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -61,12 +63,13 @@ func (q *Queries) GetCustodianGroupByUID(ctx context.Context, uid []byte) (Custo
 }
 
 const saveCustodianGroups = `-- name: SaveCustodianGroups :exec
-INSERT INTO custodian_groups (uid, name, bitcoin_pubkey, quorum)
-VALUES (unnest($1::bytea[]), unnest($2::text[]), unnest($3::bytea[]), unnest($4::bigint[]))
+INSERT INTO custodian_groups (uid, name, bitcoin_pubkey, quorum, custodians)
+VALUES (unnest($1::bytea[]), unnest($2::text[]), unnest($3::bytea[]), unnest($4::bigint[]), unnest($5::jsonb[]))
 ON CONFLICT (uid) DO UPDATE
 SET name = EXCLUDED.name,
     bitcoin_pubkey = EXCLUDED.bitcoin_pubkey,
-    quorum = EXCLUDED.quorum
+    quorum = EXCLUDED.quorum,
+    custodians = EXCLUDED.custodians
 `
 
 type SaveCustodianGroupsParams struct {
@@ -74,6 +77,7 @@ type SaveCustodianGroupsParams struct {
 	Column2 []string `json:"column_2"`
 	Column3 [][]byte `json:"column_3"`
 	Column4 []int64  `json:"column_4"`
+	Column5 [][]byte `json:"column_5"`
 }
 
 func (q *Queries) SaveCustodianGroups(ctx context.Context, arg SaveCustodianGroupsParams) error {
@@ -82,6 +86,7 @@ func (q *Queries) SaveCustodianGroups(ctx context.Context, arg SaveCustodianGrou
 		arg.Column2,
 		arg.Column3,
 		arg.Column4,
+		arg.Column5,
 	)
 	return err
 }

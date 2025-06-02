@@ -19,11 +19,13 @@ func (m *HealerRepository) SaveCustodianGroups(ctx context.Context, grs []sqlc.C
 	var names []string
 	var bitcoinPubkeys [][]byte
 	var quorums []int64
+	var custodians [][]byte
 	for _, gr := range grs {
 		uids = append(uids, gr.Uid)
 		names = append(names, gr.Name)
 		bitcoinPubkeys = append(bitcoinPubkeys, gr.BitcoinPubkey)
 		quorums = append(quorums, gr.Quorum)
+		custodians = append(custodians, gr.Custodians)
 	}
 
 	return m.Queries.SaveCustodianGroups(ctx, sqlc.SaveCustodianGroupsParams{
@@ -31,5 +33,6 @@ func (m *HealerRepository) SaveCustodianGroups(ctx context.Context, grs []sqlc.C
 		Column2: names,
 		Column3: bitcoinPubkeys,
 		Column4: quorums,
+		Column5: custodians,
 	})
 }

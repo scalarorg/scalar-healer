@@ -126,7 +126,14 @@ type TokenDetails struct {
 	Chain   string `json:"chain"`
 }
 
+type Custodian struct {
+	Name          string `json:"name"`
+	ValAddress    string `json:"val_address"`
+	BitcoinPubkey []byte `json:"bitcoin_pubkey"`
+}
+
 type ProtocolWithTokenDetails struct {
 	*Protocol
-	Tokens []TokenDetails `json:"token_details"`
+	Tokens     []TokenDetails `json:"token_details"`
+	Custodians []Custodian    `json:"custodians"`
 }

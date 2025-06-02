@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -22,12 +23,23 @@ func (s *Service) initGenesis(ctx context.Context) {
 	s.initGatewayAddresses(ctx)
 }
 
+type CustodianGroupConfig struct {
+	ID            int64            `json:"id"`
+	Uid           []byte           `json:"uid"`
+	Name          string           `json:"name"`
+	BitcoinPubkey []byte           `json:"bitcoin_pubkey"`
+	Quorum        int64            `json:"quorum"`
+	Custodians    []sqlc.Custodian `json:"custodians"`
+}
+
 func (s *Service) initCustodianGroups(ctx context.Context) {
 	custodianGroupCfgPath := fmt.Sprintf("%s/custodian_groups.json", s.ConfigPath)
-	custodianGroups, err := config.ReadJsonArrayConfig[sqlc.CustodianGroup](custodianGroupCfgPath)
+	custodianGroups, err := config.ReadJsonArrayConfig[CustodianGroupConfig](custodianGroupCfgPath)
 	if err != nil {
 		panic(err)
 	}
+
+	custodianGrs := make([]sqlc.CustodianGroup, 0)
 
 	for _, custodianGroup := range custodianGroups {
 		uid := sha3.Sum256([]byte(custodianGroup.Name))
@@ -36,9 +48,23 @@ func (s *Service) initCustodianGroups(ctx context.Context) {
 		if !bytes.Equal(uid[:], custodianGroup.Uid) {
 			panic("custodian group uid is not correct")
 		}
+
+		custodians, err := json.Marshal(custodianGroup.Custodians)
+		if err != nil {
+			panic(err)
+		}
+		custodianGrs = append(custodianGrs, sqlc.CustodianGroup{
+			ID:            custodianGroup.ID,
+			Uid:           uid[:],
+			Name:          custodianGroup.Name,
+			BitcoinPubkey: custodianGroup.BitcoinPubkey,
+			Quorum:        custodianGroup.Quorum,
+			Custodians:    custodians,
+		})
+
 	}
 
-	err = s.CombinedAdapter.SaveCustodianGroups(ctx, custodianGroups)
+	err = s.CombinedAdapter.SaveCustodianGroups(ctx, custodianGrs)
 	if err != nil {
 		panic(err)
 	}

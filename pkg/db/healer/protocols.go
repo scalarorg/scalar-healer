@@ -2,6 +2,8 @@ package healer
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/scalarorg/scalar-healer/pkg/db/sqlc"
@@ -52,48 +54,62 @@ func (m *HealerRepository) GetProtocol(ctx context.Context, name string) (*sqlc.
 }
 
 func (m *HealerRepository) GetProtocols(ctx context.Context) ([]sqlc.ProtocolWithTokenDetails, error) {
-
 	result, err := m.Queries.GetProtocols(ctx)
-	mapResult := make(map[string]*sqlc.ProtocolWithTokenDetails)
-	for _, r := range result {
-		if protocol, ok := mapResult[r.Symbol]; !ok {
-			mapResult[r.Symbol] = &sqlc.ProtocolWithTokenDetails{
+	if err != nil {
+		return nil, fmt.Errorf("failed to get protocols: %w", err)
+	}
+
+	protocolsBySymbol := make(map[string]*sqlc.ProtocolWithTokenDetails)
+
+	for _, row := range result {
+		var custodians []sqlc.Custodian
+		err := json.Unmarshal(row.Custodians, &custodians)
+		if err != nil {
+			return nil, fmt.Errorf("failed to unmarshal custodians: %w", err)
+		}
+
+		// Create token details for the current row
+		tokenDetails := sqlc.TokenDetails{
+			Address: row.Address,
+			ChainID: row.ChainID.Int.Int64(),
+			Chain:   row.Chain.String,
+		}
+
+		// Get or create protocol entry
+		protocol, exists := protocolsBySymbol[row.Symbol]
+		if !exists {
+			// Initialize new protocol with base details
+			protocol = &sqlc.ProtocolWithTokenDetails{
 				Protocol: &sqlc.Protocol{
-					ID:                 r.ID,
-					Symbol:             r.Symbol,
-					Name:               r.Name,
-					CustodianGroupName: r.CustodianGroupName,
-					CustodianGroupUid:  r.CustodianGroupUid,
-					Tag:                r.Tag,
-					LiquidityModel:     r.LiquidityModel,
-					Decimals:           r.Decimals,
-					Avatar:             r.Avatar,
-					Capacity:           r.Capacity,
-					DailyMintLimit:     r.DailyMintLimit,
-					CreatedAt:          r.CreatedAt,
-					UpdatedAt:          r.UpdatedAt,
+					ID:                 row.ID,
+					Symbol:             row.Symbol,
+					Name:               row.Name,
+					CustodianGroupName: row.CustodianGroupName,
+					CustodianGroupUid:  row.CustodianGroupUid,
+					Tag:                row.Tag,
+					LiquidityModel:     row.LiquidityModel,
+					Decimals:           row.Decimals,
+					Avatar:             row.Avatar,
+					Capacity:           row.Capacity,
+					DailyMintLimit:     row.DailyMintLimit,
+					CreatedAt:          row.CreatedAt,
+					UpdatedAt:          row.UpdatedAt,
 				},
-				Tokens: []sqlc.TokenDetails{
-					{
-						Address: r.Address,
-						ChainID: r.ChainID.Int.Int64(),
-						Chain:   r.Chain.String,
-					},
-				},
+				Custodians: custodians,
+				Tokens:     []sqlc.TokenDetails{tokenDetails},
 			}
+			protocolsBySymbol[row.Symbol] = protocol
 		} else {
-			protocol.Tokens = append(protocol.Tokens, sqlc.TokenDetails{
-				Address: r.Address,
-				ChainID: r.ChainID.Int.Int64(),
-				Chain:   r.Chain.String,
-			})
+			// Append token details to existing protocol
+			protocol.Tokens = append(protocol.Tokens, tokenDetails)
 		}
 	}
 
-	var protocols []sqlc.ProtocolWithTokenDetails
-	for _, v := range mapResult {
-		protocols = append(protocols, *v)
+	// Convert map to slice
+	protocols := make([]sqlc.ProtocolWithTokenDetails, 0, len(protocolsBySymbol))
+	for _, protocol := range protocolsBySymbol {
+		protocols = append(protocols, *protocol)
 	}
 
-	return protocols, err
+	return protocols, nil
 }

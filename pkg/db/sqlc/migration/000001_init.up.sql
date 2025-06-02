@@ -60,6 +60,7 @@ CREATE TABLE IF NOT EXISTS custodian_groups (
     name TEXT NOT NULL,
     bitcoin_pubkey BYTEA NOT NULL,
     quorum BIGINT NOT NULL,
+    custodians JSONB NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );

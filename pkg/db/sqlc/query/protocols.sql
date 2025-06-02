@@ -3,11 +3,13 @@ SELECT * FROM protocols WHERE symbol = $1;
 
 -- name: GetProtocols :many
 SELECT
-    p.*, 
+    p.*,
+    cg.custodians,
     t.chain,
     t.chain_id,
     t.address
 FROM protocols p
+JOIN custodian_groups cg ON cg.uid = p.custodian_group_uid
 LEFT JOIN tokens t ON t.symbol = p.symbol
 GROUP BY 
     p.id,
@@ -15,6 +17,7 @@ GROUP BY
     p.name,
     p.custodian_group_name,
     p.custodian_group_uid,
+    cg.custodians,
     p.tag,
     p.decimals, 
     p.liquidity_model,

@@ -155,6 +155,7 @@ type CustodianGroup struct {
 	Name          string           `json:"name"`
 	BitcoinPubkey []byte           `json:"bitcoin_pubkey"`
 	Quorum        int64            `json:"quorum"`
+	Custodians    []byte           `json:"custodians"`
 	CreatedAt     pgtype.Timestamp `json:"created_at"`
 	UpdatedAt     pgtype.Timestamp `json:"updated_at"`
 }
