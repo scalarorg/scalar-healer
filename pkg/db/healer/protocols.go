@@ -47,7 +47,7 @@ func (m *HealerRepository) SaveProtocols(ctx context.Context, protocols []sqlc.P
 		Column8:  decimals,
 		Column9:  capacities,
 		Column10: dailyMintLimits,
-		Column11: avatars,	
+		Column11: avatars,
 	})
 }
 
@@ -99,8 +99,9 @@ func (m *HealerRepository) GetProtocols(ctx context.Context) ([]sqlc.ProtocolWit
 					CreatedAt:          row.CreatedAt,
 					UpdatedAt:          row.UpdatedAt,
 				},
-				Custodians: custodians,
-				Tokens:     []sqlc.TokenDetails{tokenDetails},
+				Custodians:      custodians,
+				CustodianQuorum: row.Quorum,
+				Tokens:          []sqlc.TokenDetails{tokenDetails},
 			}
 			protocolsBySymbol[row.Symbol] = protocol
 		} else {

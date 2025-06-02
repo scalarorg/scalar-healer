@@ -134,6 +134,7 @@ type Custodian struct {
 
 type ProtocolWithTokenDetails struct {
 	*Protocol
-	Tokens     []TokenDetails `json:"token_details"`
-	Custodians []Custodian    `json:"custodians"`
+	Tokens          []TokenDetails `json:"token_details"`
+	Custodians      []Custodian    `json:"custodians"`
+	CustodianQuorum int64          `json:"custodian_quorum"`
 }

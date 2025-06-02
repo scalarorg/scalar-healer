@@ -5,6 +5,7 @@ SELECT * FROM protocols WHERE symbol = $1;
 SELECT
     p.*,
     cg.custodians,
+    cg.quorum,
     t.chain,
     t.chain_id,
     t.address
@@ -19,6 +20,7 @@ GROUP BY
     p.custodian_group_name,
     p.custodian_group_uid,
     cg.custodians,
+    cg.quorum,
     p.tag,
     p.decimals, 
     p.liquidity_model,

@@ -41,6 +41,7 @@ const getProtocols = `-- name: GetProtocols :many
 SELECT
     p.id, p.symbol, p.name, p.bitcoin_pubkey, p.decimals, p.avatar, p.custodian_group_name, p.custodian_group_uid, p.tag, p.liquidity_model, p.capacity, p.daily_mint_limit, p.created_at, p.updated_at,
     cg.custodians,
+    cg.quorum,
     t.chain,
     t.chain_id,
     t.address
@@ -55,6 +56,7 @@ GROUP BY
     p.custodian_group_name,
     p.custodian_group_uid,
     cg.custodians,
+    cg.quorum,
     p.tag,
     p.decimals, 
     p.liquidity_model,
@@ -84,6 +86,7 @@ type GetProtocolsRow struct {
 	CreatedAt          pgtype.Timestamp `json:"created_at"`
 	UpdatedAt          pgtype.Timestamp `json:"updated_at"`
 	Custodians         []byte           `json:"custodians"`
+	Quorum             int64            `json:"quorum"`
 	Chain              pgtype.Text      `json:"chain"`
 	ChainID            pgtype.Numeric   `json:"chain_id"`
 	Address            []byte           `json:"address"`
@@ -114,6 +117,7 @@ func (q *Queries) GetProtocols(ctx context.Context) ([]GetProtocolsRow, error) {
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.Custodians,
+			&i.Quorum,
 			&i.Chain,
 			&i.ChainID,
 			&i.Address,
