@@ -7,15 +7,13 @@ package sqlc
 
 import (
 	"context"
-
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const listRedeemRequests = `-- name: ListRedeemRequests :many
-SELECT id, address, signature, chain, symbol, amount, nonce, created_at, updated_at
+SELECT id, address, source_chain, dest_chain, symbol, amount, locking_script, created_at, updated_at
 FROM redeem_requests
 WHERE address = $1
-ORDER BY nonce DESC
+ORDER BY created_at DESC
 LIMIT $2 OFFSET $3
 `
 
@@ -37,11 +35,11 @@ func (q *Queries) ListRedeemRequests(ctx context.Context, arg ListRedeemRequests
 		if err := rows.Scan(
 			&i.ID,
 			&i.Address,
-			&i.Signature,
-			&i.Chain,
+			&i.SourceChain,
+			&i.DestChain,
 			&i.Symbol,
 			&i.Amount,
-			&i.Nonce,
+			&i.LockingScript,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -56,27 +54,27 @@ func (q *Queries) ListRedeemRequests(ctx context.Context, arg ListRedeemRequests
 }
 
 const saveRedeemRequest = `-- name: SaveRedeemRequest :exec
-INSERT INTO redeem_requests (address,  signature, chain, symbol, amount, nonce)
+INSERT INTO redeem_requests (address,  source_chain, dest_chain, symbol, amount, locking_script)
 VALUES ($1, $2, $3, $4, $5, $6)
 `
 
 type SaveRedeemRequestParams struct {
-	Address   []byte         `json:"address"`
-	Signature []byte         `json:"signature"`
-	Chain     string         `json:"chain"`
-	Symbol    string         `json:"symbol"`
-	Amount    string         `json:"amount"`
-	Nonce     pgtype.Numeric `json:"nonce"`
+	Address       []byte `json:"address"`
+	SourceChain   string `json:"source_chain"`
+	DestChain     string `json:"dest_chain"`
+	Symbol        string `json:"symbol"`
+	Amount        string `json:"amount"`
+	LockingScript []byte `json:"locking_script"`
 }
 
 func (q *Queries) SaveRedeemRequest(ctx context.Context, arg SaveRedeemRequestParams) error {
 	_, err := q.db.Exec(ctx, saveRedeemRequest,
 		arg.Address,
-		arg.Signature,
-		arg.Chain,
+		arg.SourceChain,
+		arg.DestChain,
 		arg.Symbol,
 		arg.Amount,
-		arg.Nonce,
+		arg.LockingScript,
 	)
 	return err
 }

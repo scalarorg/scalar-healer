@@ -12,11 +12,11 @@ CREATE TABLE IF NOT EXISTS bridge_requests (
 CREATE TABLE IF NOT EXISTS redeem_requests (
     id BIGSERIAL PRIMARY KEY,
     address BYTEA NOT NULL,
-    signature BYTEA NOT NULL,
-    chain TEXT NOT NULL,
+    source_chain TEXT NOT NULL,
+    dest_chain TEXT NOT NULL,
     symbol TEXT NOT NULL,
     amount TEXT NOT NULL,
-    nonce NUMERIC NOT NULL,
+    locking_script BYTEA NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );

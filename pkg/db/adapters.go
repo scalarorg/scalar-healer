@@ -59,7 +59,7 @@ type HealderAdapter interface {
 	FindPendingRedeemsTransaction(ctx context.Context, chainId string, expectedConfirmBlock int32) ([]chains.RedeemTx, error)
 	UpdateRedeemExecutedCommands(ctx context.Context, chainId string, txHashes []string) error
 
-	SaveRedeemRequest(ctx context.Context, chain string, address common.Address, signature []byte, amount *big.Int, symbol string, nonce uint64) error
+	SaveRedeemRequest(ctx context.Context, sourceChain, destChain string, address common.Address, amount *big.Int, symbol string, lockingScript []byte) error
 	ListRedeemRequests(ctx context.Context, address common.Address, page, size int32) ([]sqlc.RedeemRequest, error)
 
 	// contract calls
