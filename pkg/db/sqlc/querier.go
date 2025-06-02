@@ -22,7 +22,7 @@ type Querier interface {
 	GetCustodianGroupByUID(ctx context.Context, uid []byte) (CustodianGroup, error)
 	GetGatewayAddress(ctx context.Context, chain string) ([]byte, error)
 	GetNonce(ctx context.Context, address []byte) (pgtype.Numeric, error)
-	GetProtocol(ctx context.Context, symbol string) (Protocol, error)
+	GetProtocol(ctx context.Context, symbol string) ([]GetProtocolRow, error)
 	GetProtocols(ctx context.Context) ([]GetProtocolsRow, error)
 	GetRedeemSession(ctx context.Context, custodianGroupUid []byte) (RedeemSession, error)
 	GetTokenAddressBySymbol(ctx context.Context, arg GetTokenAddressBySymbolParams) ([]byte, error)

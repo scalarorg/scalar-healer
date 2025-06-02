@@ -8,5 +8,6 @@ import (
 func Route(g *echo.Group, path string) {
 	gr := g.Group(path, middleware.Authenticate)
 	gr.POST("", CreateRedeem)
+	gr.POST("/available_balance", GetAvailableBalance)
 	gr.GET("/:address", ListRedeem)
 }

@@ -11,30 +11,100 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const getProtocol = `-- name: GetProtocol :one
-SELECT id, symbol, name, bitcoin_pubkey, decimals, avatar, custodian_group_name, custodian_group_uid, tag, liquidity_model, capacity, daily_mint_limit, created_at, updated_at FROM protocols WHERE symbol = $1
+const getProtocol = `-- name: GetProtocol :many
+SELECT
+    p.id, p.symbol, p.name, p.bitcoin_pubkey, p.decimals, p.avatar, p.custodian_group_name, p.custodian_group_uid, p.tag, p.liquidity_model, p.capacity, p.daily_mint_limit, p.created_at, p.updated_at,
+    cg.custodians,
+    cg.quorum,
+    t.chain,
+    t.chain_id,
+    t.address
+FROM protocols p
+JOIN custodian_groups cg ON cg.uid = p.custodian_group_uid
+LEFT JOIN tokens t ON t.symbol = p.symbol
+WHERE p.symbol = $1
+GROUP BY 
+    p.id,
+    p.symbol,
+    p.name,
+    p.bitcoin_pubkey,
+    p.custodian_group_name,
+    p.custodian_group_uid,
+    cg.custodians,
+    cg.quorum,
+    p.tag,
+    p.decimals, 
+    p.liquidity_model,
+    p.avatar,
+    p.capacity,
+    p.daily_mint_limit,
+    p.created_at,
+    p.updated_at,
+    t.chain,
+    t.chain_id,
+    t.address
 `
 
-func (q *Queries) GetProtocol(ctx context.Context, symbol string) (Protocol, error) {
-	row := q.db.QueryRow(ctx, getProtocol, symbol)
-	var i Protocol
-	err := row.Scan(
-		&i.ID,
-		&i.Symbol,
-		&i.Name,
-		&i.BitcoinPubkey,
-		&i.Decimals,
-		&i.Avatar,
-		&i.CustodianGroupName,
-		&i.CustodianGroupUid,
-		&i.Tag,
-		&i.LiquidityModel,
-		&i.Capacity,
-		&i.DailyMintLimit,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
+type GetProtocolRow struct {
+	ID                 int64            `json:"id"`
+	Symbol             string           `json:"symbol"`
+	Name               string           `json:"name"`
+	BitcoinPubkey      []byte           `json:"bitcoin_pubkey"`
+	Decimals           int64            `json:"decimals"`
+	Avatar             string           `json:"avatar"`
+	CustodianGroupName string           `json:"custodian_group_name"`
+	CustodianGroupUid  []byte           `json:"custodian_group_uid"`
+	Tag                string           `json:"tag"`
+	LiquidityModel     string           `json:"liquidity_model"`
+	Capacity           pgtype.Numeric   `json:"capacity"`
+	DailyMintLimit     pgtype.Numeric   `json:"daily_mint_limit"`
+	CreatedAt          pgtype.Timestamp `json:"created_at"`
+	UpdatedAt          pgtype.Timestamp `json:"updated_at"`
+	Custodians         []byte           `json:"custodians"`
+	Quorum             int64            `json:"quorum"`
+	Chain              pgtype.Text      `json:"chain"`
+	ChainID            pgtype.Numeric   `json:"chain_id"`
+	Address            []byte           `json:"address"`
+}
+
+func (q *Queries) GetProtocol(ctx context.Context, symbol string) ([]GetProtocolRow, error) {
+	rows, err := q.db.Query(ctx, getProtocol, symbol)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetProtocolRow{}
+	for rows.Next() {
+		var i GetProtocolRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Symbol,
+			&i.Name,
+			&i.BitcoinPubkey,
+			&i.Decimals,
+			&i.Avatar,
+			&i.CustodianGroupName,
+			&i.CustodianGroupUid,
+			&i.Tag,
+			&i.LiquidityModel,
+			&i.Capacity,
+			&i.DailyMintLimit,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Custodians,
+			&i.Quorum,
+			&i.Chain,
+			&i.ChainID,
+			&i.Address,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getProtocols = `-- name: GetProtocols :many
