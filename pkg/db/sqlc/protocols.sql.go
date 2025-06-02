@@ -12,7 +12,7 @@ import (
 )
 
 const getProtocol = `-- name: GetProtocol :one
-SELECT id, symbol, name, decimals, avatar, custodian_group_name, custodian_group_uid, tag, liquidity_model, capacity, daily_mint_limit, created_at, updated_at FROM protocols WHERE symbol = $1
+SELECT id, symbol, name, bitcoin_pubkey, decimals, avatar, custodian_group_name, custodian_group_uid, tag, liquidity_model, capacity, daily_mint_limit, created_at, updated_at FROM protocols WHERE symbol = $1
 `
 
 func (q *Queries) GetProtocol(ctx context.Context, symbol string) (Protocol, error) {
@@ -22,6 +22,7 @@ func (q *Queries) GetProtocol(ctx context.Context, symbol string) (Protocol, err
 		&i.ID,
 		&i.Symbol,
 		&i.Name,
+		&i.BitcoinPubkey,
 		&i.Decimals,
 		&i.Avatar,
 		&i.CustodianGroupName,
@@ -38,7 +39,7 @@ func (q *Queries) GetProtocol(ctx context.Context, symbol string) (Protocol, err
 
 const getProtocols = `-- name: GetProtocols :many
 SELECT
-    p.id, p.symbol, p.name, p.decimals, p.avatar, p.custodian_group_name, p.custodian_group_uid, p.tag, p.liquidity_model, p.capacity, p.daily_mint_limit, p.created_at, p.updated_at,
+    p.id, p.symbol, p.name, p.bitcoin_pubkey, p.decimals, p.avatar, p.custodian_group_name, p.custodian_group_uid, p.tag, p.liquidity_model, p.capacity, p.daily_mint_limit, p.created_at, p.updated_at,
     cg.custodians,
     t.chain,
     t.chain_id,
@@ -50,6 +51,7 @@ GROUP BY
     p.id,
     p.symbol,
     p.name,
+    p.bitcoin_pubkey,
     p.custodian_group_name,
     p.custodian_group_uid,
     cg.custodians,
@@ -70,6 +72,7 @@ type GetProtocolsRow struct {
 	ID                 int64            `json:"id"`
 	Symbol             string           `json:"symbol"`
 	Name               string           `json:"name"`
+	BitcoinPubkey      []byte           `json:"bitcoin_pubkey"`
 	Decimals           int64            `json:"decimals"`
 	Avatar             string           `json:"avatar"`
 	CustodianGroupName string           `json:"custodian_group_name"`
@@ -99,6 +102,7 @@ func (q *Queries) GetProtocols(ctx context.Context) ([]GetProtocolsRow, error) {
 			&i.ID,
 			&i.Symbol,
 			&i.Name,
+			&i.BitcoinPubkey,
 			&i.Decimals,
 			&i.Avatar,
 			&i.CustodianGroupName,
@@ -125,21 +129,22 @@ func (q *Queries) GetProtocols(ctx context.Context) ([]GetProtocolsRow, error) {
 }
 
 const saveProtocols = `-- name: SaveProtocols :exec
-INSERT INTO protocols (symbol, name, custodian_group_name, custodian_group_uid, tag, liquidity_model, decimals, capacity, daily_mint_limit, avatar)
-VALUES(unnest($1::text[]), unnest($2::text[]), unnest($3::text[]), unnest($4::bytea[]), unnest($5::text[]), unnest($6::text[]), unnest($7::bigint[]), unnest($8::numeric[]), unnest($9::numeric[]), unnest($10::text[])) ON CONFLICT DO NOTHING
+INSERT INTO protocols (symbol, name, bitcoin_pubkey, custodian_group_name, custodian_group_uid, tag, liquidity_model, decimals, capacity, daily_mint_limit, avatar)
+VALUES(unnest($1::text[]), unnest($2::text[]), unnest($3::bytea[]), unnest($4::text[]), unnest($5::bytea[]), unnest($6::text[]), unnest($7::text[]), unnest($8::bigint[]), unnest($9::numeric[]), unnest($10::numeric[]), unnest($11::text[])) ON CONFLICT DO NOTHING
 `
 
 type SaveProtocolsParams struct {
 	Column1  []string         `json:"column_1"`
 	Column2  []string         `json:"column_2"`
-	Column3  []string         `json:"column_3"`
-	Column4  [][]byte         `json:"column_4"`
-	Column5  []string         `json:"column_5"`
+	Column3  [][]byte         `json:"column_3"`
+	Column4  []string         `json:"column_4"`
+	Column5  [][]byte         `json:"column_5"`
 	Column6  []string         `json:"column_6"`
-	Column7  []int64          `json:"column_7"`
-	Column8  []pgtype.Numeric `json:"column_8"`
+	Column7  []string         `json:"column_7"`
+	Column8  []int64          `json:"column_8"`
 	Column9  []pgtype.Numeric `json:"column_9"`
-	Column10 []string         `json:"column_10"`
+	Column10 []pgtype.Numeric `json:"column_10"`
+	Column11 []string         `json:"column_11"`
 }
 
 func (q *Queries) SaveProtocols(ctx context.Context, arg SaveProtocolsParams) error {
@@ -154,6 +159,7 @@ func (q *Queries) SaveProtocols(ctx context.Context, arg SaveProtocolsParams) er
 		arg.Column8,
 		arg.Column9,
 		arg.Column10,
+		arg.Column11,
 	)
 	return err
 }

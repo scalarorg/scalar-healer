@@ -12,6 +12,7 @@ import (
 func (m *HealerRepository) SaveProtocols(ctx context.Context, protocols []sqlc.Protocol) error {
 	var symbols []string
 	var names []string
+	var bitconPubkeys [][]byte
 	var custodianGroupNames []string
 	var custodianGroupUIDs [][]byte
 	var tags []string
@@ -24,6 +25,7 @@ func (m *HealerRepository) SaveProtocols(ctx context.Context, protocols []sqlc.P
 	for _, protocol := range protocols {
 		symbols = append(symbols, protocol.Symbol)
 		names = append(names, protocol.Name)
+		bitconPubkeys = append(bitconPubkeys, protocol.BitcoinPubkey)
 		custodianGroupNames = append(custodianGroupNames, protocol.CustodianGroupName)
 		custodianGroupUIDs = append(custodianGroupUIDs, protocol.CustodianGroupUid)
 		tags = append(tags, protocol.Tag)
@@ -37,14 +39,15 @@ func (m *HealerRepository) SaveProtocols(ctx context.Context, protocols []sqlc.P
 	return m.Queries.SaveProtocols(ctx, sqlc.SaveProtocolsParams{
 		Column1:  symbols,
 		Column2:  names,
-		Column3:  custodianGroupNames,
-		Column4:  custodianGroupUIDs,
-		Column5:  tags,
-		Column6:  liquidityModels,
-		Column7:  decimals,
-		Column8:  capacities,
-		Column9:  dailyMintLimits,
-		Column10: avatars,
+		Column3:  bitconPubkeys,
+		Column4:  custodianGroupNames,
+		Column5:  custodianGroupUIDs,
+		Column6:  tags,
+		Column7:  liquidityModels,
+		Column8:  decimals,
+		Column9:  capacities,
+		Column10: dailyMintLimits,
+		Column11: avatars,	
 	})
 }
 
@@ -84,6 +87,7 @@ func (m *HealerRepository) GetProtocols(ctx context.Context) ([]sqlc.ProtocolWit
 					ID:                 row.ID,
 					Symbol:             row.Symbol,
 					Name:               row.Name,
+					BitcoinPubkey:      row.BitcoinPubkey,
 					CustodianGroupName: row.CustodianGroupName,
 					CustodianGroupUid:  row.CustodianGroupUid,
 					Tag:                row.Tag,

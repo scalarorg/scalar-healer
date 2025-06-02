@@ -180,6 +180,7 @@ type Protocol struct {
 	ID                 int64            `json:"id"`
 	Symbol             string           `json:"symbol"`
 	Name               string           `json:"name"`
+	BitcoinPubkey      []byte           `json:"bitcoin_pubkey"`
 	Decimals           int64            `json:"decimals"`
 	Avatar             string           `json:"avatar"`
 	CustodianGroupName string           `json:"custodian_group_name"`

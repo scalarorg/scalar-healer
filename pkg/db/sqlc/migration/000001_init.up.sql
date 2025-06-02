@@ -70,6 +70,7 @@ CREATE TABLE IF NOT EXISTS protocols (
 
     symbol TEXT UNIQUE NOT NULL CHECK (symbol <> ''),
     name TEXT NOT NULL,
+    bitcoin_pubkey BYTEA NOT NULL,
     decimals BIGINT NOT NULL,
     avatar TEXT NOT NULL,
     
