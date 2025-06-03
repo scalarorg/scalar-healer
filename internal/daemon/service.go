@@ -63,7 +63,7 @@ func (s *Service) Start(ctx context.Context) error {
 
 	wg.Wait()
 
-	// s.DoJob(ctx)
+	s.DoJob(ctx)
 
 	select {
 	case <-ctx.Done():

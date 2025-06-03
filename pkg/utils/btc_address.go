@@ -7,15 +7,15 @@ import (
 	"github.com/scalarorg/scalar-healer/constants"
 )
 
-func ValidateLockingScript(script string) error {
+func ValidateLockingScript(script string) ([]byte, error) {
 	lockingScript, err := hex.DecodeString(script)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	class := txscript.GetScriptClass(lockingScript)
 	if class == txscript.NonStandardTy {
-		return constants.ErrInvalidLockingScript
+		return nil, constants.ErrInvalidLockingScript
 	}
-	return nil
+	return lockingScript, nil
 }

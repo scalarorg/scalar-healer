@@ -1,12 +1,11 @@
 package redeem
 
 import (
-	"encoding/hex"
 	"net/http"
 
-	"github.com/btcsuite/btcd/txscript"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/labstack/echo/v4"
+	"github.com/rs/zerolog/log"
 	"github.com/scalarorg/scalar-healer/constants"
 	"github.com/scalarorg/scalar-healer/internal/middleware"
 	"github.com/scalarorg/scalar-healer/pkg/db"
@@ -44,22 +43,15 @@ func CreateRedeem(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, constants.ErrInvalidAmount)
 	}
 
-	// TODO: validate the locking script
-	lockScript, err := hex.DecodeString(body.LockingScript)
+	lockScript, err := utils.ValidateLockingScript(body.LockingScript)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, constants.ErrInvalidLockingScript)
 	}
-
-	class := txscript.GetScriptClass(lockScript)
-	if class == txscript.NonStandardTy {
-		return echo.NewHTTPError(http.StatusBadRequest, constants.ErrInvalidLockingScript)
-	}
-
-	// txscript.GetWitnessProgramInfo()
 
 	// Save redeem request
 	err = db.SaveRedeemRequest(ctx, body.SourceChain, body.DestChain, body.Address, amountz, body.Symbol, lockScript)
 	if err != nil {
+		log.Error().Err(err).Msg("failed to save redeem request")
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to save redeem request")
 	}
 

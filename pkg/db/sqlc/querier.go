@@ -30,7 +30,7 @@ type Querier interface {
 	GetUTXOs(ctx context.Context, arg GetUTXOsParams) ([]Utxo, error)
 	GetUTXOsByCustodianGroupUID(ctx context.Context, dollar_1 []byte) ([]Utxo, error)
 	ListBridgeRequests(ctx context.Context, arg ListBridgeRequestsParams) ([]BridgeRequest, error)
-	ListRedeemRequests(ctx context.Context, arg ListRedeemRequestsParams) ([]RedeemRequest, error)
+	ListRedeemRequests(ctx context.Context, arg ListRedeemRequestsParams) ([]ListRedeemRequestsRow, error)
 	ListTokens(ctx context.Context) ([]Token, error)
 	ListTransferRequests(ctx context.Context, arg ListTransferRequestsParams) ([]TransferRequest, error)
 	SaveBridgeRequest(ctx context.Context, arg SaveBridgeRequestParams) error

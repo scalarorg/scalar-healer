@@ -43,6 +43,7 @@ GROUP BY
     t.chain,
     t.chain_id,
     t.address
+ORDER BY t.chain_id ASC
 `
 
 type GetProtocolRow struct {
@@ -138,6 +139,7 @@ GROUP BY
     t.chain,
     t.chain_id,
     t.address
+ORDER BY p.symbol ASC
 `
 
 type GetProtocolsRow struct {

@@ -29,7 +29,8 @@ GROUP BY
     p.updated_at,
     t.chain,
     t.chain_id,
-    t.address;
+    t.address
+ORDER BY t.chain_id ASC;
 
 -- name: GetProtocols :many
 SELECT
@@ -61,7 +62,8 @@ GROUP BY
     p.updated_at,
     t.chain,
     t.chain_id,
-    t.address;
+    t.address
+ORDER BY p.symbol ASC;
 
 
 -- name: SaveProtocols :exec

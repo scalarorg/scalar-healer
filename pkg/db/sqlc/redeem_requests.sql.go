@@ -7,10 +7,12 @@ package sqlc
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const listRedeemRequests = `-- name: ListRedeemRequests :many
-SELECT id, address, source_chain, dest_chain, symbol, amount, locking_script, created_at, updated_at
+SELECT id, address, source_chain, dest_chain, symbol, amount, locking_script, created_at, updated_at, COUNT(*) OVER() AS count
 FROM redeem_requests
 WHERE address = $1
 ORDER BY created_at DESC
@@ -23,15 +25,28 @@ type ListRedeemRequestsParams struct {
 	Offset  int32  `json:"offset"`
 }
 
-func (q *Queries) ListRedeemRequests(ctx context.Context, arg ListRedeemRequestsParams) ([]RedeemRequest, error) {
+type ListRedeemRequestsRow struct {
+	ID            int64            `json:"id"`
+	Address       []byte           `json:"address"`
+	SourceChain   string           `json:"source_chain"`
+	DestChain     string           `json:"dest_chain"`
+	Symbol        string           `json:"symbol"`
+	Amount        string           `json:"amount"`
+	LockingScript []byte           `json:"locking_script"`
+	CreatedAt     pgtype.Timestamp `json:"created_at"`
+	UpdatedAt     pgtype.Timestamp `json:"updated_at"`
+	Count         int64            `json:"count"`
+}
+
+func (q *Queries) ListRedeemRequests(ctx context.Context, arg ListRedeemRequestsParams) ([]ListRedeemRequestsRow, error) {
 	rows, err := q.db.Query(ctx, listRedeemRequests, arg.Address, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []RedeemRequest{}
+	items := []ListRedeemRequestsRow{}
 	for rows.Next() {
-		var i RedeemRequest
+		var i ListRedeemRequestsRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Address,
@@ -42,6 +57,7 @@ func (q *Queries) ListRedeemRequests(ctx context.Context, arg ListRedeemRequests
 			&i.LockingScript,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Count,
 		); err != nil {
 			return nil, err
 		}
