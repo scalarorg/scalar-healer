@@ -8,6 +8,8 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/rs/zerolog/log"
+	"github.com/scalarorg/bitcoin-vault/ffi/go-vault"
+	"github.com/scalarorg/bitcoin-vault/go-utils/types"
 	"github.com/scalarorg/scalar-healer/pkg/db/sqlc"
 	"github.com/scalarorg/scalar-healer/pkg/evm"
 	"github.com/scalarorg/scalar-healer/pkg/utils"
@@ -145,4 +147,118 @@ func (s *Service) RecoverEvmSessions(ctx context.Context) {
 	// TODO: Simulate switch phase
 
 	return
+}
+
+type btcSessionResult struct {
+	groupUID     []byte
+	utxos        []sqlc.Utxo
+	blockHeights []uint64
+	err          error
+}
+
+func (s *Service) RecoverBTCSessions(ctx context.Context) {
+	groups, err := s.CombinedAdapter.GetAllCustodianGroups(ctx)
+	if err != nil {
+		log.Error().Err(err).Msg("[DaemonService] Cannot get custodian groups")
+		panic(err)
+	}
+
+	log.Info().
+		Int("len(groups)", len(groups)).
+		Interface("groups", groups).
+		Msg("[Service][RecoverBTCSessions] start recover btc sessions")
+
+	wg := sync.WaitGroup{}
+
+	resultChan := make(chan *btcSessionResult, len(groups))
+
+	for _, group := range groups {
+		wg.Add(1)
+
+		go func(group sqlc.CustodianGroup) {
+			defer wg.Done()
+
+			var custodians sqlc.Custodians
+
+			err := custodians.FromJson(group.Custodians)
+			if err != nil {
+				resultChan <- &btcSessionResult{
+					groupUID: group.Uid,
+					err:      err,
+				}
+				return
+			}
+
+			pubkeys := utils.Map(custodians, func(c sqlc.Custodian) types.PublicKey {
+				return types.PublicKey(c.BitcoinPubkey)
+			})
+
+			lockingScript, err := vault.CustodiansOnlyLockingScript(pubkeys, uint8(group.Quorum))
+			if err != nil {
+				resultChan <- &btcSessionResult{
+					groupUID: group.Uid,
+					err:      err,
+				}
+				return
+			}
+
+			utxos, blockHeights, err := GetUtxoList(lockingScript, group.Uid)
+			if err != nil {
+				resultChan <- &btcSessionResult{
+					groupUID: group.Uid,
+					err:      err,
+				}
+				return
+			}
+
+			resultChan <- &btcSessionResult{
+				groupUID:     group.Uid,
+				utxos:        utxos,
+				blockHeights: blockHeights,
+			}
+
+		}(group)
+	}
+
+	go func() {
+		wg.Wait()
+		close(resultChan)
+		log.Info().Msgf("[Service][RecoverBTCSessions] finished get utxos")
+	}()
+
+	utxos := make([]sqlc.Utxo, 0)
+	blockHeights := make([]uint64, 0)
+	for result := range resultChan {
+		if result.err != nil {
+			log.Error().Err(result.err).Msgf("[Service][RecoverBTCSessions] cannot get locking script")
+			panic(result.err)
+		}
+
+		utxos = append(utxos, result.utxos...)
+		blockHeights = append(blockHeights, result.blockHeights...)
+	}
+
+	if len(utxos) == 0 {
+		log.Info().Msgf("[Service][RecoverBTCSessions] no utxos")
+		return
+	}
+
+	maxBlockHeight := uint64(0)
+	for _, blockHeight := range blockHeights {
+		if blockHeight > maxBlockHeight {
+			maxBlockHeight = blockHeight
+		}
+	}
+
+	utxos = utils.Map(utxos, func(utxo sqlc.Utxo) sqlc.Utxo {
+		utxo.BlockHeight = int64(maxBlockHeight)
+		return utxo
+	})
+
+	err = s.CombinedAdapter.SaveUtxoSnapshot(ctx, utxos)
+	if err != nil {
+		log.Error().Err(err).Msgf("[Service][RecoverBTCSessions] cannot save utxo snapshot")
+	}
+
+	log.Info().Msgf("[Service][RecoverBTCSessions] finished RecoverBTCSessions")
 }

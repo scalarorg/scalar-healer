@@ -132,6 +132,12 @@ type Custodian struct {
 	BitcoinPubkey []byte `json:"bitcoin_pubkey"`
 }
 
+type Custodians []Custodian
+
+func (c *Custodians) FromJson(data []byte) error {
+	return json.Unmarshal(data, c)
+}
+
 type ProtocolWithTokenDetails struct {
 	*Protocol
 	Tokens          []TokenDetails `json:"token_details"`

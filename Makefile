@@ -9,6 +9,9 @@ MODULE := github.com/scalarorg/scalar-healer
 
 migration_url := pkg/db/sqlc/migration
 
+LOCAL_LIB_PATH ?= $(shell pwd)/lib
+export CGO_LDFLAGS := ${CGO_LDFLAGS} -lbitcoin_vault_ffi  -L${LOCAL_LIB_PATH}
+
 $(info POSTGRES_URL: $(POSTGRES_URL))
 $(info migration_url: $(migration_url))
 
@@ -71,4 +74,8 @@ migrate-down:
 new-migration:
 	migrate create -ext sql -dir $(migration_url) -seq $(name)
 
+.PHONY: lib
+lib:
+	mkdir -p ./lib
+	cp ../bitcoin-vault/target/release/libbitcoin_vault_ffi.* ./lib
 

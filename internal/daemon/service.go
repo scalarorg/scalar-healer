@@ -49,7 +49,7 @@ func (s *Service) Start(ctx context.Context) error {
 	log.Debug().Msg("[Service] starting")
 
 	wg := sync.WaitGroup{}
-	wg.Add(2)
+	wg.Add(3)
 
 	// go func() {
 	// 	defer wg.Done()
@@ -59,6 +59,11 @@ func (s *Service) Start(ctx context.Context) error {
 	go func() {
 		defer wg.Done()
 		s.RecoverEvmSessions(ctx)
+	}()
+
+	go func() {
+		defer wg.Done()
+		s.RecoverBTCSessions(ctx)
 	}()
 
 	wg.Wait()

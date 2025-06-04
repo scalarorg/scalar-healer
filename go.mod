@@ -3,8 +3,8 @@ module github.com/scalarorg/scalar-healer
 go 1.23.3
 
 require (
-	github.com/btcsuite/btcd v0.24.2
-	github.com/btcsuite/btcd/btcutil/psbt v1.1.9
+	github.com/btcsuite/btcd v0.24.3-0.20250318170759-4f4ea81776d6
+	github.com/btcsuite/btcd/btcutil/psbt v1.1.10
 	github.com/btcsuite/btcd/chaincfg/chainhash v1.1.0
 	github.com/ethereum/go-ethereum v1.15.9
 	github.com/go-co-op/gocron v1.37.0
@@ -13,10 +13,12 @@ require (
 	github.com/golang-migrate/migrate/v4 v4.18.3
 	github.com/jackc/pgx/v5 v5.7.4
 	github.com/jedib0t/go-pretty/v6 v6.6.7
+	github.com/jinzhu/copier v0.4.0
 	github.com/joho/godotenv v1.5.1
 	github.com/labstack/echo/v4 v4.13.3
 	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.34.0
+	github.com/scalarorg/bitcoin-vault/ffi/go-vault v0.0.0-20250520041905-551b34d72bec
 	github.com/scalarorg/bitcoin-vault/go-utils v0.0.0-20250426033010-eb69d1a47edd
 	github.com/scalarorg/data-models v0.0.0-20250424041304-9384c0238741
 	github.com/scalarorg/go-electrum v0.1.2-0.20250423051259-1bfc1458b9fa
@@ -87,7 +89,6 @@ require (
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
-	github.com/jinzhu/copier v0.4.0 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/klauspost/compress v1.17.9 // indirect
