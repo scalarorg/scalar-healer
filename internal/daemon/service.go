@@ -29,7 +29,7 @@ func NewService(configPath string, evmPrivKey string, dbAdapter db.CombinedAdapt
 	if err != nil {
 		panic(err)
 	}
-	evmClients, err := evm.NewEvmClients(configPath, evmPrivKey, dbAdapter)
+	evmClients, err := evm.NewEvmClients(configPath, evmPrivKey)
 	if err != nil {
 		panic(err)
 	}
@@ -70,10 +70,8 @@ func (s *Service) Start(ctx context.Context) error {
 
 	s.DoJob(ctx)
 
-	select {
-	case <-ctx.Done():
-		return nil
-	}
+	<-ctx.Done()
+	return nil
 }
 
 func (s *Service) Stop() {

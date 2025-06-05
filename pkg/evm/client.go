@@ -12,10 +12,45 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/rs/zerolog/log"
+	"github.com/scalarorg/bitcoin-vault/go-utils/types"
 	"github.com/scalarorg/scalar-healer/config"
-	"github.com/scalarorg/scalar-healer/pkg/db"
 	contracts "github.com/scalarorg/scalar-healer/pkg/evm/contracts/generated"
 )
+
+const RETRY_INTERVAL = time.Second * 12
+
+type Byte32 [32]uint8
+type Bytes []byte
+type EvmNetworkConfig struct {
+	ChainID      uint64        `mapstructure:"chain_id"`
+	ID           string        `mapstructure:"id"`
+	Name         string        `mapstructure:"name"`
+	RPCUrl       string        `mapstructure:"rpc_url"`
+	AuthWeighted string        `mapstructure:"auth_weighted"`
+	Gateway      string        `mapstructure:"gateway"`
+	Finality     int           `mapstructure:"finality"`
+	StartBlock   uint64        `mapstructure:"start_block"`
+	PrivateKey   string        `mapstructure:"private_key"`
+	GasLimit     uint64        `mapstructure:"gas_limit"`
+	BlockTime    time.Duration `mapstructure:"blockTime"` //Timeout im ms for pending txs
+	MaxRetry     int
+	RecoverRange int64 `mapstructure:"recover_range"` //Max block range to recover events in single query
+	RetryDelay   time.Duration
+	TxTimeout    time.Duration `mapstructure:"tx_timeout"` //Timeout for send txs (~3s)
+}
+
+func (c *EvmNetworkConfig) GetChainId() uint64 {
+	return c.ChainID
+}
+func (c *EvmNetworkConfig) GetId() string {
+	return c.ID
+}
+func (c *EvmNetworkConfig) GetName() string {
+	return c.Name
+}
+func (c *EvmNetworkConfig) GetFamily() string {
+	return types.ChainTypeEVM.String()
+}
 
 type EvmClient struct {
 	EvmConfig      *EvmNetworkConfig
@@ -24,13 +59,10 @@ type EvmClient struct {
 	GatewayAddress common.Address
 	Gateway        *contracts.IScalarGateway
 	transactOpts   *bind.TransactOpts
-	dbAdapter      db.HealderAdapter
-	MissingLogs    MissingLogs
-
-	retryInterval time.Duration
+	retryInterval  time.Duration
 }
 
-func NewEvmClients(configPath string, evmPrivKey string, dbAdapter db.HealderAdapter) ([]*EvmClient, error) {
+func NewEvmClients(configPath string, evmPrivKey string) ([]*EvmClient, error) {
 	evmCfgPath := fmt.Sprintf("%s/evm.json", configPath)
 	configs, err := config.ReadJsonArrayConfig[EvmNetworkConfig](evmCfgPath)
 	if err != nil {
@@ -54,7 +86,7 @@ func NewEvmClients(configPath string, evmPrivKey string, dbAdapter db.HealderAda
 		if evmConfig.RecoverRange == 0 {
 			evmConfig.RecoverRange = 1000000
 		}
-		client, err := NewEvmClient(&evmConfig, dbAdapter)
+		client, err := NewEvmClient(&evmConfig)
 		if err != nil {
 			log.Warn().Msgf("Failed to create evm client for %s: %v", evmConfig.GetName(), err)
 			continue
@@ -65,7 +97,7 @@ func NewEvmClients(configPath string, evmPrivKey string, dbAdapter db.HealderAda
 	return evmClients, nil
 }
 
-func NewEvmClient(evmConfig *EvmNetworkConfig, dbAdapter db.HealderAdapter) (*EvmClient, error) {
+func NewEvmClient(evmConfig *EvmNetworkConfig) (*EvmClient, error) {
 	// Setup
 	ctx := context.Background()
 	log.Info().Any("evmConfig", evmConfig).Msgf("[EvmClient] [NewEvmClient] connecting to EVM network")
@@ -92,16 +124,12 @@ func NewEvmClient(evmConfig *EvmNetworkConfig, dbAdapter db.HealderAdapter) (*Ev
 		GatewayAddress: *gatewayAddress,
 		Gateway:        gateway,
 		transactOpts:   auth,
-		dbAdapter:      dbAdapter,
-		MissingLogs: MissingLogs{
-			chainId:   evmConfig.GetId(),
-			RedeemTxs: make(map[string][]string),
-		},
 		retryInterval: RETRY_INTERVAL,
 	}
 
 	return evmClient, nil
 }
+
 func CreateGateway(networName string, gwAddr string, client *ethclient.Client) (*contracts.IScalarGateway, *common.Address, error) {
 	if gwAddr == "" {
 		return nil, nil, fmt.Errorf("gateway address is not set for network %s", networName)
@@ -113,6 +141,7 @@ func CreateGateway(networName string, gwAddr string, client *ethclient.Client) (
 	}
 	return gateway, &gatewayAddress, nil
 }
+
 func CreateTransactOpts(evmConfig *EvmNetworkConfig) (*bind.TransactOpts, error) {
 	if evmConfig.PrivateKey == "" {
 		return nil, fmt.Errorf("private key is not set for network %s", evmConfig.Name)

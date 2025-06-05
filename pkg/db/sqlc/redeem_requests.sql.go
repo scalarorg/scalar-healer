@@ -12,7 +12,7 @@ import (
 )
 
 const listRedeemRequests = `-- name: ListRedeemRequests :many
-SELECT id, address, source_chain, dest_chain, symbol, amount, locking_script, created_at, updated_at, COUNT(*) OVER() AS count
+SELECT id, address, source_chain, dest_chain, symbol, amount, locking_script, custodian_group_uid, created_at, updated_at, COUNT(*) OVER() AS count
 FROM redeem_requests
 WHERE address = $1
 ORDER BY created_at DESC
@@ -26,16 +26,17 @@ type ListRedeemRequestsParams struct {
 }
 
 type ListRedeemRequestsRow struct {
-	ID            int64            `json:"id"`
-	Address       []byte           `json:"address"`
-	SourceChain   string           `json:"source_chain"`
-	DestChain     string           `json:"dest_chain"`
-	Symbol        string           `json:"symbol"`
-	Amount        string           `json:"amount"`
-	LockingScript []byte           `json:"locking_script"`
-	CreatedAt     pgtype.Timestamp `json:"created_at"`
-	UpdatedAt     pgtype.Timestamp `json:"updated_at"`
-	Count         int64            `json:"count"`
+	ID                int64            `json:"id"`
+	Address           []byte           `json:"address"`
+	SourceChain       string           `json:"source_chain"`
+	DestChain         string           `json:"dest_chain"`
+	Symbol            string           `json:"symbol"`
+	Amount            string           `json:"amount"`
+	LockingScript     []byte           `json:"locking_script"`
+	CustodianGroupUid []byte           `json:"custodian_group_uid"`
+	CreatedAt         pgtype.Timestamp `json:"created_at"`
+	UpdatedAt         pgtype.Timestamp `json:"updated_at"`
+	Count             int64            `json:"count"`
 }
 
 func (q *Queries) ListRedeemRequests(ctx context.Context, arg ListRedeemRequestsParams) ([]ListRedeemRequestsRow, error) {
@@ -55,6 +56,7 @@ func (q *Queries) ListRedeemRequests(ctx context.Context, arg ListRedeemRequests
 			&i.Symbol,
 			&i.Amount,
 			&i.LockingScript,
+			&i.CustodianGroupUid,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.Count,
@@ -70,17 +72,18 @@ func (q *Queries) ListRedeemRequests(ctx context.Context, arg ListRedeemRequests
 }
 
 const saveRedeemRequest = `-- name: SaveRedeemRequest :exec
-INSERT INTO redeem_requests (address,  source_chain, dest_chain, symbol, amount, locking_script)
-VALUES ($1, $2, $3, $4, $5, $6)
+INSERT INTO redeem_requests (address,  source_chain, dest_chain, symbol, amount, locking_script, custodian_group_uid)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
 `
 
 type SaveRedeemRequestParams struct {
-	Address       []byte `json:"address"`
-	SourceChain   string `json:"source_chain"`
-	DestChain     string `json:"dest_chain"`
-	Symbol        string `json:"symbol"`
-	Amount        string `json:"amount"`
-	LockingScript []byte `json:"locking_script"`
+	Address           []byte `json:"address"`
+	SourceChain       string `json:"source_chain"`
+	DestChain         string `json:"dest_chain"`
+	Symbol            string `json:"symbol"`
+	Amount            string `json:"amount"`
+	LockingScript     []byte `json:"locking_script"`
+	CustodianGroupUid []byte `json:"custodian_group_uid"`
 }
 
 func (q *Queries) SaveRedeemRequest(ctx context.Context, arg SaveRedeemRequestParams) error {
@@ -91,6 +94,7 @@ func (q *Queries) SaveRedeemRequest(ctx context.Context, arg SaveRedeemRequestPa
 		arg.Symbol,
 		arg.Amount,
 		arg.LockingScript,
+		arg.CustodianGroupUid,
 	)
 	return err
 }

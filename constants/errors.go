@@ -10,4 +10,6 @@ var (
 	ErrNotFoundGateway      = fmt.Errorf("not found gateway address for chain")
 	ErrInvalidNonce         = fmt.Errorf("invalid nonce")
 	ErrInvalidLockingScript = fmt.Errorf("invalid locking script")
+	ErrInvalidRedeemSession = fmt.Errorf("invalid redeem session")
+	ErrRedeemSessionSwitching = fmt.Errorf("redeem session is switching")
 )

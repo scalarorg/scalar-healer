@@ -194,15 +194,16 @@ type Protocol struct {
 }
 
 type RedeemRequest struct {
-	ID            int64            `json:"id"`
-	Address       []byte           `json:"address"`
-	SourceChain   string           `json:"source_chain"`
-	DestChain     string           `json:"dest_chain"`
-	Symbol        string           `json:"symbol"`
-	Amount        string           `json:"amount"`
-	LockingScript []byte           `json:"locking_script"`
-	CreatedAt     pgtype.Timestamp `json:"created_at"`
-	UpdatedAt     pgtype.Timestamp `json:"updated_at"`
+	ID                int64            `json:"id"`
+	Address           []byte           `json:"address"`
+	SourceChain       string           `json:"source_chain"`
+	DestChain         string           `json:"dest_chain"`
+	Symbol            string           `json:"symbol"`
+	Amount            string           `json:"amount"`
+	LockingScript     []byte           `json:"locking_script"`
+	CustodianGroupUid []byte           `json:"custodian_group_uid"`
+	CreatedAt         pgtype.Timestamp `json:"created_at"`
+	UpdatedAt         pgtype.Timestamp `json:"updated_at"`
 }
 
 type RedeemSession struct {

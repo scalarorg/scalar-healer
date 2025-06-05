@@ -17,9 +17,12 @@ CREATE TABLE IF NOT EXISTS redeem_requests (
     symbol TEXT NOT NULL,
     amount TEXT NOT NULL,
     locking_script BYTEA NOT NULL,
+    custodian_group_uid BYTEA NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
+
+
 
 CREATE TABLE IF NOT EXISTS transfer_requests (
     id BIGSERIAL PRIMARY KEY,
@@ -103,9 +106,7 @@ CREATE TABLE IF NOT EXISTS tokens (
 
 CREATE UNIQUE INDEX IF NOT EXISTS tokens_symbol_chain_idx ON tokens (symbol, chain);
 
-ALTER TABLE tokens ADD FOREIGN KEY (symbol) REFERENCES protocols (symbol) ON DELETE CASCADE;
 
-ALTER TABLE protocols ADD FOREIGN KEY (custodian_group_uid) REFERENCES custodian_groups (uid) ON DELETE CASCADE;
 
 CREATE INDEX IF NOT EXISTS protocols_symbol_idx ON protocols (symbol);
 
@@ -137,8 +138,6 @@ CREATE TABLE IF NOT EXISTS reservations (
 
 CREATE UNIQUE INDEX IF NOT EXISTS reservations_utxo_tx_id_vout_idx ON reservations (utxo_tx_id, utxo_vout);
 
-ALTER TABLE reservations ADD FOREIGN KEY (utxo_tx_id, utxo_vout) REFERENCES utxos (tx_id, vout) ON DELETE CASCADE;
-
 -- Redeem session
 
 CREATE TYPE REDEEM_PHASE as ENUM ('PREPARING', 'EXECUTING'); 
@@ -155,8 +154,6 @@ CREATE TABLE IF NOT EXISTS redeem_sessions (
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
-ALTER TABLE redeem_sessions ADD FOREIGN KEY (custodian_group_uid) REFERENCES custodian_groups (uid) ON DELETE CASCADE;
-
 CREATE TABLE IF NOT EXISTS chain_redeem_sessions (
     id BIGSERIAL PRIMARY KEY,
     
@@ -170,9 +167,6 @@ CREATE TABLE IF NOT EXISTS chain_redeem_sessions (
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS chain_redeem_sessions_custodian_group_uid_chain_idx ON chain_redeem_sessions (custodian_group_uid, chain);
-
-ALTER TABLE chain_redeem_sessions ADD FOREIGN KEY (custodian_group_uid) REFERENCES custodian_groups (uid) ON DELETE CASCADE;
-
 
 -- Commands
 
@@ -226,5 +220,18 @@ CREATE TABLE IF NOT EXISTS command_batchs (
 
 CREATE INDEX IF NOT EXISTS command_batchs_command_batch_id_idx ON command_batchs (command_batch_id);
 CREATE INDEX IF NOT EXISTS command_batchs_chain ON command_batchs (chain);
+
+ALTER TABLE tokens ADD FOREIGN KEY (symbol) REFERENCES protocols (symbol) ON DELETE CASCADE;
+
+ALTER TABLE protocols ADD FOREIGN KEY (custodian_group_uid) REFERENCES custodian_groups (uid) ON DELETE CASCADE;
+
+ALTER TABLE reservations ADD FOREIGN KEY (utxo_tx_id, utxo_vout) REFERENCES utxos (tx_id, vout) ON DELETE CASCADE;
+
+
+ALTER TABLE redeem_sessions ADD FOREIGN KEY (custodian_group_uid) REFERENCES custodian_groups (uid) ON DELETE CASCADE;
+
+ALTER TABLE chain_redeem_sessions ADD FOREIGN KEY (custodian_group_uid) REFERENCES custodian_groups (uid) ON DELETE CASCADE;
+
+ALTER TABLE redeem_requests ADD FOREIGN KEY (custodian_group_uid) REFERENCES custodian_groups (uid) ON DELETE CASCADE;
 
 ALTER TABLE commands ADD FOREIGN KEY (command_batch_id) REFERENCES command_batchs (command_batch_id);

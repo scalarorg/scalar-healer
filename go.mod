@@ -4,6 +4,7 @@ go 1.23.3
 
 require (
 	github.com/btcsuite/btcd v0.24.3-0.20250318170759-4f4ea81776d6
+	github.com/btcsuite/btcd/btcutil v1.1.6
 	github.com/btcsuite/btcd/btcutil/psbt v1.1.10
 	github.com/btcsuite/btcd/chaincfg/chainhash v1.1.0
 	github.com/ethereum/go-ethereum v1.15.9
@@ -45,7 +46,6 @@ require (
 	github.com/StackExchange/wmi v1.2.1 // indirect
 	github.com/bits-and-blooms/bitset v1.17.0 // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.3.4 // indirect
-	github.com/btcsuite/btcd/btcutil v1.1.6 // indirect
 	github.com/btcsuite/btclog v0.0.0-20170628155309-84c8d2346e9f // indirect
 	github.com/btcsuite/go-socks v0.0.0-20170105172521-4720035b7bfd // indirect
 	github.com/btcsuite/websocket v0.0.0-20150119174127-31079b680792 // indirect

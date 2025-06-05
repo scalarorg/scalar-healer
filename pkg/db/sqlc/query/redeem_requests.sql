@@ -1,6 +1,6 @@
 -- name: SaveRedeemRequest :exec
-INSERT INTO redeem_requests (address,  source_chain, dest_chain, symbol, amount, locking_script)
-VALUES ($1, $2, $3, $4, $5, $6);
+INSERT INTO redeem_requests (address,  source_chain, dest_chain, symbol, amount, locking_script, custodian_group_uid)
+VALUES ($1, $2, $3, $4, $5, $6, $7);
 
 -- name: ListRedeemRequests :many
 SELECT *, COUNT(*) OVER() AS count

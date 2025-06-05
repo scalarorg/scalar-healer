@@ -1,4 +1,4 @@
-package chains
+package chains 
 
 import (
 	"fmt"
@@ -43,4 +43,12 @@ func (m ChainName) IsEvmChain() bool {
 		return false
 	}
 	return *chainFamily == "evm"
+}
+
+func (m ChainName) IsBitcoinChain() bool {
+	chainFamily, _, err := m.GetParts()
+	if err != nil {
+		return false
+	}
+	return *chainFamily == "bitcoin"
 }
