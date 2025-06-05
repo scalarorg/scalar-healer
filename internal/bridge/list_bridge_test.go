@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/scalarorg/scalar-healer/pkg/db"
 	"github.com/scalarorg/scalar-healer/pkg/db/sqlc"
 	testutils "github.com/scalarorg/scalar-healer/pkg/test_utils"
 	"github.com/scalarorg/scalar-healer/pkg/utils"
@@ -51,7 +50,7 @@ func TestListBridge(t *testing.T) {
 				address := common.HexToAddress("0x24a1dB57Fa3ecAFcbaD91d6Ef068439acEeAe090")
 				signature, _ := hex.DecodeString("8e3bad2520fc46b7f78653a92745812c046df00dee0b29e0a01d670f6de9351a2e6bdd1bd471e95e0a94fd6b4262d173eb50fcc7e6fb3ea3b27823c2d893476b00")
 				txHash := common.HexToAddress("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
-				nonce := db.ConvertUint64ToNumeric(0) // First request should have nonce 0
+				nonce := sqlc.ConvertUint64ToNumeric(0) // First request should have nonce 0
 				assert.Equal(t, address, common.BytesToAddress(list[0].Address))
 				assert.Equal(t, signature, list[0].Signature)
 				assert.Equal(t, nonce, list[0].Nonce)

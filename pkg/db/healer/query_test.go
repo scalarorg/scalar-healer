@@ -56,7 +56,7 @@ func TestCreateTokens(t *testing.T) {
 		err := repo.SaveTokens(ctx, []sqlc.Token{
 			{
 				Symbol:  "ETH",
-				ChainID: db.ConvertUint64ToNumeric(1),
+				ChainID: sqlc.ConvertUint64ToNumeric(1),
 				Address: common.MaxAddress.Bytes(),
 				Active:  true,
 			},
@@ -126,8 +126,8 @@ func TestSaveProtocols(t *testing.T) {
 				Tag:                "test",
 				LiquidityModel:     "test",
 				Decimals:           int64(8),
-				Capacity:           db.ConvertUint64ToNumeric(100000000),
-				DailyMintLimit:     db.ConvertUint64ToNumeric(100000000),
+				Capacity:           sqlc.ConvertUint64ToNumeric(100000000),
+				DailyMintLimit:     sqlc.ConvertUint64ToNumeric(100000000),
 				Avatar:             "",
 			},
 		})

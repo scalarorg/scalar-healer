@@ -128,15 +128,23 @@ CREATE INDEX IF NOT EXISTS utxos_custodian_group_uid_idx ON utxos (custodian_gro
 
 CREATE TABLE IF NOT EXISTS reservations (
     id BIGSERIAL PRIMARY KEY,
-    utxo_tx_id BYTEA NOT NULL,
-    utxo_vout BIGINT NOT NULL,
     request_id TEXT UNIQUE NOT NULL,
     amount NUMERIC NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS reservations_utxo_tx_id_vout_idx ON reservations (utxo_tx_id, utxo_vout);
+CREATE TABLE IF NOT EXISTS utxo_reservations (
+    reservation_id BIGINT NOT NULL,
+    
+    utxo_tx_id BYTEA NOT NULL,
+    utxo_vout BIGINT NOT NULL,
+
+    PRIMARY KEY (utxo_tx_id, utxo_vout, reservation_id),
+
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
 
 -- Redeem session
 
@@ -221,11 +229,13 @@ CREATE TABLE IF NOT EXISTS command_batchs (
 CREATE INDEX IF NOT EXISTS command_batchs_command_batch_id_idx ON command_batchs (command_batch_id);
 CREATE INDEX IF NOT EXISTS command_batchs_chain ON command_batchs (chain);
 
+ALTER TABLE utxo_reservations ADD FOREIGN KEY (reservation_id) REFERENCES reservations(id) ON DELETE CASCADE;
+
+ALTER TABLE utxo_reservations ADD FOREIGN KEY (utxo_tx_id, utxo_vout) REFERENCES utxos(tx_id, vout) ON DELETE CASCADE;
+
 ALTER TABLE tokens ADD FOREIGN KEY (symbol) REFERENCES protocols (symbol) ON DELETE CASCADE;
 
 ALTER TABLE protocols ADD FOREIGN KEY (custodian_group_uid) REFERENCES custodian_groups (uid) ON DELETE CASCADE;
-
-ALTER TABLE reservations ADD FOREIGN KEY (utxo_tx_id, utxo_vout) REFERENCES utxos (tx_id, vout) ON DELETE CASCADE;
 
 
 ALTER TABLE redeem_sessions ADD FOREIGN KEY (custodian_group_uid) REFERENCES custodian_groups (uid) ON DELETE CASCADE;

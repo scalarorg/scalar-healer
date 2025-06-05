@@ -29,6 +29,7 @@ type Querier interface {
 	GetTokenSymbolByAddress(ctx context.Context, arg GetTokenSymbolByAddressParams) (string, error)
 	GetUTXOs(ctx context.Context, arg GetUTXOsParams) ([]Utxo, error)
 	GetUTXOsByCustodianGroupUID(ctx context.Context, dollar_1 []byte) ([]Utxo, error)
+	GetUtxoSnapshot(ctx context.Context, dollar_1 []byte) ([]GetUtxoSnapshotRow, error)
 	ListBridgeRequests(ctx context.Context, arg ListBridgeRequestsParams) ([]BridgeRequest, error)
 	ListRedeemRequests(ctx context.Context, arg ListRedeemRequestsParams) ([]ListRedeemRequestsRow, error)
 	ListTokens(ctx context.Context) ([]Token, error)

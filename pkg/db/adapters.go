@@ -35,6 +35,9 @@ type HealderAdapter interface {
 	GetAllCustodianGroups(ctx context.Context) ([]sqlc.CustodianGroup, error)
 
 	// utxo snapshots
+	GetUtxoSnapshot(ctx context.Context, uid []byte) ([]sqlc.UtxoWithReservations, error)
+
+	// utxo snapshots
 	SaveUtxoSnapshot(ctx context.Context, utxoSnapshot []sqlc.Utxo) error
 
 	// checkpoints

@@ -6,7 +6,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/scalarorg/scalar-healer/constants"
-	"github.com/scalarorg/scalar-healer/pkg/db"
 	"github.com/scalarorg/scalar-healer/pkg/db/sqlc"
 )
 
@@ -19,7 +18,7 @@ func (m *HealerRepository) SaveTransferRequest(ctx context.Context, chain string
 
 		err := m.Queries.UpsertNonce(ctx, sqlc.UpsertNonceParams{
 			Address: address.Bytes(),
-			Nonce:   db.ConvertUint64ToNumeric(currentNonce),
+			Nonce:   sqlc.ConvertUint64ToNumeric(currentNonce),
 		})
 		if err != nil {
 			return err
@@ -33,7 +32,7 @@ func (m *HealerRepository) SaveTransferRequest(ctx context.Context, chain string
 			DestinationChain:   destChain,
 			DestinationAddress: destAddress.Bytes(),
 			Symbol:             symbol,
-			Nonce:              db.ConvertUint64ToNumeric(nonce),
+			Nonce:              sqlc.ConvertUint64ToNumeric(nonce),
 		})
 	})
 }

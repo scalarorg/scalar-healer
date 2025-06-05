@@ -3,12 +3,36 @@ package healer
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/jinzhu/copier"
 	"github.com/scalarorg/scalar-healer/pkg/db/sqlc"
 )
+
+func (m *HealerRepository) GetUtxoSnapshot(ctx context.Context, uid []byte) ([]sqlc.UtxoWithReservations, error) {
+	utxoSnapshot, err := m.Queries.GetUtxoSnapshot(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+
+	utxos := make([]sqlc.UtxoWithReservations, len(utxoSnapshot))
+	for i, utxo := range utxoSnapshot {
+		utxos[i] = sqlc.UtxoWithReservations{}
+		copier.Copy(&utxos[i], &utxo)
+
+		var reservations []sqlc.Reservation
+
+		err := json.Unmarshal(utxo.Reservations, &reservations)
+		if err != nil {
+			return nil, err
+		}
+		utxos[i].Reservations = reservations
+	}
+	return utxos, nil
+}
 
 func (m *HealerRepository) SaveUtxoSnapshot(ctx context.Context, utxoSnapshot []sqlc.Utxo) error {
 	return m.execTx(ctx, func(q *sqlc.Queries) error {

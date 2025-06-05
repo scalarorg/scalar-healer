@@ -3,10 +3,12 @@ package sqlc
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math"
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/scalarorg/scalar-healer/pkg/utils/chains"
 )
 
 func (e RedeemPhase) Uint8() uint8 {
@@ -155,87 +157,118 @@ func (p *ProtocolWithTokenDetails) GetTokenDetailsByChain(chain string) (TokenDe
 	return TokenDetails{}, errors.New("token not found")
 }
 
-// func CreateRedeemParams(ctx context.Context, vsizeLimit uint64, amount *big.Int, sequence uint64, utxos []sqlc.Utxo) ([]byte, *CommandID, error) {
+type UtxoWithReservations struct {
+	*Utxo
+	Reservations []Reservation `json:"reservations"`
+}
 
-// 	now := time.Now().UnixNano()
+func (utxo *UtxoWithReservations) IsReserved(requestID string) bool {
+	for _, reserved := range utxo.Reservations {
+		if reserved.RequestID == requestID {
+			return true
+		}
+	}
+	return false
+}
 
-// 	bz := make([]byte, 8)
-// 	binary.BigEndian.PutUint64(bz, uint64(now))
+func (utxo *UtxoWithReservations) AvailableAmount() uint64 {
+	reservedAmount := utxo.GetReservedAmount()
+	return utxo.AmountInSats.Int.Uint64() - reservedAmount
+}
 
-// 	dataHash := crypto.Keccak256(bz, r.Address, []byte(r.SourceChain), []byte(r.DestChain), []byte(r.Symbol), amount.Bytes())
+func (utxo *UtxoWithReservations) GetReservedAmount() uint64 {
+	amount := uint64(0)
+	for _, reserved := range utxo.Reservations {
+		amount += reserved.Amount.Int.Uint64()
+	}
+	return amount
+}
 
-// 	dataHex := hex.EncodeToString(dataHash)
+type UtxoSnapshot []UtxoWithReservations
 
-// 	// reservedUtxos, err := k.reserveUtxos(ctx, r.CustodianGroupUid, dataHex, amount,
-// 	// 	vsizeLimit)
-// 	// if err != nil {
-// 	// 	return nil, nil, err
-// 	// }
+func (s UtxoSnapshot) ReserveUtxos(requestID string, amount uint64, quorum uint64, vSizeLimit uint64) ([]Utxo, error) {
+	currentInputs, currentOutputs := s.CountInputOutput()
+	newInput := 0
+	newOutput := 1
+	remainingAmount := amount
+	reserveUtxos := make([]Utxo, 0)
+	mapNewResevations := map[int]uint64{}
+	for ind, utxo := range s {
+		if utxo.IsReserved(requestID) {
+			return nil, fmt.Errorf("requestID %s is already reserved in utxo %x", requestID, utxo.TxID)
+		}
+		availableAmount := utxo.AvailableAmount()
+		if availableAmount > 0 {
+			//Reserve amount is min(availableAmount, remainingAmount)
+			reserveAmount := availableAmount
+			if reserveAmount > remainingAmount {
+				reserveAmount = remainingAmount
+			}
+			remainingAmount -= reserveAmount
+			mapNewResevations[ind] = reserveAmount
+			reserveUtxos = append(reserveUtxos, Utxo{
+				TxID:         utxo.TxID,
+				Vout:         utxo.Vout,
+				AmountInSats: ConvertUint64ToNumeric(reserveAmount),
+				ScriptPubkey: utxo.ScriptPubkey,
+			})
+			//First reservation
+			if len(utxo.Reservations) == 0 {
+				newInput += 1
+			}
+		}
+		if remainingAmount == 0 {
+			break
+		}
+	}
+	if remainingAmount > 0 {
+		return nil, fmt.Errorf("not enough utxos to reserve, remainingAmount %d", remainingAmount)
+	}
+	//Add extra input and output for collect change amount
+	newVsize := chains.CalculateVsize(currentInputs+newInput+1, currentOutputs+newOutput+1, quorum)
+	if newVsize > vSizeLimit {
+		return nil, fmt.Errorf("new virtual size exceeds the limit %d > %d", newVsize, vSizeLimit)
+	}
 
-// 	cmdId := NewCommandID(dataHash, r.SourceChain)
-// 	payload := &cov.RedeemTokenPayloadWithType{
-// 		RedeemTokenPayload: cov.RedeemTokenPayload{
-// 			Amount:        req.Amount,
-// 			LockingScript: req.LockingScript,
-// 			Utxos:         reservedUtxos,
-// 			RequestId:     cmdId.Bytes(),
-// 		},
-// 		PayloadType: encode.ContractCallWithTokenPayloadType_CustodianOnly,
-// 	}
-// 	redeemTokenParams := &cov.RedeemTokenParams{
-// 		DestinationChain:   req.DestChain.String(),
-// 		DestinationAddress: req.Address,
-// 		Payload:            *payload,
-// 		Symbol:             req.Symbol,
-// 		Amount:             req.Amount,
-// 		CustodianGroupUID:  custodianGrUID,
-// 		SessionSequence:    sequence,
-// 	}
-// 	params, err := redeemTokenParams.AbiPack()
-// 	if err != nil {
-// 		return nil, nil, err
-// 	}
+	for ind, reserveAmount := range mapNewResevations {
+		utxo := s[ind]
+		utxo.AppendReserved(requestID, reserveAmount)
+	}
 
-// 	return params, &cmdId, err
-// }
+	return reserveUtxos, nil
+}
 
-// func (k Keeper) reserveUtxos(ctx sdk.Context, custodianGroupUID [32]byte, requestID string, amount uint64, vsizeLimit uint64) ([]*cov.UTXO, error) {
-// 	// We've already validated redeem session in the outer function
-// 	// redeemSession, ok := k.GetRedeemSession(ctx, custodianGroupUID)
-// 	// if !ok {
-// 	// 	return nil, fmt.Errorf("redeem session not found")
-// 	// }
-// 	// log.Info().Any("RedeemSession", redeemSession).
-// 	// 	Hex("CustodianGroupUid", custodianGroupUID[:]).
-// 	// 	Msg("[x/covernant] reserveUtxos found redeem session")
-// 	// if redeemSession.IsSwitching {
-// 	// 	return nil, fmt.Errorf("redeem phase is switching")
-// 	// }
-// 	// if redeemSession.CurrentPhase != covExported.Preparing {
-// 	// 	return nil, fmt.Errorf("redeem session is not in preparing phase")
-// 	// }
-// 	group, ok := k.GetCustodianGroup(ctx, custodianGroupUID)
-// 	if !ok {
-// 		return nil, fmt.Errorf("custodian group not found")
-// 	}
-// 	utxoSnapshot, ok := k.GetUtxoSnapshot(ctx, custodianGroupUID)
-// 	if !ok {
-// 		return nil, fmt.Errorf("utxo snapshot not found")
-// 	}
+func (utxo *UtxoWithReservations) AppendReserved(requestID string, amount uint64) error {
+	if utxo.Reservations == nil {
+		utxo.Reservations = []Reservation{}
+	}
+	totalReserved := uint64(0)
+	for _, reserved := range utxo.Reservations {
+		if reserved.RequestID == requestID {
+			return fmt.Errorf("requestID already reserved in this utxo %x", utxo.TxID)
+		}
+		totalReserved += reserved.Amount.Int.Uint64()
+	}
+	if totalReserved+amount > utxo.AmountInSats.Int.Uint64() {
+		return fmt.Errorf("amount exceeds utxo amount, totalReserved %d, amount %d, utxo.AmountInSats %d", totalReserved, amount, utxo.AmountInSats.Int.Uint64())
+	}
+	utxo.Reservations = append(utxo.Reservations, Reservation{
+		RequestID: requestID,
+		Amount:    ConvertUint64ToNumeric(amount),
+	})
+	return nil
+}
 
-// 	if len(utxoSnapshot.Utxos) == 0 {
-// 		return nil, fmt.Errorf("no utxos found")
-// 	}
-
-// 	// Find optimal UTXO combination using knapsack algorithm
-// 	reserveUtxos, err := utxoSnapshot.ReserveUtxos(requestID, amount, uint64(group.Quorum), vsizeLimit)
-// 	if err != nil {
-// 		k.Logger(ctx).Error("failed to reserve utxos", "error", err)
-// 		return nil, err
-// 	}
-
-// 	// Update the redeem session in storage
-// 	k.setUtxoSnapshot(ctx, utxoSnapshot)
-
-// 	return reserveUtxos, nil
-// }
+func (s UtxoSnapshot) CountInputOutput() (int, int) {
+	inputs := 0
+	mapRequests := map[string]bool{}
+	for _, utxo := range s {
+		if len(utxo.Reservations) > 0 {
+			inputs += 1
+			for _, reservation := range utxo.Reservations {
+				mapRequests[reservation.RequestID] = true
+			}
+		}
+	}
+	return inputs, len(mapRequests)
+}

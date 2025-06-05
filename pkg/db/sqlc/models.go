@@ -220,8 +220,6 @@ type RedeemSession struct {
 
 type Reservation struct {
 	ID        int64            `json:"id"`
-	UtxoTxID  []byte           `json:"utxo_tx_id"`
-	UtxoVout  int64            `json:"utxo_vout"`
 	RequestID string           `json:"request_id"`
 	Amount    pgtype.Numeric   `json:"amount"`
 	CreatedAt pgtype.Timestamp `json:"created_at"`
@@ -263,4 +261,12 @@ type Utxo struct {
 	BlockHeight       int64            `json:"block_height"`
 	CreatedAt         pgtype.Timestamp `json:"created_at"`
 	UpdatedAt         pgtype.Timestamp `json:"updated_at"`
+}
+
+type UtxoReservation struct {
+	ReservationID int64            `json:"reservation_id"`
+	UtxoTxID      []byte           `json:"utxo_tx_id"`
+	UtxoVout      int64            `json:"utxo_vout"`
+	CreatedAt     pgtype.Timestamp `json:"created_at"`
+	UpdatedAt     pgtype.Timestamp `json:"updated_at"`
 }

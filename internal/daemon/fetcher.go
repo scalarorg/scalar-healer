@@ -10,7 +10,6 @@ import (
 
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/rs/zerolog/log"
-	"github.com/scalarorg/scalar-healer/pkg/db"
 	"github.com/scalarorg/scalar-healer/pkg/db/sqlc"
 	"github.com/scalarorg/scalar-healer/pkg/utils"
 )
@@ -102,7 +101,7 @@ func GetUtxoList(lockingScript []byte, custodianGrUid []byte) ([]sqlc.Utxo, []ui
 		utxosList = append(utxosList, sqlc.Utxo{
 			TxID:              txID,
 			Vout:              int64(utxo.Vout),
-			AmountInSats:      db.ConvertUint64ToNumeric(utxo.Value),
+			AmountInSats:      sqlc.ConvertUint64ToNumeric(utxo.Value),
 			CustodianGroupUid: custodianGrUid,
 			ScriptPubkey:      lockingScript,
 			BlockHeight:       int64(utxo.Status.BlockHeight),

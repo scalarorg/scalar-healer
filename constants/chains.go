@@ -6,7 +6,6 @@ type Threshold struct {
 }
 
 type Params struct {
-	Chain              string            `json:"chain,omitempty"`
 	ConfirmationHeight uint64            `json:"confirmation_height,omitempty"`
 	VotingThreshold    Threshold         `json:"voting_threshold"`
 	Metadata           map[string]string `json:"metadata,omitempty"`
@@ -15,8 +14,7 @@ type Params struct {
 	RedeemTxsVsizeLimit      uint64 `json:"redeem_txs_vsize_limit,omitempty"`
 }
 
-var EVM_CHAIN_PARAMS = Params{
-	Chain:                    "evm",
+var CHAIN_PARAMS = Params{
 	ConfirmationHeight:       2,
 	VotingThreshold:          Threshold{Numerator: 51, Denominator: 100},
 	RedeemSessionAmountLimit: 100_000_000,

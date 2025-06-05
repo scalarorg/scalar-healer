@@ -3,7 +3,7 @@ ifneq (,$(wildcard .env))
     export
 endif
 
-POSTGRES_URL := postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB)?sslmode=disable
+HEALER_POSTGRES_URL := postgresql://$(HEALER_POSTGRES_USER):$(HEALER_POSTGRES_PASSWORD)@$(HEALER_POSTGRES_HOST):$(HEALER_POSTGRES_PORT)/$(HEALER_POSTGRES_DB)?sslmode=disable
 
 MODULE := github.com/scalarorg/scalar-healer
 
@@ -12,7 +12,7 @@ migration_url := pkg/db/sqlc/migration
 LOCAL_LIB_PATH ?= $(shell pwd)/lib
 export CGO_LDFLAGS := ${CGO_LDFLAGS} -lbitcoin_vault_ffi  -L${LOCAL_LIB_PATH}
 
-$(info POSTGRES_URL: $(POSTGRES_URL))
+$(info HEALER_POSTGRES_URL: $(HEALER_POSTGRES_URL))
 $(info migration_url: $(migration_url))
 
 
@@ -67,10 +67,10 @@ sqlc:
 	@./scripts/sqlc-generate.sh
 
 migrate-up:
-	migrate -path $(migration_url) -database "$(POSTGRES_URL)" -verbose up
+	migrate -path $(migration_url) -database "$(HEALER_POSTGRES_URL)" -verbose up
 
 migrate-down:
-	migrate -path $(migration_url) -database "$(POSTGRES_URL)" -verbose down
+	migrate -path $(migration_url) -database "$(HEALER_POSTGRES_URL)" -verbose down
 new-migration:
 	migrate create -ext sql -dir $(migration_url) -seq $(name)
 

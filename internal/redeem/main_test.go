@@ -59,7 +59,7 @@ func TestMain(m *testing.M) {
 		err = repo.SaveTokens(ctx, []sqlc.Token{
 			{
 				Symbol:  "ETH",
-				ChainID: db.ConvertUint64ToNumeric(1),
+				ChainID: sqlc.ConvertUint64ToNumeric(1),
 				Address: common.MaxAddress.Bytes(),
 				Active:  true,
 			},

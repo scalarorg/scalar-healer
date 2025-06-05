@@ -10,7 +10,6 @@ import (
 
 	"github.com/rs/zerolog/log"
 	"github.com/scalarorg/scalar-healer/config"
-	"github.com/scalarorg/scalar-healer/pkg/db"
 	"github.com/scalarorg/scalar-healer/pkg/db/sqlc"
 	"github.com/scalarorg/scalar-healer/pkg/evm"
 	"github.com/scalarorg/scalar-healer/pkg/utils/funcs"
@@ -126,7 +125,7 @@ func (s *Service) initTokens(ctx context.Context, protocols []sqlc.Protocol) {
 				Chain:   evmClient.EvmConfig.ID,
 				Symbol:  protocol.Symbol,
 				Address: tokenAddr.Bytes(),
-				ChainID: db.ConvertUint64ToNumeric(evmClient.EvmConfig.ChainID),
+				ChainID: sqlc.ConvertUint64ToNumeric(evmClient.EvmConfig.ChainID),
 				Active:  true,
 			}
 			tokens = append(tokens, token)

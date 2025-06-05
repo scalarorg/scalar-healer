@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/scalarorg/scalar-healer/pkg/db"
 	"github.com/scalarorg/scalar-healer/pkg/db/sqlc"
 	testutils "github.com/scalarorg/scalar-healer/pkg/test_utils"
 	"github.com/scalarorg/scalar-healer/pkg/utils"
@@ -18,12 +17,12 @@ import (
 )
 
 func TestListTransfer(t *testing.T) {
-	chain := "evm|1"	
+	chain := "evm|1"
 	address := common.HexToAddress("0x24a1dB57Fa3ecAFcbaD91d6Ef068439acEeAe090")
 	signature, _ := hex.DecodeString("f6c5691b0cd1120058f8a4ed75cd67065a8cdcefaa34ff55678ce1fcab07e0c91357e525c94b97e78b558e3cfe44eb66e3de28cc0d65a6c11c910fff0fabad0100")
 	amount, _ := utils.StringToBigInt("123456")
 	symbol := "ETH"
-	nonce := db.ConvertUint64ToNumeric(0) // First request should have nonce 0
+	nonce := sqlc.ConvertUint64ToNumeric(0) // First request should have nonce 0
 	destChain := "evm|11155111"
 	destAddress := common.MaxAddress
 	tests := []struct {
