@@ -135,10 +135,9 @@ CREATE TABLE IF NOT EXISTS reservations (
 );
 
 CREATE TABLE IF NOT EXISTS utxo_reservations (
-    reservation_id BIGINT NOT NULL,
-    
     utxo_tx_id BYTEA NOT NULL,
     utxo_vout BIGINT NOT NULL,
+    reservation_id BIGINT NOT NULL,
 
     PRIMARY KEY (utxo_tx_id, utxo_vout, reservation_id),
 

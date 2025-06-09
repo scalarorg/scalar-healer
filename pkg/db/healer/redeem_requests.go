@@ -70,8 +70,10 @@ func (m *HealerRepository) SaveRedeemRequest(ctx context.Context, sourceChain, d
 			return err
 		}
 
-		// // Update the redeem session in storage
-		// k.setUtxoSnapshot(ctx, utxoSnapshot)
+		err = m.SaveUtxoSnapshot(ctx, newUtxos)
+		if err != nil {
+			return err
+		}
 
 		_ = reservedUtxos
 		_ = newUtxos

@@ -49,11 +49,24 @@ func (m *HealerRepository) SaveUtxoSnapshot(ctx context.Context, utxoSnapshot []
 			amountsInSats      []pgtype.Numeric
 			custodianGroupUIDs [][]byte
 			blockHeights       []int64
+
+			requestIDs []string
+			amounts    []pgtype.Numeric
+
+			utxoReservationsMap map[string]struct {
+				txID []byte
+				vout int64
+			}
 		)
 
 		var firstGrUID = utxoSnapshot[0].CustodianGroupUid
 		var firstBlockHeight = utxoSnapshot[0].BlockHeight
 		var firstScriptPubkey = utxoSnapshot[0].ScriptPubkey
+
+		utxoReservationsMap = make(map[string]struct {
+			txID []byte
+			vout int64
+		})
 
 		for _, utxo := range utxoSnapshot {
 			if !bytes.Equal(firstScriptPubkey, utxo.ScriptPubkey) {
@@ -72,6 +85,18 @@ func (m *HealerRepository) SaveUtxoSnapshot(ctx context.Context, utxoSnapshot []
 			amountsInSats = append(amountsInSats, utxo.AmountInSats)
 			custodianGroupUIDs = append(custodianGroupUIDs, utxo.CustodianGroupUid)
 			blockHeights = append(blockHeights, utxo.BlockHeight)
+
+			for _, reservation := range utxo.Reservations {
+				requestIDs = append(requestIDs, reservation.RequestID)
+				amounts = append(amounts, reservation.Amount)
+				utxoReservationsMap[reservation.RequestID] = struct {
+					txID []byte
+					vout int64
+				}{
+					txID: utxo.TxID,
+					vout: utxo.Vout,
+				}
+			}
 		}
 
 		utxos, err := q.GetUTXOsByCustodianGroupUID(ctx, firstGrUID)
@@ -92,13 +117,42 @@ func (m *HealerRepository) SaveUtxoSnapshot(ctx context.Context, utxoSnapshot []
 		}
 
 		// insert new UTXO snapshot
-		return m.Queries.SaveUTXOs(ctx, sqlc.SaveUTXOsParams{
+		err = m.Queries.SaveUTXOs(ctx, sqlc.SaveUTXOsParams{
 			Column1: txIDs,
 			Column2: vouts,
 			Column3: scriptPubkeys,
 			Column4: amountsInSats,
 			Column5: custodianGroupUIDs,
 			Column6: blockHeights,
+		})
+		if err != nil {
+			return err
+		}
+
+		reservationIDRows, err := m.Queries.SaveReservations(ctx, sqlc.SaveReservationsParams{
+			Column1: requestIDs,
+			Column2: amounts,
+		})
+		if err != nil {
+			return err
+		}
+
+		var (
+			reservationTxIDs [][]byte
+			reservationVouts []int64
+			reservationIDs   []int64
+		)
+
+		for _, row := range reservationIDRows {
+			reservationTxIDs = append(reservationTxIDs, utxoReservationsMap[row.RequestID].txID)
+			reservationVouts = append(reservationVouts, utxoReservationsMap[row.RequestID].vout)
+			reservationIDs = append(reservationIDs, row.ID)
+		}
+
+		return m.Queries.SaveUtxoReservations(ctx, sqlc.SaveUtxoReservationsParams{
+			Column1: reservationTxIDs,
+			Column2: reservationVouts,
+			Column3: reservationIDs,
 		})
 	})
 }

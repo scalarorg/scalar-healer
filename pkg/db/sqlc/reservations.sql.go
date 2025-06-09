@@ -25,33 +25,42 @@ func (q *Queries) DeleteReservations(ctx context.Context) error {
 	return err
 }
 
-const saveReservations = `-- name: SaveReservations :exec
+const saveReservations = `-- name: SaveReservations :many
 INSERT INTO reservations (
-    utxo_tx_id,
-    utxo_vout,
     request_id,
     amount
 ) VALUES (
-    unnest($1::bytea[]),
-    unnest($2::bigint[]),
-    unnest($3::text[]),
-    unnest($4::numeric[])
-)
+    unnest($1::text[]),
+    unnest($2::numeric[])
+) RETURNING id, request_id
 `
 
 type SaveReservationsParams struct {
-	Column1 [][]byte         `json:"column_1"`
-	Column2 []int64          `json:"column_2"`
-	Column3 []string         `json:"column_3"`
-	Column4 []pgtype.Numeric `json:"column_4"`
+	Column1 []string         `json:"column_1"`
+	Column2 []pgtype.Numeric `json:"column_2"`
 }
 
-func (q *Queries) SaveReservations(ctx context.Context, arg SaveReservationsParams) error {
-	_, err := q.db.Exec(ctx, saveReservations,
-		arg.Column1,
-		arg.Column2,
-		arg.Column3,
-		arg.Column4,
-	)
-	return err
+type SaveReservationsRow struct {
+	ID        int64  `json:"id"`
+	RequestID string `json:"request_id"`
+}
+
+func (q *Queries) SaveReservations(ctx context.Context, arg SaveReservationsParams) ([]SaveReservationsRow, error) {
+	rows, err := q.db.Query(ctx, saveReservations, arg.Column1, arg.Column2)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []SaveReservationsRow{}
+	for rows.Next() {
+		var i SaveReservationsRow
+		if err := rows.Scan(&i.ID, &i.RequestID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

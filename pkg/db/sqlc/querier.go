@@ -43,10 +43,11 @@ type Querier interface {
 	SaveProtocols(ctx context.Context, arg SaveProtocolsParams) error
 	SaveRedeemRequest(ctx context.Context, arg SaveRedeemRequestParams) error
 	SaveRedeemSessions(ctx context.Context, arg SaveRedeemSessionsParams) error
-	SaveReservations(ctx context.Context, arg SaveReservationsParams) error
+	SaveReservations(ctx context.Context, arg SaveReservationsParams) ([]SaveReservationsRow, error)
 	SaveTokens(ctx context.Context, arg SaveTokensParams) error
 	SaveTransferRequest(ctx context.Context, arg SaveTransferRequestParams) error
 	SaveUTXOs(ctx context.Context, arg SaveUTXOsParams) error
+	SaveUtxoReservations(ctx context.Context, arg SaveUtxoReservationsParams) error
 	UpsertNonce(ctx context.Context, arg UpsertNonceParams) error
 }
 

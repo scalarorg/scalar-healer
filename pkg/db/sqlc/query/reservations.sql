@@ -1,15 +1,11 @@
--- name: SaveReservations :exec
+-- name: SaveReservations :many
 INSERT INTO reservations (
-    utxo_tx_id,
-    utxo_vout,
     request_id,
     amount
 ) VALUES (
-    unnest($1::bytea[]),
-    unnest($2::bigint[]),
-    unnest($3::text[]),
-    unnest($4::numeric[])
-);
+    unnest($1::text[]),
+    unnest($2::numeric[])
+) RETURNING id, request_id;
 
 -- name: DeleteReservations :exec
 DELETE FROM reservations WHERE id IN (

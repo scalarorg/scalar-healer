@@ -264,9 +264,9 @@ type Utxo struct {
 }
 
 type UtxoReservation struct {
-	ReservationID int64            `json:"reservation_id"`
 	UtxoTxID      []byte           `json:"utxo_tx_id"`
 	UtxoVout      int64            `json:"utxo_vout"`
+	ReservationID int64            `json:"reservation_id"`
 	CreatedAt     pgtype.Timestamp `json:"created_at"`
 	UpdatedAt     pgtype.Timestamp `json:"updated_at"`
 }
