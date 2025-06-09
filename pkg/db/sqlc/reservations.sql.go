@@ -11,6 +11,20 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const deleteReservations = `-- name: DeleteReservations :exec
+DELETE FROM reservations WHERE id IN (
+  SELECT r.id
+  FROM reservations r
+  LEFT JOIN utxo_reservations ur ON r.id = ur.reservation_id
+  WHERE ur.reservation_id IS NULL
+)
+`
+
+func (q *Queries) DeleteReservations(ctx context.Context) error {
+	_, err := q.db.Exec(ctx, deleteReservations)
+	return err
+}
+
 const saveReservations = `-- name: SaveReservations :exec
 INSERT INTO reservations (
     utxo_tx_id,

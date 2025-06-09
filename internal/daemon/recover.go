@@ -250,12 +250,15 @@ func (s *Service) RecoverBTCSessions(ctx context.Context) {
 		}
 	}
 
-	utxos = utils.Map(utxos, func(utxo sqlc.Utxo) sqlc.Utxo {
+	utxosWithReservations := utils.Map(utxos, func(utxo sqlc.Utxo) sqlc.UtxoWithReservations {
 		utxo.BlockHeight = int64(maxBlockHeight)
-		return utxo
+		return sqlc.UtxoWithReservations{
+			Utxo:         &utxo,
+			Reservations: nil,
+		}
 	})
 
-	err = s.CombinedAdapter.SaveUtxoSnapshot(ctx, utxos)
+	err = s.CombinedAdapter.SaveUtxoSnapshot(ctx, utxosWithReservations)
 	if err != nil {
 		log.Error().Err(err).Msgf("[Service][RecoverBTCSessions] cannot save utxo snapshot")
 	}

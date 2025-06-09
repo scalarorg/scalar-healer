@@ -10,7 +10,7 @@ import (
 )
 
 func (m *HealerRepository) SaveTransferRequest(ctx context.Context, chain string, address common.Address, signature []byte, amount *big.Int, destChain string, destAddress *common.Address, symbol string, nonce uint64) error {
-	return m.execTx(ctx, func(q *sqlc.Queries) error {
+	return m.execTx(ctx, func(_ context.Context, q *sqlc.Queries) error {
 		currentNonce := m.GetNonce(ctx, address)
 		if nonce != currentNonce {
 			return constants.ErrInvalidNonce

@@ -155,34 +155,40 @@ func TestSaveUtxoSnapshot(t *testing.T) {
 	tests := []struct {
 		name    string
 		setup   func(t *testing.T, repo *healer.HealerRepository)
-		input   []sqlc.Utxo
+		input   []sqlc.UtxoWithReservations
 		wantErr bool
 	}{
 		{
 			name:    "empty snapshot",
 			setup:   func(t *testing.T, repo *healer.HealerRepository) {},
-			input:   []sqlc.Utxo{},
+			input:   []sqlc.UtxoWithReservations{},
 			wantErr: false,
 		},
 		{
 			name:  "valid snapshot with same custodian group",
 			setup: func(t *testing.T, repo *healer.HealerRepository) {},
-			input: []sqlc.Utxo{
+			input: []sqlc.UtxoWithReservations{
 				{
-					TxID:              []byte{0x1},
-					Vout:              1,
-					ScriptPubkey:      []byte{0x2},
-					AmountInSats:      pgtype.Numeric{Int: common.Big1, Valid: true},
-					CustodianGroupUid: []byte{0x3},
-					BlockHeight:       100,
+					Utxo: &sqlc.Utxo{
+						TxID:              []byte{0x1},
+						Vout:              1,
+						ScriptPubkey:      []byte{0x2},
+						AmountInSats:      pgtype.Numeric{Int: common.Big1, Valid: true},
+						CustodianGroupUid: []byte{0x3},
+						BlockHeight:       100,
+					},
+					Reservations: nil,
 				},
 				{
-					TxID:              []byte{0x2},
-					Vout:              1,
-					ScriptPubkey:      []byte{0x02},
-					AmountInSats:      pgtype.Numeric{Int: common.Big2, Valid: true},
-					CustodianGroupUid: []byte{0x3},
-					BlockHeight:       100,
+					Utxo: &sqlc.Utxo{
+						TxID:              []byte{0x2},
+						Vout:              1,
+						ScriptPubkey:      []byte{0x02},
+						AmountInSats:      pgtype.Numeric{Int: common.Big2, Valid: true},
+						CustodianGroupUid: []byte{0x3},
+						BlockHeight:       100,
+					},
+					Reservations: nil,
 				},
 			},
 			wantErr: false,
@@ -190,22 +196,28 @@ func TestSaveUtxoSnapshot(t *testing.T) {
 		{
 			name:  "invalid snapshot with mixed groups",
 			setup: func(t *testing.T, repo *healer.HealerRepository) {},
-			input: []sqlc.Utxo{
+			input: []sqlc.UtxoWithReservations{
 				{
-					TxID:              []byte{0x1},
-					Vout:              1,
-					ScriptPubkey:      []byte{0x2},
-					AmountInSats:      pgtype.Numeric{Int: common.Big1, Valid: true},
-					CustodianGroupUid: []byte{0x3},
-					BlockHeight:       100,
+					Utxo: &sqlc.Utxo{
+						TxID:              []byte{0x1},
+						Vout:              1,
+						ScriptPubkey:      []byte{0x2},
+						AmountInSats:      pgtype.Numeric{Int: common.Big1, Valid: true},
+						CustodianGroupUid: []byte{0x3},
+						BlockHeight:       100,
+					},
+					Reservations: nil,
 				},
 				{
-					TxID:              []byte{0x1},
-					Vout:              1,
-					ScriptPubkey:      []byte{0x2},
-					AmountInSats:      pgtype.Numeric{Int: common.Big2, Valid: true},
-					CustodianGroupUid: []byte{0x4}, // Different group
-					BlockHeight:       100,
+					Utxo: &sqlc.Utxo{
+						TxID:              []byte{0x1},
+						Vout:              1,
+						ScriptPubkey:      []byte{0x2},
+						AmountInSats:      pgtype.Numeric{Int: common.Big2, Valid: true},
+						CustodianGroupUid: []byte{0x4}, // Different group
+						BlockHeight:       100,
+					},
+					Reservations: nil,
 				},
 			},
 			wantErr: true,
@@ -214,22 +226,28 @@ func TestSaveUtxoSnapshot(t *testing.T) {
 		{
 			name:  "invalid snapshot with mixed script pubkeys",
 			setup: func(t *testing.T, repo *healer.HealerRepository) {},
-			input: []sqlc.Utxo{
+			input: []sqlc.UtxoWithReservations{
 				{
-					TxID:              []byte{0x1},
-					Vout:              1,
-					ScriptPubkey:      []byte{0x1},
-					AmountInSats:      pgtype.Numeric{Int: common.Big1, Valid: true},
-					CustodianGroupUid: []byte{0x4},
-					BlockHeight:       100,
+					Utxo: &sqlc.Utxo{
+						TxID:              []byte{0x1},
+						Vout:              1,
+						ScriptPubkey:      []byte{0x1},
+						AmountInSats:      pgtype.Numeric{Int: common.Big1, Valid: true},
+						CustodianGroupUid: []byte{0x4},
+						BlockHeight:       100,
+					},
+					Reservations: nil,
 				},
 				{
-					TxID:              []byte{0x1},
-					Vout:              1,
-					ScriptPubkey:      []byte{0x2},
-					AmountInSats:      pgtype.Numeric{Int: common.Big2, Valid: true},
-					CustodianGroupUid: []byte{0x4}, // Different group
-					BlockHeight:       100,
+					Utxo: &sqlc.Utxo{
+						TxID:              []byte{0x1},
+						Vout:              1,
+						ScriptPubkey:      []byte{0x2},
+						AmountInSats:      pgtype.Numeric{Int: common.Big2, Valid: true},
+						CustodianGroupUid: []byte{0x4}, // Different group
+						BlockHeight:       100,
+					},
+					Reservations: nil,
 				},
 			},
 			wantErr: true,
@@ -249,17 +267,31 @@ func TestSaveUtxoSnapshot(t *testing.T) {
 				})
 				assert.NoError(t, err)
 			},
-			input: []sqlc.Utxo{
+			input: []sqlc.UtxoWithReservations{
 				{
-					TxID:              []byte{0x1},
-					Vout:              1,
-					ScriptPubkey:      []byte{0x2},
-					AmountInSats:      pgtype.Numeric{Int: common.Big1, Valid: true},
-					CustodianGroupUid: []byte{0x3},
-					BlockHeight:       100, // Lower block height
+					Utxo: &sqlc.Utxo{
+						TxID:              []byte{0x1},
+						Vout:              1,
+						ScriptPubkey:      []byte{0x2},
+						AmountInSats:      pgtype.Numeric{Int: common.Big1, Valid: true},
+						CustodianGroupUid: []byte{0x3},
+						BlockHeight:       100, // Lower block height
+					},
+					Reservations: nil,
+				},
+				{
+					Utxo: &sqlc.Utxo{
+						TxID:              []byte{0x1},
+						Vout:              1,
+						ScriptPubkey:      []byte{0x2},
+						AmountInSats:      pgtype.Numeric{Int: common.Big1, Valid: true},
+						CustodianGroupUid: []byte{0x3},
+						BlockHeight:       100, // Lower block height
+					},
+					Reservations: nil,
 				},
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 	}
 

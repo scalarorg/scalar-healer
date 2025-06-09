@@ -38,7 +38,7 @@ type HealderAdapter interface {
 	GetUtxoSnapshot(ctx context.Context, uid []byte) ([]sqlc.UtxoWithReservations, error)
 
 	// utxo snapshots
-	SaveUtxoSnapshot(ctx context.Context, utxoSnapshot []sqlc.Utxo) error
+	SaveUtxoSnapshot(ctx context.Context, utxoSnapshot []sqlc.UtxoWithReservations) error
 
 	// checkpoints
 	GetLastEventCheckPoint(ctx context.Context, chainName, eventName string, fromBlock uint64) (*scalarnet.EventCheckPoint, error)

@@ -19,7 +19,7 @@ SELECT
     u.amount_in_sats,
     u.custodian_group_uid,
     json_agg(json_build_object(
-      'request', r.request_id,
+      'request_id', r.request_id,
       'amount', r.amount
     )) AS reservations
   FROM utxos u

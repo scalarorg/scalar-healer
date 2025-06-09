@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jinzhu/copier"
+	"github.com/rs/zerolog/log"
 	"github.com/scalarorg/scalar-healer/pkg/db/sqlc"
 )
 
@@ -34,8 +35,9 @@ func (m *HealerRepository) GetUtxoSnapshot(ctx context.Context, uid []byte) ([]s
 	return utxos, nil
 }
 
-func (m *HealerRepository) SaveUtxoSnapshot(ctx context.Context, utxoSnapshot []sqlc.Utxo) error {
-	return m.execTx(ctx, func(q *sqlc.Queries) error {
+func (m *HealerRepository) SaveUtxoSnapshot(ctx context.Context, utxoSnapshot []sqlc.UtxoWithReservations) error {
+
+	return m.execTx(ctx, func(cv context.Context, q *sqlc.Queries) error {
 		if len(utxoSnapshot) == 0 {
 			return nil
 		}
@@ -72,7 +74,7 @@ func (m *HealerRepository) SaveUtxoSnapshot(ctx context.Context, utxoSnapshot []
 			blockHeights = append(blockHeights, utxo.BlockHeight)
 		}
 
-		utxos, err := m.Queries.GetUTXOsByCustodianGroupUID(ctx, firstGrUID)
+		utxos, err := q.GetUTXOsByCustodianGroupUID(ctx, firstGrUID)
 		if err != nil && err != pgx.ErrNoRows {
 			return err
 		}
@@ -83,8 +85,9 @@ func (m *HealerRepository) SaveUtxoSnapshot(ctx context.Context, utxoSnapshot []
 			}
 		}
 
-		err = m.Queries.DeleteUTXOs(ctx, firstGrUID)
+		err = m.deleteUtxoSnapshot(cv, firstGrUID)
 		if err != nil {
+			log.Error().Err(err).Msgf("failed to delete existing UTXO snapshot for custodian group %s", firstGrUID)
 			return err
 		}
 
@@ -97,5 +100,19 @@ func (m *HealerRepository) SaveUtxoSnapshot(ctx context.Context, utxoSnapshot []
 			Column5: custodianGroupUIDs,
 			Column6: blockHeights,
 		})
+	})
+}
+
+func (m *HealerRepository) deleteUtxoSnapshot(ctx context.Context, grUID []byte) error {
+	return m.requireTx(ctx, func(cv context.Context) error {
+
+		log.Info().Msgf("deleting utxo snapshot for custodian group %s", grUID)
+
+		err := m.Queries.DeleteUTXOs(cv, grUID)
+		if err != nil {
+			return err
+		}
+
+		return m.Queries.DeleteReservations(cv)
 	})
 }

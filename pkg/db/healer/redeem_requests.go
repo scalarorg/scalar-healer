@@ -30,7 +30,7 @@ func (m *HealerRepository) SaveRedeemTxs(ctx context.Context, redeemTxs []chains
 
 func (m *HealerRepository) SaveRedeemRequest(ctx context.Context, sourceChain, destChain string, address common.Address, amount *big.Int, symbol string, lockingScript []byte) error {
 
-	err := m.execTx(ctx, func(q *sqlc.Queries) error {
+	err := m.execTx(ctx, func(_ context.Context, q *sqlc.Queries) error {
 		protocol, err := m.GetProtocol(ctx, symbol)
 		if err != nil {
 			return constants.ErrTokenNotExists
@@ -65,12 +65,16 @@ func (m *HealerRepository) SaveRedeemRequest(ctx context.Context, sourceChain, d
 		byte32Hash := [32]byte{}
 		copy(byte32Hash[:], hash)
 
-		reservedUtxos, err := m.reserveUtxos(ctx, redeemSession.CustodianGroupUid, hashHex, amount.Uint64(), constants.CHAIN_PARAMS.RedeemTxsVsizeLimit)
+		reservedUtxos, newUtxos, err := m.reserveUtxos(ctx, redeemSession.CustodianGroupUid, uint64(protocol.CustodianQuorum), hashHex, amount.Uint64(), constants.CHAIN_PARAMS.RedeemTxsVsizeLimit)
 		if err != nil {
 			return err
 		}
 
+		// // Update the redeem session in storage
+		// k.setUtxoSnapshot(ctx, utxoSnapshot)
+
 		_ = reservedUtxos
+		_ = newUtxos
 
 		// phase is preparing
 
@@ -100,30 +104,23 @@ func createRedeemCommandID(nonce uint64, address common.Address, sourceChain, de
 	return crypto.Keccak256(bz, address.Bytes(), []byte(sourceChain), []byte(destChain), []byte(symbol), amount.Bytes())
 }
 
-func (m *HealerRepository) reserveUtxos(ctx context.Context, grUid []byte, requestID string, amount uint64, vsizeLimit uint64) ([]sqlc.Utxo, error) {
-
+func (m *HealerRepository) reserveUtxos(ctx context.Context, grUid []byte, quorum uint64, requestID string, amount uint64, vsizeLimit uint64) ([]sqlc.Utxo, []sqlc.UtxoWithReservations, error) {
 	utxoSnapshot, err := m.GetUtxoSnapshot(ctx, grUid)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if len(utxoSnapshot) == 0 {
-		return nil, fmt.Errorf("no utxos found")
+		return nil, nil, fmt.Errorf("no utxos found")
 	}
 
 	// // Find optimal UTXO combination using knapsack algorithm
-	// reserveUtxos, err := utxoSnapshot.ReserveUtxos(requestID, amount, uint64(gr.Quorum), vsizeLimit)
-	// if err != nil {
-	// 	k.Logger(ctx).Error("failed to reserve utxos", "error", err)
-	// 	return nil, err
-	// }
+	reserveUtxos, newUtxos, err := sqlc.UtxoSnapshot(utxoSnapshot).ReserveUtxos(requestID, amount, quorum, vsizeLimit)
+	if err != nil {
+		return nil, nil, err
+	}
 
-	// // Update the redeem session in storage
-	// k.setUtxoSnapshot(ctx, utxoSnapshot)
-
-	// return reserveUtxos, nil
-
-	return nil, nil
+	return reserveUtxos, newUtxos, nil
 }
 
 // func CreateRedeemParams(ctx context.Context, vsizeLimit uint64, amount *big.Int, sequence uint64, utxos []sqlc.Utxo) ([]byte, *CommandID, error) {

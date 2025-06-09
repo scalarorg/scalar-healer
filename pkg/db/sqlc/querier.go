@@ -13,6 +13,7 @@ import (
 type Querier interface {
 	CreateGatewayAddress(ctx context.Context, arg CreateGatewayAddressParams) error
 	CreateGatewayAddresses(ctx context.Context, arg CreateGatewayAddressesParams) error
+	DeleteReservations(ctx context.Context) error
 	DeleteUTXOs(ctx context.Context, dollar_1 []byte) error
 	GetAllCustodianGroups(ctx context.Context) ([]CustodianGroup, error)
 	GetChainRedeemSession(ctx context.Context, arg GetChainRedeemSessionParams) (ChainRedeemSession, error)

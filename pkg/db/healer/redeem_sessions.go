@@ -15,7 +15,7 @@ func (m *HealerRepository) SaveRedeemSessionAndChainRedeemSessionsTx(ctx context
 
 	expiredAt := time.Now().Add(constants.SessionExpiryTime).UTC()
 
-	err := m.execTx(ctx, func(q *sqlc.Queries) error {
+	err := m.execTx(ctx, func(_ context.Context, q *sqlc.Queries) error {
 		// 1. Group redeem sessions by group id
 		sessionsByGroup := make(map[string][]sqlc.ChainRedeemSession)
 		for _, session := range chainRedeemSessions {

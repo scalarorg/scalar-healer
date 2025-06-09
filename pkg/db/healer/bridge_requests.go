@@ -10,13 +10,13 @@ import (
 
 func (m *HealerRepository) SaveBridgeRequest(ctx context.Context, chain string, address common.Address, signature []byte, txHash []byte, nonce uint64) error {
 	// TODO: verify chain
-	return m.execTx(ctx, func(q *sqlc.Queries) error {
+	return m.execTx(ctx, func(cv context.Context, q *sqlc.Queries) error {
 		currentNonce := m.GetNonce(ctx, address)
 		if nonce != currentNonce {
 			return constants.ErrInvalidNonce
 		}
 
-		err := m.Queries.UpsertNonce(ctx, sqlc.UpsertNonceParams{
+		err := m.Queries.UpsertNonce(cv, sqlc.UpsertNonceParams{
 			Address: address.Bytes(),
 			Nonce:   sqlc.ConvertUint64ToNumeric(currentNonce),
 		})
@@ -24,7 +24,7 @@ func (m *HealerRepository) SaveBridgeRequest(ctx context.Context, chain string, 
 			return err
 		}
 
-		return m.Queries.SaveBridgeRequest(ctx, sqlc.SaveBridgeRequestParams{
+		return m.Queries.SaveBridgeRequest(cv, sqlc.SaveBridgeRequestParams{
 			Address:   address.Bytes(),
 			TxHash:    txHash,
 			Signature: signature,

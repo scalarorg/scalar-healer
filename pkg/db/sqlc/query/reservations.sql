@@ -10,3 +10,11 @@ INSERT INTO reservations (
     unnest($3::text[]),
     unnest($4::numeric[])
 );
+
+-- name: DeleteReservations :exec
+DELETE FROM reservations WHERE id IN (
+  SELECT r.id
+  FROM reservations r
+  LEFT JOIN utxo_reservations ur ON r.id = ur.reservation_id
+  WHERE ur.reservation_id IS NULL
+);

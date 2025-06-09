@@ -74,7 +74,7 @@ func (m *HealerRepository) SaveCommandBatches(ctx context.Context, commandBatche
 }
 
 func (m *HealerRepository) SaveCommandsAndBatchCommandsTx(ctx context.Context, commands []sqlc.Command) error {
-	return m.execTx(ctx, func(q *sqlc.Queries) error {
+	return m.execTx(ctx, func(cv context.Context, q *sqlc.Queries) error {
 		var err error
 
 		cmds := slices.Map(commands, func(cmd sqlc.Command) *sqlc.Command {

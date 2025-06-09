@@ -186,7 +186,7 @@ func (utxo *UtxoWithReservations) GetReservedAmount() uint64 {
 
 type UtxoSnapshot []UtxoWithReservations
 
-func (s UtxoSnapshot) ReserveUtxos(requestID string, amount uint64, quorum uint64, vSizeLimit uint64) ([]Utxo, error) {
+func (s UtxoSnapshot) ReserveUtxos(requestID string, amount uint64, quorum uint64, vSizeLimit uint64) ([]Utxo, []UtxoWithReservations, error) {
 	currentInputs, currentOutputs := s.CountInputOutput()
 	newInput := 0
 	newOutput := 1
@@ -195,7 +195,7 @@ func (s UtxoSnapshot) ReserveUtxos(requestID string, amount uint64, quorum uint6
 	mapNewResevations := map[int]uint64{}
 	for ind, utxo := range s {
 		if utxo.IsReserved(requestID) {
-			return nil, fmt.Errorf("requestID %s is already reserved in utxo %x", requestID, utxo.TxID)
+			return nil, nil, fmt.Errorf("requestID %s is already reserved in utxo %x", requestID, utxo.TxID)
 		}
 		availableAmount := utxo.AvailableAmount()
 		if availableAmount > 0 {
@@ -222,20 +222,23 @@ func (s UtxoSnapshot) ReserveUtxos(requestID string, amount uint64, quorum uint6
 		}
 	}
 	if remainingAmount > 0 {
-		return nil, fmt.Errorf("not enough utxos to reserve, remainingAmount %d", remainingAmount)
+		return nil, nil, fmt.Errorf("not enough utxos to reserve, remainingAmount %d", remainingAmount)
 	}
 	//Add extra input and output for collect change amount
 	newVsize := chains.CalculateVsize(currentInputs+newInput+1, currentOutputs+newOutput+1, quorum)
 	if newVsize > vSizeLimit {
-		return nil, fmt.Errorf("new virtual size exceeds the limit %d > %d", newVsize, vSizeLimit)
+		return nil, nil, fmt.Errorf("new virtual size exceeds the limit %d > %d", newVsize, vSizeLimit)
 	}
+
+	newUtxos := make([]UtxoWithReservations, 0)
 
 	for ind, reserveAmount := range mapNewResevations {
 		utxo := s[ind]
 		utxo.AppendReserved(requestID, reserveAmount)
+		newUtxos = append(newUtxos, utxo)
 	}
 
-	return reserveUtxos, nil
+	return reserveUtxos, newUtxos, nil
 }
 
 func (utxo *UtxoWithReservations) AppendReserved(requestID string, amount uint64) error {
