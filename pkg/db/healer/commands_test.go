@@ -28,7 +28,7 @@ func TestNewCommandBatches(t *testing.T) {
 			input: []*sqlc.Command{
 				{
 					Chain:       "evm|11155111",
-					CommandID:   evm.GetSignHash([]byte{1, 2, 3}).Bytes(),
+					ID:          evm.GetSignHash([]byte{1, 2, 3}).Bytes(),
 					Params:      []byte("params"),
 					CommandType: sqlc.CommandTypeSwitchPhase,
 					Status:      sqlc.COMMAND_STATUS_PENDING.ToPgType(),
@@ -38,7 +38,7 @@ func TestNewCommandBatches(t *testing.T) {
 			wantErr: false,
 			check: func(t *testing.T, batches []*sqlc.CommandBatch, cmds []*sqlc.Command) {
 				assert.Equal(t, 1, len(batches))
-				assert.Equal(t, batches[0].CommandBatchID, cmds[0].CommandBatchID)
+				assert.Equal(t, batches[0].ID, cmds[0].CommandBatchID)
 			},
 		},
 		{
@@ -48,7 +48,7 @@ func TestNewCommandBatches(t *testing.T) {
 				for i := range cmds {
 					cmds[i] = &sqlc.Command{
 						Chain:       "evm|97",
-						CommandID:   evm.GetSignHash([]byte{byte(i)}).Bytes(),
+						ID:          evm.GetSignHash([]byte{byte(i)}).Bytes(),
 						Params:      []byte(fmt.Sprintf("params_%d", i)),
 						CommandType: sqlc.CommandTypeSwitchPhase,
 						Status:      sqlc.COMMAND_STATUS_PENDING.ToPgType(),
@@ -60,8 +60,8 @@ func TestNewCommandBatches(t *testing.T) {
 			wantErr: false,
 			check: func(t *testing.T, batches []*sqlc.CommandBatch, cmds []*sqlc.Command) {
 				assert.Equal(t, 2, len(batches))
-				assert.Equal(t, batches[0].CommandBatchID, cmds[0].CommandBatchID)
-				assert.Equal(t, batches[1].CommandBatchID, cmds[constants.BATCH_SIZE].CommandBatchID)
+				assert.Equal(t, batches[0].ID, cmds[0].CommandBatchID)
+				assert.Equal(t, batches[1].ID, cmds[constants.BATCH_SIZE].CommandBatchID)
 				for i := range batches {
 					t.Logf("batches[%d]: %+v", i, batches[i])
 					extraData, err := batches[i].GetExtraData()
@@ -74,14 +74,12 @@ func TestNewCommandBatches(t *testing.T) {
 			name: "multiple chains",
 			input: []*sqlc.Command{
 				{
-					Chain:     "evm|80",
-					ID:        1,
-					CommandID: evm.GetSignHash([]byte{1, 2, 3}).Bytes(),
+					Chain: "evm|80",
+					ID:    evm.GetSignHash([]byte{1, 2, 3}).Bytes(),
 				},
 				{
-					Chain:     "evm|81",
-					ID:        2,
-					CommandID: evm.GetSignHash([]byte{4, 5, 6}).Bytes(),
+					Chain: "evm|81",
+					ID:    evm.GetSignHash([]byte{4, 5, 6}).Bytes(),
 				},
 			},
 			wantErr: false,
@@ -103,7 +101,7 @@ func TestNewCommandBatches(t *testing.T) {
 			input: []*sqlc.Command{
 				{
 					Chain: "invalid_chain",
-					ID:    1,
+					ID:    []byte{1},
 				},
 			},
 			wantErr: true,
@@ -145,27 +143,27 @@ func TestSaveCommandBatches(t *testing.T) {
 				assert.NoError(t, err)
 				return []*sqlc.CommandBatch{
 					{
-						CommandBatchID: []byte{0x1},
-						Chain:          "ethereum",
-						Data:           []byte{0x2},
-						SigHash:        []byte{0x3},
-						Status:         pgtype.Int4{Int32: int32(sqlc.COMMAND_BATCH_STATUS_PENDING), Valid: true},
-						ExtraData:      data1,
+						ID:        []byte{0x1},
+						Chain:     "ethereum",
+						Data:      []byte{0x2},
+						SigHash:   []byte{0x3},
+						Status:    pgtype.Int4{Int32: int32(sqlc.COMMAND_BATCH_STATUS_PENDING), Valid: true},
+						ExtraData: data1,
 					},
 					{
-						CommandBatchID: []byte{0x5},
-						Chain:          "polygon",
-						Data:           []byte{0x6},
-						SigHash:        []byte{0x7},
-						Status:         pgtype.Int4{Int32: int32(sqlc.COMMAND_BATCH_STATUS_PENDING), Valid: true},
-						ExtraData:      data2,
+						ID:        []byte{0x5},
+						Chain:     "polygon",
+						Data:      []byte{0x6},
+						SigHash:   []byte{0x7},
+						Status:    pgtype.Int4{Int32: int32(sqlc.COMMAND_BATCH_STATUS_PENDING), Valid: true},
+						ExtraData: data2,
 					},
 				}
 			},
 			check: func(t *testing.T, repo *healer.HealerRepository, input []*sqlc.CommandBatch) {
 				ctx := context.Background()
 				for _, batch := range input {
-					gotBatch, err := repo.GetCommandBatchByID(ctx, batch.CommandBatchID)
+					gotBatch, err := repo.GetCommandBatchByID(ctx, batch.ID)
 					t.Log("got batch: ", gotBatch)
 					assert.NoError(t, err)
 					assert.NotNil(t, gotBatch)
@@ -203,7 +201,7 @@ func TestSaveCommands(t *testing.T) {
 			name: "single command",
 			input: []*sqlc.Command{
 				{
-					CommandID:   []byte{0x1},
+					ID:          []byte{0x1},
 					Chain:       "ethereum",
 					Params:      []byte{0x2},
 					Status:      sqlc.COMMAND_STATUS_PENDING.ToPgType(),
@@ -217,7 +215,7 @@ func TestSaveCommands(t *testing.T) {
 			name: "multiple commands",
 			input: []*sqlc.Command{
 				{
-					CommandID:   []byte{0x2},
+					ID:          []byte{0x2},
 					Chain:       "ethereum",
 					Params:      []byte{0x2},
 					Status:      sqlc.COMMAND_STATUS_PENDING.ToPgType(),
@@ -225,7 +223,7 @@ func TestSaveCommands(t *testing.T) {
 					Payload:     []byte{0x3},
 				},
 				{
-					CommandID:   []byte{0x3},
+					ID:          []byte{0x3},
 					Chain:       "polygon",
 					Params:      []byte{0x4},
 					Status:      sqlc.COMMAND_STATUS_PENDING.ToPgType(),
@@ -271,7 +269,7 @@ func TestSaveCommandsAndBatchCommandsTx(t *testing.T) {
 			name: "single command",
 			input: []sqlc.Command{
 				{
-					CommandID:   evm.GetSignHash([]byte{1, 2, 3}).Bytes(),
+					ID:          evm.GetSignHash([]byte{1, 2, 3}).Bytes(),
 					Chain:       "evm|11155111",
 					Params:      []byte{0x2},
 					Status:      sqlc.COMMAND_STATUS_PENDING.ToPgType(),
@@ -291,7 +289,7 @@ func TestSaveCommandsAndBatchCommandsTx(t *testing.T) {
 			name: "multiple commands same chain",
 			input: []sqlc.Command{
 				{
-					CommandID:   evm.GetSignHash([]byte{1, 2, 3}).Bytes(),
+					ID:          evm.GetSignHash([]byte{1, 2, 3}).Bytes(),
 					Chain:       "evm|11155111",
 					Params:      []byte{0x2},
 					Status:      sqlc.COMMAND_STATUS_PENDING.ToPgType(),
@@ -299,7 +297,7 @@ func TestSaveCommandsAndBatchCommandsTx(t *testing.T) {
 					Payload:     []byte{0x3},
 				},
 				{
-					CommandID:   evm.GetSignHash([]byte{1, 2, 4}).Bytes(),
+					ID:          evm.GetSignHash([]byte{1, 2, 4}).Bytes(),
 					Chain:       "evm|11155111",
 					Params:      []byte{0x5},
 					Status:      sqlc.COMMAND_STATUS_PENDING.ToPgType(),
@@ -324,7 +322,7 @@ func TestSaveCommandsAndBatchCommandsTx(t *testing.T) {
 			name: "multiple commands different chains",
 			input: []sqlc.Command{
 				{
-					CommandID:   evm.GetSignHash([]byte{1, 2, 3}).Bytes(),
+					ID:          evm.GetSignHash([]byte{1, 2, 3}).Bytes(),
 					Chain:       "evm|11155111",
 					Params:      []byte{0x2},
 					Status:      sqlc.COMMAND_STATUS_PENDING.ToPgType(),
@@ -332,7 +330,7 @@ func TestSaveCommandsAndBatchCommandsTx(t *testing.T) {
 					Payload:     []byte{0x3},
 				},
 				{
-					CommandID:   evm.GetSignHash([]byte{1, 2, 4}).Bytes(),
+					ID:          evm.GetSignHash([]byte{1, 2, 4}).Bytes(),
 					Chain:       "evm|137",
 					Params:      []byte{0x5},
 					Status:      sqlc.COMMAND_STATUS_PENDING.ToPgType(),

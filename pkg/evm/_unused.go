@@ -211,7 +211,6 @@ package evm
 // 	return switchPhase
 // }
 
-
 // import (
 // 	"github.com/scalarorg/data-models/chains"
 // )
@@ -274,7 +273,6 @@ package evm
 // 	Chain  string
 // 	Height uint64
 // }
-
 
 // import (
 // 	"context"
@@ -680,8 +678,6 @@ package evm
 // 	return bind.WaitMined(ctx, ec.Client, tx)
 // }
 
-
-
 // import (
 // 	"fmt"
 // 	"math/big"
@@ -1026,9 +1022,6 @@ package evm
 // 	return nil
 // }
 
-
-
-
 // import (
 // 	"context"
 // 	"fmt"
@@ -1152,9 +1145,6 @@ package evm
 // 	}
 // 	return redeemToken, nil
 // }
-
-
-
 
 // import (
 // 	"encoding/hex"
@@ -1466,80 +1456,4 @@ package evm
 // 			// 	Msg("[ChainRedeemSessions] [AppendRedeemTokenEvent] ignore redeem token tx with lower sequence")
 // 		}
 // 	}
-// }
-
-// type RedeemTokenPayload struct {
-// 	Amount        uint64
-// 	LockingScript []byte
-// 	Utxos         []*UTXO
-// 	RequestId     [32]byte
-// }
-
-// type RedeemTokenPayloadWithType struct {
-// 	RedeemTokenPayload
-// 	PayloadType encode.ContractCallWithTokenPayloadType
-// }
-
-// func (p *RedeemTokenPayloadWithType) AbiPack() ([]byte, error) {
-// 	payload, err := p.RedeemTokenPayload.AbiPack()
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	return encode.AppendPayload(encode.ContractCallWithTokenPayloadType(p.PayloadType), payload), nil
-// }
-
-// func (p *RedeemTokenPayloadWithType) AbiUnpack(data []byte) error {
-// 	p.PayloadType = encode.ContractCallWithTokenPayloadType(data[0])
-// 	var payload RedeemTokenPayload
-// 	err := payload.AbiUnpack(data[1:])
-// 	if err != nil {
-// 		return err
-// 	}
-// 	p.RedeemTokenPayload = payload
-// 	return nil
-// }
-
-// func (p *RedeemTokenPayload) AbiPack() ([]byte, error) {
-// 	txIds := make([]string, len(p.Utxos))
-// 	vouts := make([]uint32, len(p.Utxos))
-// 	amounts := make([]uint64, len(p.Utxos))
-// 	for i, utxo := range p.Utxos {
-// 		txIds[i] = hex.EncodeToString(utxo.TxID[:])
-// 		vouts[i] = utxo.Vout
-// 		amounts[i] = utxo.AmountInSats
-// 	}
-// 	return RedeemTokenPayloadArguments.Pack(
-// 		p.Amount,
-// 		p.LockingScript,
-// 		txIds,
-// 		vouts,
-// 		amounts,
-// 		p.RequestId,
-// 	)
-// }
-
-// func (p *RedeemTokenPayload) AbiUnpack(data []byte) error {
-// 	unpacked, err := RedeemTokenPayloadArguments.Unpack(data)
-// 	if err != nil {
-// 		log.Error().Err(err).Msg("redeem token payload abi unpack error")
-// 		return err
-// 	}
-// 	p.Amount = unpacked[0].(uint64)
-// 	p.LockingScript = unpacked[1].([]byte)
-// 	txIds := unpacked[2].([]string)
-// 	vouts := unpacked[3].([]uint32)
-// 	amounts := unpacked[4].([]uint64)
-// 	p.Utxos = make([]*UTXO, len(txIds))
-// 	for i, txId := range txIds {
-// 		hash, err := hex.DecodeString(strings.TrimPrefix(txId, "0x"))
-// 		if err != nil {
-// 			log.Error().Err(err).Msg("txId hash error")
-// 			return err
-// 		}
-// 		var txId [HashLen]byte
-// 		copy(txId[:], hash)
-// 		p.Utxos[i] = &UTXO{TxID: txId, Vout: vouts[i], AmountInSats: amounts[i]}
-// 	}
-// 	p.RequestId = unpacked[5].([32]byte)
-// 	return nil
 // }

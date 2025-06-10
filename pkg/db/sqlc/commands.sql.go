@@ -10,15 +10,14 @@ import (
 )
 
 const getCommandBatchByID = `-- name: GetCommandBatchByID :one
-SELECT id, command_batch_id, chain, data, sig_hash, signature, status, extra_data, created_at, updated_at FROM command_batchs WHERE command_batch_id = $1
+SELECT id, chain, data, sig_hash, signature, status, extra_data, created_at, updated_at FROM command_batchs WHERE id = $1
 `
 
-func (q *Queries) GetCommandBatchByID(ctx context.Context, commandBatchID []byte) (CommandBatch, error) {
-	row := q.db.QueryRow(ctx, getCommandBatchByID, commandBatchID)
+func (q *Queries) GetCommandBatchByID(ctx context.Context, id []byte) (CommandBatch, error) {
+	row := q.db.QueryRow(ctx, getCommandBatchByID, id)
 	var i CommandBatch
 	err := row.Scan(
 		&i.ID,
-		&i.CommandBatchID,
 		&i.Chain,
 		&i.Data,
 		&i.SigHash,
@@ -32,7 +31,7 @@ func (q *Queries) GetCommandBatchByID(ctx context.Context, commandBatchID []byte
 }
 
 const getCommandBatches = `-- name: GetCommandBatches :many
-SELECT id, command_batch_id, chain, data, sig_hash, signature, status, extra_data, created_at, updated_at FROM command_batchs
+SELECT id, chain, data, sig_hash, signature, status, extra_data, created_at, updated_at FROM command_batchs
 `
 
 func (q *Queries) GetCommandBatches(ctx context.Context) ([]CommandBatch, error) {
@@ -46,7 +45,6 @@ func (q *Queries) GetCommandBatches(ctx context.Context) ([]CommandBatch, error)
 		var i CommandBatch
 		if err := rows.Scan(
 			&i.ID,
-			&i.CommandBatchID,
 			&i.Chain,
 			&i.Data,
 			&i.SigHash,
@@ -67,7 +65,7 @@ func (q *Queries) GetCommandBatches(ctx context.Context) ([]CommandBatch, error)
 }
 
 const saveCommandBatches = `-- name: SaveCommandBatches :exec
-INSERT INTO command_batchs (command_batch_id, chain, data, sig_hash, status, extra_data)
+INSERT INTO command_batchs (id, chain, data, sig_hash, status, extra_data)
 VALUES (unnest($1::bytea[]), unnest($2::text[]), unnest($3::bytea[]), unnest($4::bytea[]), unnest($5::int[]), unnest($6::bytea[]))
 `
 
@@ -93,7 +91,7 @@ func (q *Queries) SaveCommandBatches(ctx context.Context, arg SaveCommandBatches
 }
 
 const saveCommands = `-- name: SaveCommands :exec
-INSERT INTO commands (command_id, chain, params, status, command_type, payload)
+INSERT INTO commands (id, chain, params, status, command_type, payload)
 VALUES (unnest($1::bytea[]), unnest($2::text[]), unnest($3::bytea[]), unnest($4::int[]), unnest($5::text[])::command_type, unnest($6::bytea[]))
 `
 

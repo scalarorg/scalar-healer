@@ -128,12 +128,13 @@ func (s *Service) RecoverEvmSessions(ctx context.Context) {
 			id = append(id, session.CurrentPhase.Bytes())
 
 			switchPhaseCmds = append(switchPhaseCmds, sqlc.Command{
-				CommandID:   sqlc.NewCommandID(id, session.Chain).Bytes(),
-				CommandType: sqlc.CommandTypeSwitchPhase,
-				Params:      evm.CreateSwitchPhaseParams(grUidbz, session.NewPhase),
-				Chain:       session.Chain,
-				Status:      sqlc.COMMAND_STATUS_PENDING.ToPgType(),
-				Payload:     nil,
+				ID:             sqlc.NewCommandID(id, session.Chain).Bytes(),
+				CommandType:    sqlc.CommandTypeSwitchPhase,
+				Params:         evm.CreateSwitchPhaseParams(grUidbz, session.NewPhase),
+				Chain:          session.Chain,
+				Status:         sqlc.COMMAND_STATUS_PENDING.ToPgType(),
+				CommandBatchID: nil,
+				Payload:        nil,
 			})
 		}
 	}

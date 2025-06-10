@@ -124,29 +124,27 @@ type ChainRedeemSession struct {
 }
 
 type Command struct {
-	ID             int64            `json:"id"`
-	CommandID      []byte           `json:"command_id"`
+	ID             []byte           `json:"id"`
 	Chain          string           `json:"chain"`
 	CommandBatchID []byte           `json:"command_batch_id"`
+	Payload        []byte           `json:"payload"`
 	Params         []byte           `json:"params"`
 	Status         pgtype.Int4      `json:"status"`
 	CommandType    CommandType      `json:"command_type"`
-	Payload        []byte           `json:"payload"`
 	CreatedAt      pgtype.Timestamp `json:"created_at"`
 	UpdatedAt      pgtype.Timestamp `json:"updated_at"`
 }
 
 type CommandBatch struct {
-	ID             int64            `json:"id"`
-	CommandBatchID []byte           `json:"command_batch_id"`
-	Chain          string           `json:"chain"`
-	Data           []byte           `json:"data"`
-	SigHash        []byte           `json:"sig_hash"`
-	Signature      []byte           `json:"signature"`
-	Status         pgtype.Int4      `json:"status"`
-	ExtraData      []byte           `json:"extra_data"`
-	CreatedAt      pgtype.Timestamp `json:"created_at"`
-	UpdatedAt      pgtype.Timestamp `json:"updated_at"`
+	ID        []byte           `json:"id"`
+	Chain     string           `json:"chain"`
+	Data      []byte           `json:"data"`
+	SigHash   []byte           `json:"sig_hash"`
+	Signature []byte           `json:"signature"`
+	Status    pgtype.Int4      `json:"status"`
+	ExtraData []byte           `json:"extra_data"`
+	CreatedAt pgtype.Timestamp `json:"created_at"`
+	UpdatedAt pgtype.Timestamp `json:"updated_at"`
 }
 
 type CustodianGroup struct {
@@ -191,6 +189,18 @@ type Protocol struct {
 	DailyMintLimit     pgtype.Numeric   `json:"daily_mint_limit"`
 	CreatedAt          pgtype.Timestamp `json:"created_at"`
 	UpdatedAt          pgtype.Timestamp `json:"updated_at"`
+}
+
+type RedeemCommand struct {
+	ID        []byte           `json:"id"`
+	Chain     string           `json:"chain"`
+	Status    pgtype.Int4      `json:"status"`
+	Params    []byte           `json:"params"`
+	Data      []byte           `json:"data"`
+	SigHash   []byte           `json:"sig_hash"`
+	Signature []byte           `json:"signature"`
+	CreatedAt pgtype.Timestamp `json:"created_at"`
+	UpdatedAt pgtype.Timestamp `json:"updated_at"`
 }
 
 type RedeemRequest struct {

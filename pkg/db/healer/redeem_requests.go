@@ -12,9 +12,12 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/jinzhu/copier"
+	"github.com/scalarorg/bitcoin-vault/go-utils/encode"
 	"github.com/scalarorg/data-models/chains"
 	"github.com/scalarorg/scalar-healer/constants"
 	"github.com/scalarorg/scalar-healer/pkg/db/sqlc"
+	"github.com/scalarorg/scalar-healer/pkg/evm"
+	chains_utils "github.com/scalarorg/scalar-healer/pkg/utils/chains"
 )
 
 func (m *HealerRepository) FindPendingRedeemsTransaction(ctx context.Context, chainId string, expectedConfirmBlock int32) ([]chains.RedeemTx, error) {
@@ -58,14 +61,9 @@ func (m *HealerRepository) SaveRedeemRequest(ctx context.Context, sourceChain, d
 
 		nonce := uint64(time.Now().UnixNano())
 
-		hash := createRedeemCommandID(nonce, address, sourceChain, destChain, symbol, amount)
+		hash, hex := createRedeemCommandID(nonce, address, sourceChain, destChain, symbol, amount)
 
-		hashHex := hex.EncodeToString(hash)
-
-		byte32Hash := [32]byte{}
-		copy(byte32Hash[:], hash)
-
-		reservedUtxos, newUtxos, err := m.reserveUtxos(ctx, redeemSession.CustodianGroupUid, uint64(protocol.CustodianQuorum), hashHex, amount.Uint64(), constants.CHAIN_PARAMS.RedeemTxsVsizeLimit)
+		reservedUtxos, newUtxos, err := m.reserveUtxos(ctx, redeemSession.CustodianGroupUid, uint64(protocol.CustodianQuorum), hex, amount.Uint64(), constants.CHAIN_PARAMS.RedeemTxsVsizeLimit)
 		if err != nil {
 			return err
 		}
@@ -75,15 +73,42 @@ func (m *HealerRepository) SaveRedeemRequest(ctx context.Context, sourceChain, d
 			return err
 		}
 
-		_ = reservedUtxos
-		_ = newUtxos
+		redeemTokenParams := &evm.RedeemTokenPayloadWithType{
+			RedeemTokenPayload: evm.RedeemTokenPayload{
+				Amount:        amount.Uint64(),
+				LockingScript: lockingScript,
+				Utxos:         reservedUtxos,
+				RequestId:     hash,
+			},
+			PayloadType: encode.ContractCallWithTokenPayloadType_CustodianOnly,
+		}
 
-		// phase is preparing
+		params, err := redeemTokenParams.AbiPack()
+		if err != nil {
+			return err
+		}
 
-		// 1. Create a reservation
-		// 2. Store the reservation
-		// 3. Create cmd to sign on it
-		// 4. Save the cmd
+		chainID, err := chains_utils.ChainName(sourceChain).GetChainID()
+		if err != nil {
+			return err
+		}
+
+		redeemCommand, err := NewRedeemCommand(sourceChain, hash, chainID, params)
+		if err != nil {
+			return err
+		}
+
+		err = m.Queries.SaveRedeemCommand(ctx, sqlc.SaveRedeemCommandParams{
+			ID:        redeemCommand.ID,
+			Chain:     redeemCommand.Chain,
+			Status:    redeemCommand.Status,
+			Params:    redeemCommand.Params,
+			Data:      redeemCommand.Data,
+			SigHash:   redeemCommand.SigHash,
+		})
+		if err != nil {
+			return err
+		}
 
 		return m.Queries.SaveRedeemRequest(ctx, sqlc.SaveRedeemRequestParams{
 			Address:           address.Bytes(),
@@ -99,11 +124,18 @@ func (m *HealerRepository) SaveRedeemRequest(ctx context.Context, sourceChain, d
 	return err
 }
 
-func createRedeemCommandID(nonce uint64, address common.Address, sourceChain, destChain, symbol string, amount *big.Int) []byte {
+func createRedeemCommandID(nonce uint64, address common.Address, sourceChain, destChain, symbol string, amount *big.Int) ([32]byte, string) {
 	bz := make([]byte, 8)
 	binary.BigEndian.PutUint64(bz, nonce)
 
-	return crypto.Keccak256(bz, address.Bytes(), []byte(sourceChain), []byte(destChain), []byte(symbol), amount.Bytes())
+	hash := crypto.Keccak256(bz, address.Bytes(), []byte(sourceChain), []byte(destChain), []byte(symbol), amount.Bytes())
+
+	hashHex := hex.EncodeToString(hash)
+
+	byte32Hash := [32]byte{}
+	copy(byte32Hash[:], hash)
+
+	return byte32Hash, hashHex
 }
 
 func (m *HealerRepository) reserveUtxos(ctx context.Context, grUid []byte, quorum uint64, requestID string, amount uint64, vsizeLimit uint64) ([]sqlc.Utxo, []sqlc.UtxoWithReservations, error) {
@@ -136,15 +168,7 @@ func (m *HealerRepository) reserveUtxos(ctx context.Context, grUid []byte, quoru
 // 	// }
 
 // 	cmdId := NewCommandID(dataHash, r.SourceChain)
-// 	payload := &cov.RedeemTokenPayloadWithType{
-// 		RedeemTokenPayload: cov.RedeemTokenPayload{
-// 			Amount:        req.Amount,
-// 			LockingScript: req.LockingScript,
-// 			Utxos:         reservedUtxos,
-// 			RequestId:     cmdId.Bytes(),
-// 		},
-// 		PayloadType: encode.ContractCallWithTokenPayloadType_CustodianOnly,
-// 	}
+
 // 	redeemTokenParams := &cov.RedeemTokenParams{
 // 		DestinationChain:   req.DestChain.String(),
 // 		DestinationAddress: req.Address,

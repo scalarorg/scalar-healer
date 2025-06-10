@@ -17,7 +17,7 @@ type Querier interface {
 	DeleteUTXOs(ctx context.Context, dollar_1 []byte) error
 	GetAllCustodianGroups(ctx context.Context) ([]CustodianGroup, error)
 	GetChainRedeemSession(ctx context.Context, arg GetChainRedeemSessionParams) (ChainRedeemSession, error)
-	GetCommandBatchByID(ctx context.Context, commandBatchID []byte) (CommandBatch, error)
+	GetCommandBatchByID(ctx context.Context, id []byte) (CommandBatch, error)
 	GetCommandBatches(ctx context.Context) ([]CommandBatch, error)
 	GetCompletedRedeemSessions(ctx context.Context) ([]RedeemSession, error)
 	GetCustodianGroupByUID(ctx context.Context, uid []byte) (CustodianGroup, error)
@@ -41,6 +41,8 @@ type Querier interface {
 	SaveCommands(ctx context.Context, arg SaveCommandsParams) error
 	SaveCustodianGroups(ctx context.Context, arg SaveCustodianGroupsParams) error
 	SaveProtocols(ctx context.Context, arg SaveProtocolsParams) error
+	SaveRedeemCommand(ctx context.Context, arg SaveRedeemCommandParams) error
+	SaveRedeemCommands(ctx context.Context, arg SaveRedeemCommandsParams) error
 	SaveRedeemRequest(ctx context.Context, arg SaveRedeemRequestParams) error
 	SaveRedeemSessions(ctx context.Context, arg SaveRedeemSessionsParams) error
 	SaveReservations(ctx context.Context, arg SaveReservationsParams) ([]SaveReservationsRow, error)

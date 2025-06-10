@@ -22,8 +22,6 @@ CREATE TABLE IF NOT EXISTS redeem_requests (
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
-
-
 CREATE TABLE IF NOT EXISTS transfer_requests (
     id BIGSERIAL PRIMARY KEY,
     address BYTEA NOT NULL,
@@ -45,7 +43,6 @@ CREATE TABLE IF NOT EXISTS gateway_addresses (
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
-
 
 CREATE TABLE IF NOT EXISTS nonces (
     id BIGSERIAL PRIMARY KEY,
@@ -90,7 +87,6 @@ CREATE TABLE IF NOT EXISTS protocols (
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
-
 CREATE TABLE IF NOT EXISTS tokens (
     id BIGSERIAL PRIMARY KEY,
 
@@ -105,8 +101,6 @@ CREATE TABLE IF NOT EXISTS tokens (
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS tokens_symbol_chain_idx ON tokens (symbol, chain);
-
-
 
 CREATE INDEX IF NOT EXISTS protocols_symbol_idx ON protocols (symbol);
 
@@ -189,28 +183,46 @@ CREATE TYPE COMMAND_TYPE as ENUM (
    'redeemToken'
 );
 
+CREATE TABLE IF NOT EXISTS redeem_commands (
+    id BYTEA PRIMARY KEY,
+    chain TEXT NOT NULL,
+    status INT CHECK (status IN (0, 1, 2)),
+    -- 0 = PENDING, not included in the batch command
+    -- 1 = QUEUED, included in the batch command
+    -- 2 = EXECUTED, executed
+    params BYTEA NOT NULL,
+    data BYTEA NOT NULL,
+    sig_hash BYTEA NOT NULL,
+    signature BYTEA,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS redeem_commands_command_id_idx ON redeem_commands (command_id);
+
+CREATE INDEX IF NOT EXISTS redeem_commands_chain ON redeem_commands (chain);
+
 CREATE TABLE IF NOT EXISTS commands (
-    id BIGSERIAL PRIMARY KEY,
-    command_id BYTEA UNIQUE NOT NULL,
+    id BYTEA PRIMARY KEY,
     chain TEXT NOT NULL,
     command_batch_id BYTEA NULL,
+    payload BYTEA NOT NULL,
     params BYTEA NOT NULL,
     status INT CHECK (status IN (0, 1, 2)),
     -- 0 = PENDING, not included in the batch command
     -- 1 = QUEUED, included in the batch command
     -- 2 = EXECUTED, executed
     command_type COMMAND_TYPE NOT NULL,
-    payload BYTEA NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS commands_command_id_idx ON commands (command_id);
+
 CREATE INDEX IF NOT EXISTS commands_chain ON commands (chain);
 
 CREATE TABLE IF NOT EXISTS command_batchs (
-    id BIGSERIAL PRIMARY KEY,
-    command_batch_id  BYTEA UNIQUE NOT NULL,
+    id BYTEA PRIMARY KEY,
     chain TEXT NOT NULL,
     data BYTEA NOT NULL,
     sig_hash BYTEA NOT NULL,
@@ -225,7 +237,6 @@ CREATE TABLE IF NOT EXISTS command_batchs (
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS command_batchs_command_batch_id_idx ON command_batchs (command_batch_id);
 CREATE INDEX IF NOT EXISTS command_batchs_chain ON command_batchs (chain);
 
 ALTER TABLE utxo_reservations ADD FOREIGN KEY (reservation_id) REFERENCES reservations(id) ON DELETE CASCADE;
@@ -243,4 +254,4 @@ ALTER TABLE chain_redeem_sessions ADD FOREIGN KEY (custodian_group_uid) REFERENC
 
 ALTER TABLE redeem_requests ADD FOREIGN KEY (custodian_group_uid) REFERENCES custodian_groups (uid) ON DELETE CASCADE;
 
-ALTER TABLE commands ADD FOREIGN KEY (command_batch_id) REFERENCES command_batchs (command_batch_id);
+ALTER TABLE commands ADD FOREIGN KEY (command_batch_id) REFERENCES command_batchs (id);

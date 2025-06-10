@@ -26,7 +26,7 @@ func (m *HealerRepository) SaveCommands(ctx context.Context, commands []*sqlc.Co
 	)
 
 	for _, command := range commands {
-		commandIds = append(commandIds, command.CommandID)
+		commandIds = append(commandIds, command.ID)
 		chains = append(chains, command.Chain)
 		params = append(params, command.Params)
 		status = append(status, command.Status.Int32)
@@ -55,7 +55,7 @@ func (m *HealerRepository) SaveCommandBatches(ctx context.Context, commandBatche
 	)
 
 	for _, commandBatch := range commandBatches {
-		commandBatchIds = append(commandBatchIds, commandBatch.CommandBatchID)
+		commandBatchIds = append(commandBatchIds, commandBatch.ID)
 		chains = append(chains, commandBatch.Chain)
 		bunchData = append(bunchData, commandBatch.Data)
 		sigHashes = append(sigHashes, commandBatch.SigHash)
@@ -147,7 +147,7 @@ func newCommandBatch(chain string, chainID *big.Int, cmds []*sqlc.Command) (*sql
 	var extraData [][]byte
 
 	for _, cmd := range cmds {
-		commandIDs = append(commandIDs, sqlc.CommandID(cmd.CommandID))
+		commandIDs = append(commandIDs, sqlc.CommandID(cmd.ID))
 		commands = append(commands, cmd.CommandType)
 		commandParams = append(commandParams, cmd.Params)
 		extraData = append(extraData, cmd.Payload)
@@ -175,11 +175,29 @@ func newCommandBatch(chain string, chainID *big.Int, cmds []*sqlc.Command) (*sql
 	}
 
 	return &sqlc.CommandBatch{
-		CommandBatchID: commandBatchID,
-		Data:           data,
-		SigHash:        evm.GetSignHash(data).Bytes(),
-		Status:         sqlc.COMMAND_BATCH_STATUS_PENDING.ToPgType(),
-		Chain:          chain,
-		ExtraData:      encodedExtraData,
+		ID:        commandBatchID,
+		Data:      data,
+		SigHash:   evm.GetSignHash(data).Bytes(),
+		Status:    sqlc.COMMAND_BATCH_STATUS_PENDING.ToPgType(),
+		Chain:     chain,
+		ExtraData: encodedExtraData,
+	}, nil
+}
+
+func NewRedeemCommand(chain string, cmdId sqlc.CommandID, chainID *big.Int, params []byte) (*sqlc.RedeemCommand, error) {
+
+	data, err := evm.PackArguments(chainID, []sqlc.CommandID{cmdId}, []sqlc.CommandType{sqlc.CommandTypeRedeemToken}, [][]byte{params})
+	if err != nil {
+		return nil, err
+	}
+
+	return &sqlc.RedeemCommand{
+		ID:        cmdId.Bytes(),
+		Chain:     chain,
+		Params:    params,
+		Data:      data,
+		Status:    sqlc.COMMAND_STATUS_PENDING.ToPgType(),
+		SigHash:   evm.GetSignHash(data).Bytes(),
+		Signature: nil, // TODO: add signature
 	}, nil
 }
