@@ -18,12 +18,10 @@ var (
 	uint256Type, _      = abi.NewType("uint256", "uint256", nil)
 	uint64Type, _       = abi.NewType("uint64", "uint64", nil)
 	bytesArrayType, _   = abi.NewType("bytes[]", "bytes[]", nil)
-	uint256ArrayType, _ = abi.NewType("uint256[]", "uint256[]", nil)
 	uint32ArrayType, _  = abi.NewType("uint32[]", "uint32[]", nil)
 	uint64ArrayType, _  = abi.NewType("uint64[]", "uint64[]", nil)
 	bytes32ArrayType, _ = abi.NewType("bytes32[]", "bytes32[]", nil)
 	stringArrayType, _  = abi.NewType("string[]", "string[]", nil)
-	addressArrayType, _ = abi.NewType("address[]", "address[]", nil)
 
 	RedeemTokenPayloadArguments = abi.Arguments{{Type: uint64Type}, {Type: bytesType}, {Type: stringArrayType}, {Type: uint32ArrayType}, {Type: uint64ArrayType}, {Type: bytes32Type}}
 	RedeemTokenArguments        = abi.Arguments{{Type: stringType}, {Type: stringType}, {Type: bytesType}, {Type: stringType}, {Type: uint256Type}, {Type: bytes32Type}, {Type: uint64Type}}

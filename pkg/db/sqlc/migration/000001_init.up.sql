@@ -121,9 +121,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS utxos_tx_id_vout_idx ON utxos (tx_id, vout);
 CREATE INDEX IF NOT EXISTS utxos_custodian_group_uid_idx ON utxos (custodian_group_uid);
 
 CREATE TABLE IF NOT EXISTS reservations (
-    id BIGSERIAL PRIMARY KEY,
-    request_id TEXT UNIQUE NOT NULL,
-    amount NUMERIC NOT NULL,
+    request_id BYTEA PRIMARY KEY,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
@@ -131,9 +129,10 @@ CREATE TABLE IF NOT EXISTS reservations (
 CREATE TABLE IF NOT EXISTS utxo_reservations (
     utxo_tx_id BYTEA NOT NULL,
     utxo_vout BIGINT NOT NULL,
-    reservation_id BIGINT NOT NULL,
+    reservation_id BYTEA NOT NULL,
+    amount NUMERIC NOT NULL,
 
-    PRIMARY KEY (utxo_tx_id, utxo_vout, reservation_id),
+    PRIMARY KEY (utxo_tx_id, utxo_vout, reservation_id, amount),
 
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
@@ -198,8 +197,6 @@ CREATE TABLE IF NOT EXISTS redeem_commands (
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS redeem_commands_command_id_idx ON redeem_commands (command_id);
-
 CREATE INDEX IF NOT EXISTS redeem_commands_chain ON redeem_commands (chain);
 
 CREATE TABLE IF NOT EXISTS commands (
@@ -216,8 +213,6 @@ CREATE TABLE IF NOT EXISTS commands (
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
-
-CREATE INDEX IF NOT EXISTS commands_command_id_idx ON commands (command_id);
 
 CREATE INDEX IF NOT EXISTS commands_chain ON commands (chain);
 
@@ -239,7 +234,7 @@ CREATE TABLE IF NOT EXISTS command_batchs (
 
 CREATE INDEX IF NOT EXISTS command_batchs_chain ON command_batchs (chain);
 
-ALTER TABLE utxo_reservations ADD FOREIGN KEY (reservation_id) REFERENCES reservations(id) ON DELETE CASCADE;
+ALTER TABLE utxo_reservations ADD FOREIGN KEY (reservation_id) REFERENCES reservations(request_id) ON DELETE CASCADE;
 
 ALTER TABLE utxo_reservations ADD FOREIGN KEY (utxo_tx_id, utxo_vout) REFERENCES utxos(tx_id, vout) ON DELETE CASCADE;
 

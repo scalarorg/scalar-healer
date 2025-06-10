@@ -7,20 +7,28 @@ package sqlc
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const saveUtxoReservations = `-- name: SaveUtxoReservations :exec
-INSERT INTO utxo_reservations (utxo_tx_id, utxo_vout, reservation_id)
-VALUES (unnest($1::bytea[]), unnest($2::bigint[]), unnest($3::bigint[]))
+INSERT INTO utxo_reservations (utxo_tx_id, utxo_vout, reservation_id, amount)
+VALUES (unnest($1::bytea[]), unnest($2::bigint[]), unnest($3::bytea[]), unnest($4::numeric[]))
 `
 
 type SaveUtxoReservationsParams struct {
-	Column1 [][]byte `json:"column_1"`
-	Column2 []int64  `json:"column_2"`
-	Column3 []int64  `json:"column_3"`
+	Column1 [][]byte         `json:"column_1"`
+	Column2 []int64          `json:"column_2"`
+	Column3 [][]byte         `json:"column_3"`
+	Column4 []pgtype.Numeric `json:"column_4"`
 }
 
 func (q *Queries) SaveUtxoReservations(ctx context.Context, arg SaveUtxoReservationsParams) error {
-	_, err := q.db.Exec(ctx, saveUtxoReservations, arg.Column1, arg.Column2, arg.Column3)
+	_, err := q.db.Exec(ctx, saveUtxoReservations,
+		arg.Column1,
+		arg.Column2,
+		arg.Column3,
+		arg.Column4,
+	)
 	return err
 }

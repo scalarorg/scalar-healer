@@ -69,6 +69,8 @@ func GetUtxoList(lockingScript []byte, custodianGrUid []byte) ([]sqlc.Utxo, []ui
 
 	url := fmt.Sprintf("%s/address/%s/utxo", MEMPOOL_URL, taprootAddress)
 
+	log.Info().Msgf("[GetUtxoList] url: %s", url)
+
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get UTXOs: %w", err)

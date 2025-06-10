@@ -155,19 +155,19 @@ func TestSaveUtxoSnapshot(t *testing.T) {
 	tests := []struct {
 		name    string
 		setup   func(t *testing.T, repo *healer.HealerRepository)
-		input   []sqlc.UtxoWithReservations
+		input   []*sqlc.UtxoWithReservations
 		wantErr bool
 	}{
 		{
 			name:    "empty snapshot",
 			setup:   func(t *testing.T, repo *healer.HealerRepository) {},
-			input:   []sqlc.UtxoWithReservations{},
+			input:   []*sqlc.UtxoWithReservations{},
 			wantErr: false,
 		},
 		{
 			name:  "valid snapshot with same custodian group",
 			setup: func(t *testing.T, repo *healer.HealerRepository) {},
-			input: []sqlc.UtxoWithReservations{
+			input: []*sqlc.UtxoWithReservations{
 				{
 					Utxo: &sqlc.Utxo{
 						TxID:              []byte{0x1},
@@ -196,7 +196,7 @@ func TestSaveUtxoSnapshot(t *testing.T) {
 		{
 			name:  "invalid snapshot with mixed groups",
 			setup: func(t *testing.T, repo *healer.HealerRepository) {},
-			input: []sqlc.UtxoWithReservations{
+			input: []*sqlc.UtxoWithReservations{
 				{
 					Utxo: &sqlc.Utxo{
 						TxID:              []byte{0x1},
@@ -226,7 +226,7 @@ func TestSaveUtxoSnapshot(t *testing.T) {
 		{
 			name:  "invalid snapshot with mixed script pubkeys",
 			setup: func(t *testing.T, repo *healer.HealerRepository) {},
-			input: []sqlc.UtxoWithReservations{
+			input: []*sqlc.UtxoWithReservations{
 				{
 					Utxo: &sqlc.Utxo{
 						TxID:              []byte{0x1},
@@ -267,7 +267,7 @@ func TestSaveUtxoSnapshot(t *testing.T) {
 				})
 				assert.NoError(t, err)
 			},
-			input: []sqlc.UtxoWithReservations{
+			input: []*sqlc.UtxoWithReservations{
 				{
 					Utxo: &sqlc.Utxo{
 						TxID:              []byte{0x1},

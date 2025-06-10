@@ -105,6 +105,10 @@ func (m *HealerRepository) GetProtocol(ctx context.Context, name string) (*sqlc.
 		}
 	}
 
+	if len(protocolsBySymbol) == 0 {
+		return nil, fmt.Errorf("protocol not found")
+	}
+
 	// Convert map to slice
 	protocols := make([]sqlc.ProtocolWithTokenDetails, 0, len(protocolsBySymbol))
 	for _, protocol := range protocolsBySymbol {

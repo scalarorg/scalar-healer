@@ -56,7 +56,7 @@ func CreateRedeem(c echo.Context) error {
 	err = db.SaveRedeemRequest(ctx, body.SourceChain.String(), body.DestChain.String(), body.Address, amountz, body.Symbol, lockScript)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to save redeem request")
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to save redeem request")
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
 	return c.NoContent(http.StatusOK)

@@ -33,8 +33,8 @@ func (m *HealerRepository) SaveRedeemTxs(ctx context.Context, redeemTxs []chains
 
 func (m *HealerRepository) SaveRedeemRequest(ctx context.Context, sourceChain, destChain string, address common.Address, amount *big.Int, symbol string, lockingScript []byte) error {
 
-	err := m.execTx(ctx, func(_ context.Context, q *sqlc.Queries) error {
-		protocol, err := m.GetProtocol(ctx, symbol)
+	err := m.execTx(ctx, func(txCtx context.Context, q *sqlc.Queries) error {
+		protocol, err := m.GetProtocol(txCtx, symbol)
 		if err != nil {
 			return constants.ErrTokenNotExists
 		}
@@ -45,7 +45,7 @@ func (m *HealerRepository) SaveRedeemRequest(ctx context.Context, sourceChain, d
 		}
 
 		// redeem session
-		redeemSession, err := m.GetRedeemSession(ctx, protocol.CustodianGroupUid)
+		redeemSession, err := m.GetRedeemSession(txCtx, protocol.CustodianGroupUid)
 		if err != nil {
 			return constants.ErrInvalidRedeemSession
 		}
@@ -61,14 +61,15 @@ func (m *HealerRepository) SaveRedeemRequest(ctx context.Context, sourceChain, d
 
 		nonce := uint64(time.Now().UnixNano())
 
-		hash, hex := createRedeemCommandID(nonce, address, sourceChain, destChain, symbol, amount)
+		requestId, _ := createRedeemCommandID(nonce, address, sourceChain, destChain, symbol, amount)
 
-		reservedUtxos, newUtxos, err := m.reserveUtxos(ctx, redeemSession.CustodianGroupUid, uint64(protocol.CustodianQuorum), hex, amount.Uint64(), constants.CHAIN_PARAMS.RedeemTxsVsizeLimit)
+		reservedUtxos, newUtxos, err := m.reserveUtxos(txCtx, redeemSession.CustodianGroupUid, uint64(protocol.CustodianQuorum), requestId[:], amount.Uint64(), constants.CHAIN_PARAMS.RedeemTxsVsizeLimit)
 		if err != nil {
 			return err
 		}
 
-		err = m.SaveUtxoSnapshot(ctx, newUtxos)
+
+		err = m.saveUtxoSnapshot(txCtx, newUtxos)
 		if err != nil {
 			return err
 		}
@@ -78,7 +79,7 @@ func (m *HealerRepository) SaveRedeemRequest(ctx context.Context, sourceChain, d
 				Amount:        amount.Uint64(),
 				LockingScript: lockingScript,
 				Utxos:         reservedUtxos,
-				RequestId:     hash,
+				RequestId:     requestId,
 			},
 			PayloadType: encode.ContractCallWithTokenPayloadType_CustodianOnly,
 		}
@@ -93,18 +94,18 @@ func (m *HealerRepository) SaveRedeemRequest(ctx context.Context, sourceChain, d
 			return err
 		}
 
-		redeemCommand, err := NewRedeemCommand(sourceChain, hash, chainID, params)
+		redeemCommand, err := NewRedeemCommand(sourceChain, requestId, chainID, params)
 		if err != nil {
 			return err
 		}
 
 		err = m.Queries.SaveRedeemCommand(ctx, sqlc.SaveRedeemCommandParams{
-			ID:        redeemCommand.ID,
-			Chain:     redeemCommand.Chain,
-			Status:    redeemCommand.Status,
-			Params:    redeemCommand.Params,
-			Data:      redeemCommand.Data,
-			SigHash:   redeemCommand.SigHash,
+			ID:      redeemCommand.ID,
+			Chain:   redeemCommand.Chain,
+			Status:  redeemCommand.Status,
+			Params:  redeemCommand.Params,
+			Data:    redeemCommand.Data,
+			SigHash: redeemCommand.SigHash,
 		})
 		if err != nil {
 			return err
@@ -138,7 +139,7 @@ func createRedeemCommandID(nonce uint64, address common.Address, sourceChain, de
 	return byte32Hash, hashHex
 }
 
-func (m *HealerRepository) reserveUtxos(ctx context.Context, grUid []byte, quorum uint64, requestID string, amount uint64, vsizeLimit uint64) ([]sqlc.Utxo, []sqlc.UtxoWithReservations, error) {
+func (m *HealerRepository) reserveUtxos(ctx context.Context, grUid []byte, quorum uint64, requestID []byte, amount uint64, vsizeLimit uint64) ([]sqlc.Utxo, sqlc.UtxoSnapshot, error) {
 	utxoSnapshot, err := m.GetUtxoSnapshot(ctx, grUid)
 	if err != nil {
 		return nil, nil, err
@@ -149,42 +150,13 @@ func (m *HealerRepository) reserveUtxos(ctx context.Context, grUid []byte, quoru
 	}
 
 	// // Find optimal UTXO combination using knapsack algorithm
-	reserveUtxos, newUtxos, err := sqlc.UtxoSnapshot(utxoSnapshot).ReserveUtxos(requestID, amount, quorum, vsizeLimit)
+	reserveUtxos, err := sqlc.UtxoSnapshot(utxoSnapshot).ReserveUtxos(requestID, amount, quorum, vsizeLimit)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	return reserveUtxos, newUtxos, nil
+	return reserveUtxos, utxoSnapshot, nil
 }
-
-// func CreateRedeemParams(ctx context.Context, vsizeLimit uint64, amount *big.Int, sequence uint64, utxos []sqlc.Utxo) ([]byte, *CommandID, error) {
-
-// 	dataHex := hex.EncodeToString(dataHash)
-
-// 	// reservedUtxos, err := k.reserveUtxos(ctx, r.CustodianGroupUid, dataHex, amount,
-// 	// 	vsizeLimit)
-// 	// if err != nil {
-// 	// 	return nil, nil, err
-// 	// }
-
-// 	cmdId := NewCommandID(dataHash, r.SourceChain)
-
-// 	redeemTokenParams := &cov.RedeemTokenParams{
-// 		DestinationChain:   req.DestChain.String(),
-// 		DestinationAddress: req.Address,
-// 		Payload:            *payload,
-// 		Symbol:             req.Symbol,
-// 		Amount:             req.Amount,
-// 		CustodianGroupUID:  custodianGrUID,
-// 		SessionSequence:    sequence,
-// 	}
-// 	params, err := redeemTokenParams.AbiPack()
-// 	if err != nil {
-// 		return nil, nil, err
-// 	}
-
-// 	return params, &cmdId, err
-// }
 
 func (m *HealerRepository) ListRedeemRequests(ctx context.Context, address common.Address, page, size int32) ([]sqlc.RedeemRequest, int64, error) {
 	result, err := m.Queries.ListRedeemRequests(ctx, sqlc.ListRedeemRequestsParams{

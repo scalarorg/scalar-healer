@@ -35,7 +35,10 @@ func NewRepository(ctx context.Context, cfg *ConnConfig, migrationURL string) *H
 	dbSource := fmt.Sprintf("postgresql://%s:%s@%s:%d/%s?sslmode=disable", cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.DBName)
 
 	configs, err := pgxpool.ParseConfig(dbSource)
-	if config.Env.IS_TEST || config.Env.IS_DEV {
+	if err != nil {
+		log.Fatal().Err(err).Msg("cannot parse db config")
+	}
+	if config.Env.IS_TEST  {
 		configs.ConnConfig.Tracer = &Tracer{}
 	}
 

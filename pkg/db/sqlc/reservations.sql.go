@@ -7,15 +7,13 @@ package sqlc
 
 import (
 	"context"
-
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const deleteReservations = `-- name: DeleteReservations :exec
-DELETE FROM reservations WHERE id IN (
-  SELECT r.id
+DELETE FROM reservations WHERE request_id IN (
+  SELECT r.request_id
   FROM reservations r
-  LEFT JOIN utxo_reservations ur ON r.id = ur.reservation_id
+  LEFT JOIN utxo_reservations ur ON r.request_id = ur.reservation_id
   WHERE ur.reservation_id IS NULL
 )
 `
@@ -27,37 +25,25 @@ func (q *Queries) DeleteReservations(ctx context.Context) error {
 
 const saveReservations = `-- name: SaveReservations :many
 INSERT INTO reservations (
-    request_id,
-    amount
+    request_id
 ) VALUES (
-    unnest($1::text[]),
-    unnest($2::numeric[])
-) RETURNING id, request_id
+    unnest($1::bytea[])
+) RETURNING request_id
 `
 
-type SaveReservationsParams struct {
-	Column1 []string         `json:"column_1"`
-	Column2 []pgtype.Numeric `json:"column_2"`
-}
-
-type SaveReservationsRow struct {
-	ID        int64  `json:"id"`
-	RequestID string `json:"request_id"`
-}
-
-func (q *Queries) SaveReservations(ctx context.Context, arg SaveReservationsParams) ([]SaveReservationsRow, error) {
-	rows, err := q.db.Query(ctx, saveReservations, arg.Column1, arg.Column2)
+func (q *Queries) SaveReservations(ctx context.Context, dollar_1 [][]byte) ([][]byte, error) {
+	rows, err := q.db.Query(ctx, saveReservations, dollar_1)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []SaveReservationsRow{}
+	items := [][]byte{}
 	for rows.Next() {
-		var i SaveReservationsRow
-		if err := rows.Scan(&i.ID, &i.RequestID); err != nil {
+		var request_id []byte
+		if err := rows.Scan(&request_id); err != nil {
 			return nil, err
 		}
-		items = append(items, i)
+		items = append(items, request_id)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err

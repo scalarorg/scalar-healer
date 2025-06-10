@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/rs/zerolog/log"
 	"github.com/scalarorg/scalar-healer/pkg/db/sqlc"
 )
 
@@ -14,12 +13,9 @@ const txContextKey contextKey = "transaction_context"
 
 func (store *HealerRepository) requireTx(ctx context.Context, fn func(ctx context.Context) error) error {
 
-	log.Info().Msgf("requireTx: %v", ctx.Value(txContextKey))
-	
 	if ctx.Value(txContextKey) == nil {
 		return fmt.Errorf("must be called within execTx transaction")
 	}
-
 
 	if !ctx.Value(txContextKey).(bool) {
 		return fmt.Errorf("must be called within execTx transaction")
@@ -29,22 +25,22 @@ func (store *HealerRepository) requireTx(ctx context.Context, fn func(ctx contex
 }
 
 func (store *HealerRepository) execTx(ctx context.Context, fn func(context.Context, *sqlc.Queries) error) error {
-	tx, err := store.connPool.Begin(ctx)
+	txCtx := context.WithValue(ctx, txContextKey, true)
+
+	tx, err := store.connPool.Begin(txCtx)
 	if err != nil {
 		return err
 	}
 
 	q := sqlc.New(tx)
 
-	ctx = context.WithValue(ctx, txContextKey, true)
-
-	err = fn(ctx, q)
+	err = fn(txCtx, q)
 	if err != nil {
-		if rbErr := tx.Rollback(ctx); rbErr != nil {
+		if rbErr := tx.Rollback(txCtx); rbErr != nil {
 			return fmt.Errorf("tx err: %v, rb err: %v", err, rbErr)
 		}
 		return err
 	}
 
-	return tx.Commit(ctx)
+	return tx.Commit(txCtx)
 }

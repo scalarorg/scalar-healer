@@ -42,12 +42,12 @@ func (p *RedeemTokenPayloadWithType) AbiUnpack(data []byte) error {
 
 func (p *RedeemTokenPayload) AbiPack() ([]byte, error) {
 	txIds := make([]string, len(p.Utxos))
-	vouts := make([]int64, len(p.Utxos))
+	vouts := make([]uint32, len(p.Utxos))
 	amounts := make([]uint64, len(p.Utxos))
 	for i, utxo := range p.Utxos {
 		txIds[i] = hex.EncodeToString(utxo.TxID[:])
-		vouts[i] = utxo.Vout
-		amounts[i] = utxo.AmountInSats.Int.Uint64()
+		vouts[i] = uint32(utxo.Vout)
+		amounts[i] = sqlc.ConvertNumericToUint64(utxo.AmountInSats)
 	}
 	return RedeemTokenPayloadArguments.Pack(
 		p.Amount,

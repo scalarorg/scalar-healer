@@ -18,15 +18,22 @@ SELECT
     u.script_pubkey,
     u.amount_in_sats,
     u.custodian_group_uid,
-    json_agg(json_build_object(
-      'request_id', r.request_id,
-      'amount', r.amount
-    )) AS reservations
+    u.block_height,
+    COALESCE(
+      json_agg(
+        CASE
+          WHEN r.request_id IS NOT NULL THEN
+            json_build_object('request_id', r.request_id, 'amount', ur.amount)
+        END
+      ) FILTER (WHERE r.request_id IS NOT NULL),
+      '[]'
+    ) AS reservations
   FROM utxos u
-  JOIN utxo_reservations ur ON u.tx_id = ur.utxo_tx_id AND u.vout = ur.utxo_vout
-  JOIN reservations r ON r.id = ur.reservation_id
+  LEFT JOIN utxo_reservations ur ON u.tx_id = ur.utxo_tx_id AND u.vout = ur.utxo_vout
+  LEFT JOIN reservations r ON r.request_id = ur.reservation_id
   WHERE u.custodian_group_uid = $1::bytea
-  GROUP BY u.tx_id, u.vout, u.script_pubkey, u.amount_in_sats, u.custodian_group_uid
+  GROUP BY u.tx_id, u.vout, u.script_pubkey, u.amount_in_sats, u.custodian_group_uid, u.block_height
+  ORDER BY u.tx_id
 `
 
 type GetUtxoSnapshotRow struct {
@@ -35,7 +42,8 @@ type GetUtxoSnapshotRow struct {
 	ScriptPubkey      []byte         `json:"script_pubkey"`
 	AmountInSats      pgtype.Numeric `json:"amount_in_sats"`
 	CustodianGroupUid []byte         `json:"custodian_group_uid"`
-	Reservations      []byte         `json:"reservations"`
+	BlockHeight       int64          `json:"block_height"`
+	Reservations      interface{}    `json:"reservations"`
 }
 
 func (q *Queries) GetUtxoSnapshot(ctx context.Context, dollar_1 []byte) ([]GetUtxoSnapshotRow, error) {
@@ -53,6 +61,7 @@ func (q *Queries) GetUtxoSnapshot(ctx context.Context, dollar_1 []byte) ([]GetUt
 			&i.ScriptPubkey,
 			&i.AmountInSats,
 			&i.CustodianGroupUid,
+			&i.BlockHeight,
 			&i.Reservations,
 		); err != nil {
 			return nil, err

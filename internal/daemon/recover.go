@@ -251,9 +251,9 @@ func (s *Service) RecoverBTCSessions(ctx context.Context) {
 		}
 	}
 
-	utxosWithReservations := utils.Map(utxos, func(utxo sqlc.Utxo) sqlc.UtxoWithReservations {
+	utxosWithReservations := utils.Map(utxos, func(utxo sqlc.Utxo) *sqlc.UtxoWithReservations {
 		utxo.BlockHeight = int64(maxBlockHeight)
-		return sqlc.UtxoWithReservations{
+		return &sqlc.UtxoWithReservations{
 			Utxo:         &utxo,
 			Reservations: nil,
 		}

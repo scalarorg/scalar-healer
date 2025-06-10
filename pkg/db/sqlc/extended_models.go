@@ -1,6 +1,8 @@
 package sqlc
 
 import (
+	"bytes"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -8,6 +10,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/rs/zerolog/log"
 	"github.com/scalarorg/scalar-healer/pkg/utils/chains"
 )
 
@@ -159,12 +162,12 @@ func (p *ProtocolWithTokenDetails) GetTokenDetailsByChain(chain string) (TokenDe
 
 type UtxoWithReservations struct {
 	*Utxo
-	Reservations []Reservation `json:"reservations"`
+	Reservations []*UtxoReservation `json:"reservations"`
 }
 
-func (utxo *UtxoWithReservations) IsReserved(requestID string) bool {
+func (utxo *UtxoWithReservations) IsReserved(requestID []byte) bool {
 	for _, reserved := range utxo.Reservations {
-		if reserved.RequestID == requestID {
+		if bytes.Equal(reserved.ReservationID, requestID) {
 			return true
 		}
 	}
@@ -173,31 +176,38 @@ func (utxo *UtxoWithReservations) IsReserved(requestID string) bool {
 
 func (utxo *UtxoWithReservations) AvailableAmount() uint64 {
 	reservedAmount := utxo.GetReservedAmount()
-	return utxo.AmountInSats.Int.Uint64() - reservedAmount
+	result := ConvertNumericToUint64(utxo.AmountInSats) - reservedAmount
+	return result
 }
 
 func (utxo *UtxoWithReservations) GetReservedAmount() uint64 {
 	amount := uint64(0)
 	for _, reserved := range utxo.Reservations {
-		amount += reserved.Amount.Int.Uint64()
+		if !reserved.Amount.Valid {
+			continue
+		}
+		amount += ConvertNumericToUint64(reserved.Amount)
 	}
 	return amount
 }
 
-type UtxoSnapshot []UtxoWithReservations
+type UtxoSnapshot []*UtxoWithReservations
 
-func (s UtxoSnapshot) ReserveUtxos(requestID string, amount uint64, quorum uint64, vSizeLimit uint64) ([]Utxo, []UtxoWithReservations, error) {
-	currentInputs, currentOutputs := s.CountInputOutput()
+func (snapshot UtxoSnapshot) ReserveUtxos(requestID []byte, amount uint64, quorum uint64, vSizeLimit uint64) ([]Utxo, error) {
+	currentInputs, currentOutputs := snapshot.CountInputOutput()
 	newInput := 0
 	newOutput := 1
 	remainingAmount := amount
 	reserveUtxos := make([]Utxo, 0)
 	mapNewResevations := map[int]uint64{}
-	for ind, utxo := range s {
+	for ind, utxo := range snapshot {
 		if utxo.IsReserved(requestID) {
-			return nil, nil, fmt.Errorf("requestID %s is already reserved in utxo %x", requestID, utxo.TxID)
+			return nil, fmt.Errorf("requestID %s is already reserved in utxo %x", requestID, utxo.TxID)
 		}
 		availableAmount := utxo.AvailableAmount()
+
+		log.Info().Msgf("availableAmount %d, remainingAmount %d", availableAmount, remainingAmount)
+
 		if availableAmount > 0 {
 			//Reserve amount is min(availableAmount, remainingAmount)
 			reserveAmount := availableAmount
@@ -222,42 +232,44 @@ func (s UtxoSnapshot) ReserveUtxos(requestID string, amount uint64, quorum uint6
 		}
 	}
 	if remainingAmount > 0 {
-		return nil, nil, fmt.Errorf("not enough utxos to reserve, remainingAmount %d", remainingAmount)
+		return nil, fmt.Errorf("not enough utxos to reserve, remainingAmount %d", remainingAmount)
 	}
+
 	//Add extra input and output for collect change amount
 	newVsize := chains.CalculateVsize(currentInputs+newInput+1, currentOutputs+newOutput+1, quorum)
 	if newVsize > vSizeLimit {
-		return nil, nil, fmt.Errorf("new virtual size exceeds the limit %d > %d", newVsize, vSizeLimit)
+		return nil, fmt.Errorf("new virtual size exceeds the limit %d > %d", newVsize, vSizeLimit)
 	}
-
-	newUtxos := make([]UtxoWithReservations, 0)
 
 	for ind, reserveAmount := range mapNewResevations {
-		utxo := s[ind]
-		utxo.AppendReserved(requestID, reserveAmount)
-		newUtxos = append(newUtxos, utxo)
+		err := snapshot[ind].AppendReserved(requestID, reserveAmount)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	return reserveUtxos, newUtxos, nil
+	return reserveUtxos, nil
 }
 
-func (utxo *UtxoWithReservations) AppendReserved(requestID string, amount uint64) error {
+func (utxo *UtxoWithReservations) AppendReserved(requestID []byte, amount uint64) error {
 	if utxo.Reservations == nil {
-		utxo.Reservations = []Reservation{}
+		utxo.Reservations = []*UtxoReservation{}
 	}
 	totalReserved := uint64(0)
 	for _, reserved := range utxo.Reservations {
-		if reserved.RequestID == requestID {
+		if bytes.Equal(reserved.ReservationID, requestID) {
 			return fmt.Errorf("requestID already reserved in this utxo %x", utxo.TxID)
 		}
-		totalReserved += reserved.Amount.Int.Uint64()
+		totalReserved += ConvertNumericToUint64(reserved.Amount)
 	}
-	if totalReserved+amount > utxo.AmountInSats.Int.Uint64() {
-		return fmt.Errorf("amount exceeds utxo amount, totalReserved %d, amount %d, utxo.AmountInSats %d", totalReserved, amount, utxo.AmountInSats.Int.Uint64())
+	if totalReserved+amount > ConvertNumericToUint64(utxo.AmountInSats) {
+		return fmt.Errorf("amount exceeds utxo amount, totalReserved %d, amount %d, utxo.AmountInSats %d", totalReserved, amount, ConvertNumericToUint64(utxo.AmountInSats))
 	}
-	utxo.Reservations = append(utxo.Reservations, Reservation{
-		RequestID: requestID,
+	utxo.Reservations = append(utxo.Reservations, &UtxoReservation{
+		ReservationID: requestID,
 		Amount:    ConvertUint64ToNumeric(amount),
+		UtxoTxID: utxo.TxID,
+		UtxoVout: utxo.Vout,
 	})
 	return nil
 }
@@ -269,7 +281,7 @@ func (s UtxoSnapshot) CountInputOutput() (int, int) {
 		if len(utxo.Reservations) > 0 {
 			inputs += 1
 			for _, reservation := range utxo.Reservations {
-				mapRequests[reservation.RequestID] = true
+				mapRequests[hex.EncodeToString(reservation.ReservationID)] = true
 			}
 		}
 	}
