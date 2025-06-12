@@ -105,8 +105,8 @@ func setupWorkers(repo db.HealderAdapter, manager *tofnd.Manager) *worker.Schedu
 		About:    "Signing redeem txs",
 	})
 	scheduler.AddJob(worker.JobConfig{
-		Type:   worker.JobAtTime,
-		AtTime: config.GetNext5AM(),
+		Type:    worker.JobAtTime,
+		AtTimes: []time.Time{config.GetNext5AM()},
 		Job: func() {
 			log.Info().Msg("Fetching redeem txs")
 		},

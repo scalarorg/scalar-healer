@@ -3,9 +3,10 @@ package worker
 import (
 	"time"
 
-	"github.com/go-co-op/gocron"
+	"github.com/go-co-op/gocron/v2"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"github.com/scalarorg/scalar-healer/pkg/utils/slices"
 )
 
 type JobType int
@@ -17,35 +18,31 @@ const (
 
 type JobConfig struct {
 	Type     JobType
-	AtTime   time.Time     // e.g., "05:00"
+	AtTimes  []time.Time   // e.g., "05:00"
 	Interval time.Duration // e.g., 5 * time.Second
 	Job      func()
 	About    string
 }
 
 type Scheduler struct {
-	raw  *gocron.Scheduler
-	jobs []JobConfig
-	log  *zerolog.Event
+	raw gocron.Scheduler
+	log *zerolog.Event
 }
 
 func NewScheduler() *Scheduler {
+	scheduler, err := gocron.NewScheduler()
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to create scheduler")
+	}
+
 	return &Scheduler{
-		raw: gocron.NewScheduler(time.UTC),
+		raw: scheduler,
 		log: log.Info(),
 	}
 }
 
 func (s *Scheduler) Start() {
-	for _, job := range s.jobs {
-		switch job.Type {
-		case JobAtTime:
-			s.raw.Every(1).Day().At(job.AtTime).Do(job.Job)
-		case JobEveryDuration:
-			s.raw.Every(job.Interval).Do(job.Job)
-		}
-	}
-	s.raw.StartAsync()
+	s.raw.Start()
 }
 
 func (s *Scheduler) AddJob(cfg JobConfig) {
@@ -62,14 +59,30 @@ func (s *Scheduler) AddJob(cfg JobConfig) {
 		s.log.Msgf("Running job %s", cfg.About)
 		cfg.Job()
 	}
-	cfg.Job = wrappedJob
-	s.jobs = append(s.jobs, cfg)
-}
 
-func (s *Scheduler) Len() int {
-	return len(s.jobs)
+	if cfg.Type == JobAtTime {
+		_, err := s.raw.NewJob(
+			gocron.DailyJob(1, func() []gocron.AtTime {
+				return slices.Map(cfg.AtTimes, func(t time.Time) gocron.AtTime {
+					return gocron.NewAtTime(uint(t.Hour()), uint(t.Minute()), uint(t.Second()))
+				})
+			}),
+			gocron.NewTask(wrappedJob),
+		)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to add job")
+		}
+	} else if cfg.Type == JobEveryDuration {
+		_, err := s.raw.NewJob(
+			gocron.DurationJob(cfg.Interval),
+			gocron.NewTask(wrappedJob),
+		)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to add job")
+		}
+	}
 }
 
 func (s *Scheduler) Shutdown() {
-	s.raw.Stop()
+	s.raw.Shutdown()
 }

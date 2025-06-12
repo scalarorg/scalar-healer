@@ -53,6 +53,8 @@ func (s *Server) Start() error {
 
 	s.setupSvs()
 
+	s.scheduler.Start()
+
 	return s.Raw.Start(fmt.Sprintf("%s:%s", config.Env.API_HOST, config.Env.PORT))
 }
 
