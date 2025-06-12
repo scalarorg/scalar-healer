@@ -94,3 +94,17 @@ func (q *Queries) SaveRedeemCommands(ctx context.Context, arg SaveRedeemCommands
 	)
 	return err
 }
+
+const submitRedeemCommandSignature = `-- name: SubmitRedeemCommandSignature :exec
+UPDATE redeem_commands SET signature = $1, status = 'SIGNED' WHERE id = $2
+`
+
+type SubmitRedeemCommandSignatureParams struct {
+	Signature []byte `json:"signature"`
+	ID        []byte `json:"id"`
+}
+
+func (q *Queries) SubmitRedeemCommandSignature(ctx context.Context, arg SubmitRedeemCommandSignatureParams) error {
+	_, err := q.db.Exec(ctx, submitRedeemCommandSignature, arg.Signature, arg.ID)
+	return err
+}

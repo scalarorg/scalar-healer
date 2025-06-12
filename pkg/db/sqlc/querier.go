@@ -51,6 +51,7 @@ type Querier interface {
 	SaveTransferRequest(ctx context.Context, arg SaveTransferRequestParams) error
 	SaveUTXOs(ctx context.Context, arg SaveUTXOsParams) error
 	SaveUtxoReservations(ctx context.Context, arg SaveUtxoReservationsParams) error
+	SubmitRedeemCommandSignature(ctx context.Context, arg SubmitRedeemCommandSignatureParams) error
 	UpsertNonce(ctx context.Context, arg UpsertNonceParams) error
 }
 

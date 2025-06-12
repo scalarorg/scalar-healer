@@ -8,3 +8,6 @@ VALUES ($1, $2, $3, $4, $5, $6);
 
 -- name: ListPendingSigningRedeemCommands :many
 SELECT * FROM redeem_commands WHERE status = 'PENDING' AND signature IS NULL;
+
+-- name: SubmitRedeemCommandSignature :exec
+UPDATE redeem_commands SET signature = $1, status = 'SIGNED' WHERE id = $2;

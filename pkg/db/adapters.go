@@ -89,6 +89,7 @@ type HealderAdapter interface {
 
 	// redeem commands
 	ListPendingSigningRedeemCommands(ctx context.Context) ([]sqlc.RedeemCommand, error)
+	SubmitRedeemCommandSignatures(ctx context.Context, ids [][]byte, signature [][]byte) error
 
 	GetCommandBatchByID(ctx context.Context, commandBatchID []byte) (sqlc.CommandBatch, error)
 	GetCommandBatches(ctx context.Context) ([]sqlc.CommandBatch, error)

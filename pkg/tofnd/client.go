@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/rs/zerolog/log"
 	"github.com/scalarorg/scalar-core/x/tss/tofnd"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -30,7 +31,7 @@ func NewClient(cfg *ClientConfig, timeout time.Duration) (*Client, error) {
 		Conn:    conn,
 		Service: tofnd.NewMultisigClient(conn),
 		PartyID: cfg.PartyID,
-		KeyID:   cfg.KeyID,
+		KeyID:   cfg.KeyUID,
 		Weight:  cfg.Weight,
 	}, nil
 }
@@ -51,6 +52,9 @@ func (c *Client) Sign(ctx context.Context, msg []byte) (*SigningResponse, error)
 		MsgToSign: msg,
 		PartyUid:  c.PartyID,
 	}
+
+	log.Info().Interface("req", req).Msg("Signing message")
+
 	resp, err := c.Service.Sign(ctx, req)
 	if err != nil {
 		return nil, err

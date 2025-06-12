@@ -7,10 +7,10 @@ import (
 )
 
 type ClientConfig struct {
-	Address string `mapstructure:"address"`
-	PartyID string `mapstructure:"party_id"`
-	KeyID   string `mapstructure:"key_id"`
-	Weight  int    `mapstructure:"weight"`
+	Address string `json:"address"`
+	PartyID string `json:"party_id"`
+	KeyUID  string `json:"key_uid"`
+	Weight  int    `json:"weight"`
 }
 
 func ReadTofndClientConfig(configPath string) ([]ClientConfig, error) {
@@ -19,5 +19,6 @@ func ReadTofndClientConfig(configPath string) ([]ClientConfig, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to read tofnd client configs: %w", err)
 	}
+
 	return configs, nil
 }

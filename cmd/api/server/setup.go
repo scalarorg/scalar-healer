@@ -100,7 +100,7 @@ func setupWorkers(repo db.HealderAdapter, manager *tofnd.Manager) *worker.Schedu
 	scheduler := worker.NewScheduler()
 	scheduler.AddJob(worker.JobConfig{
 		Type:     worker.JobEveryDuration,
-		Interval: 5 * time.Second,
+		Interval: 8 * time.Second,
 		Job:      job.HandlePendingSigning(repo, manager),
 		About:    "Signing redeem txs",
 	})

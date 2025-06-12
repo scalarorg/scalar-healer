@@ -43,7 +43,6 @@ func NewManager(configPath string) *Manager {
 type SignatureResult struct {
 	Client *Client
 	Sig    []byte
-	Weight int
 	Err    error
 }
 
@@ -68,7 +67,6 @@ func (m *Manager) Sign(ctx context.Context, msg []byte) ([]SignatureResult, erro
 			case resultCh <- SignatureResult{
 				Client: client,
 				Sig:    sig.GetSignature(),
-				Weight: client.Weight,
 				Err:    err,
 			}:
 			case <-done:
@@ -81,13 +79,15 @@ func (m *Manager) Sign(ctx context.Context, msg []byte) ([]SignatureResult, erro
 		if res.Err == nil && len(res.Sig) >= 64 {
 			mu.Lock()
 			results = append(results, res)
-			totalWeight += res.Weight
+			totalWeight += res.Client.Weight
 			if totalWeight >= m.Threshold {
 				close(done) // signal goroutines to stop sending
 				mu.Unlock()
 				break
 			}
 			mu.Unlock()
+		} else {
+			log.Error().Err(res.Err).Msg("Failed to sign message")
 		}
 	}
 

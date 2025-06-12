@@ -182,8 +182,6 @@ CREATE TYPE COMMAND_TYPE as ENUM (
    'redeemToken'
 );
 
-
-
 CREATE TABLE IF NOT EXISTS commands (
     id BYTEA PRIMARY KEY,
     chain TEXT NOT NULL,
