@@ -11,6 +11,49 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type BatchStatus string
+
+const (
+	BatchStatusPENDING  BatchStatus = "PENDING"
+	BatchStatusSIGNED   BatchStatus = "SIGNED"
+	BatchStatusEXECUTED BatchStatus = "EXECUTED"
+)
+
+func (e *BatchStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = BatchStatus(s)
+	case string:
+		*e = BatchStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for BatchStatus: %T", src)
+	}
+	return nil
+}
+
+type NullBatchStatus struct {
+	BatchStatus BatchStatus `json:"batch_status"`
+	Valid       bool        `json:"valid"` // Valid is true if BatchStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullBatchStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.BatchStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.BatchStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullBatchStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.BatchStatus), nil
+}
+
 type CommandType string
 
 const (
@@ -141,7 +184,7 @@ type CommandBatch struct {
 	Data      []byte           `json:"data"`
 	SigHash   []byte           `json:"sig_hash"`
 	Signature []byte           `json:"signature"`
-	Status    pgtype.Int4      `json:"status"`
+	Status    BatchStatus      `json:"status"`
 	ExtraData []byte           `json:"extra_data"`
 	CreatedAt pgtype.Timestamp `json:"created_at"`
 	UpdatedAt pgtype.Timestamp `json:"updated_at"`
@@ -194,7 +237,7 @@ type Protocol struct {
 type RedeemCommand struct {
 	ID        []byte           `json:"id"`
 	Chain     string           `json:"chain"`
-	Status    pgtype.Int4      `json:"status"`
+	Status    BatchStatus      `json:"status"`
 	Params    []byte           `json:"params"`
 	Data      []byte           `json:"data"`
 	SigHash   []byte           `json:"sig_hash"`

@@ -76,23 +76,23 @@ func (c CommandStatus) ToPgType() pgtype.Int4 {
 	}
 }
 
-type CommandBatchStatus uint8
+// type CommandBatchStatus uint8
 
-const (
-	COMMAND_BATCH_STATUS_PENDING  CommandBatchStatus = 0
-	COMMAND_BATCH_STATUS_EXECUTED CommandBatchStatus = 1
-)
+// const (
+// 	COMMAND_BATCH_STATUS_PENDING  CommandBatchStatus = 0
+// 	COMMAND_BATCH_STATUS_EXECUTED CommandBatchStatus = 1
+// )
 
-func (c CommandBatchStatus) ToPgType() pgtype.Int4 {
-	return pgtype.Int4{
-		Int32: c.Int32(),
-		Valid: true,
-	}
-}
+// func (c CommandBatchStatus) ToPgType() pgtype.Int4 {
+// 	return pgtype.Int4{
+// 		Int32: c.Int32(),
+// 		Valid: true,
+// 	}
+// }
 
-func (s CommandBatchStatus) Int32() int32 {
-	return int32(s)
-}
+// func (s CommandBatchStatus) Int32() int32 {
+// 	return int32(s)
+// }
 
 type ChainRedeemSessionUpdate struct {
 	Chain             string

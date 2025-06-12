@@ -11,10 +11,12 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/rs/zerolog/log"
 	"github.com/scalarorg/scalar-healer/config"
+	"github.com/scalarorg/scalar-healer/internal/job"
+	"github.com/scalarorg/scalar-healer/internal/worker"
 	"github.com/scalarorg/scalar-healer/pkg/db"
 	"github.com/scalarorg/scalar-healer/pkg/openobserve"
+	"github.com/scalarorg/scalar-healer/pkg/tofnd"
 	"github.com/scalarorg/scalar-healer/pkg/utils"
-	"github.com/scalarorg/scalar-healer/pkg/worker"
 )
 
 type RouteInfo struct {
@@ -94,20 +96,23 @@ func setupValidator(e *echo.Echo) {
 	e.Validator = utils.NewValidator()
 }
 
-func setupWorkers() *worker.Scheduler {
-	// Calculate time until next 5am UTC
-	now := time.Now().UTC()
-	today5AM := time.Date(now.Year(), now.Month(), now.Day(), 5, 0, 0, 0, time.UTC)
-	if now.After(today5AM) {
-		today5AM = today5AM.Add(24 * time.Hour)
-	}
-
-	w := worker.NewScheduler(today5AM, "fetch-redeem-tx")
-	w.AddJob(func() {
-		log.Info().Msg("Fetching redeem txs")
+func setupWorkers(repo db.HealderAdapter, manager *tofnd.Manager) *worker.Scheduler {
+	scheduler := worker.NewScheduler()
+	scheduler.AddJob(worker.JobConfig{
+		Type:     worker.JobEveryDuration,
+		Interval: 5 * time.Second,
+		Job:      job.HandlePendingSigning(repo, manager),
+		About:    "Signing redeem txs",
 	})
-
-	return w
+	scheduler.AddJob(worker.JobConfig{
+		Type:   worker.JobAtTime,
+		AtTime: config.GetNext5AM(),
+		Job: func() {
+			log.Info().Msg("Fetching redeem txs")
+		},
+		About: "Fetching redeem txs",
+	})
+	return scheduler
 }
 
 func (s *Server) printRoutes() {

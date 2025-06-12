@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/scalarorg/scalar-healer/constants"
 	"github.com/scalarorg/scalar-healer/pkg/db"
 	"github.com/scalarorg/scalar-healer/pkg/db/healer"
@@ -147,7 +146,7 @@ func TestSaveCommandBatches(t *testing.T) {
 						Chain:     "ethereum",
 						Data:      []byte{0x2},
 						SigHash:   []byte{0x3},
-						Status:    pgtype.Int4{Int32: int32(sqlc.COMMAND_BATCH_STATUS_PENDING), Valid: true},
+						Status:    sqlc.BatchStatusPENDING,
 						ExtraData: data1,
 					},
 					{
@@ -155,7 +154,7 @@ func TestSaveCommandBatches(t *testing.T) {
 						Chain:     "polygon",
 						Data:      []byte{0x6},
 						SigHash:   []byte{0x7},
-						Status:    pgtype.Int4{Int32: int32(sqlc.COMMAND_BATCH_STATUS_PENDING), Valid: true},
+						Status:    sqlc.BatchStatusPENDING,
 						ExtraData: data2,
 					},
 				}

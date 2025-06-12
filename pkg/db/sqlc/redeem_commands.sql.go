@@ -7,9 +7,41 @@ package sqlc
 
 import (
 	"context"
-
-	"github.com/jackc/pgx/v5/pgtype"
 )
+
+const listPendingSigningRedeemCommands = `-- name: ListPendingSigningRedeemCommands :many
+SELECT id, chain, status, params, data, sig_hash, signature, created_at, updated_at FROM redeem_commands WHERE status = 'PENDING' AND signature IS NULL
+`
+
+func (q *Queries) ListPendingSigningRedeemCommands(ctx context.Context) ([]RedeemCommand, error) {
+	rows, err := q.db.Query(ctx, listPendingSigningRedeemCommands)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []RedeemCommand{}
+	for rows.Next() {
+		var i RedeemCommand
+		if err := rows.Scan(
+			&i.ID,
+			&i.Chain,
+			&i.Status,
+			&i.Params,
+			&i.Data,
+			&i.SigHash,
+			&i.Signature,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
 
 const saveRedeemCommand = `-- name: SaveRedeemCommand :exec
 INSERT INTO redeem_commands (id, chain, status, params, data, sig_hash)
@@ -19,7 +51,7 @@ VALUES ($1, $2, $3, $4, $5, $6)
 type SaveRedeemCommandParams struct {
 	ID      []byte      `json:"id"`
 	Chain   string      `json:"chain"`
-	Status  pgtype.Int4 `json:"status"`
+	Status  BatchStatus `json:"status"`
 	Params  []byte      `json:"params"`
 	Data    []byte      `json:"data"`
 	SigHash []byte      `json:"sig_hash"`
@@ -39,13 +71,13 @@ func (q *Queries) SaveRedeemCommand(ctx context.Context, arg SaveRedeemCommandPa
 
 const saveRedeemCommands = `-- name: SaveRedeemCommands :exec
 INSERT INTO redeem_commands (id, chain, status, params, data, sig_hash)
-VALUES (unnest($1::bytea[]), unnest($2::text[]), unnest($3::int[]), unnest($4::bytea[]), unnest($5::bytea[]), unnest($6::bytea[]))
+VALUES (unnest($1::bytea[]), unnest($2::text[]), unnest($3::text[])::batch_status, unnest($4::bytea[]), unnest($5::bytea[]), unnest($6::bytea[]))
 `
 
 type SaveRedeemCommandsParams struct {
 	Column1 [][]byte `json:"column_1"`
 	Column2 []string `json:"column_2"`
-	Column3 []int32  `json:"column_3"`
+	Column3 []string `json:"column_3"`
 	Column4 [][]byte `json:"column_4"`
 	Column5 [][]byte `json:"column_5"`
 	Column6 [][]byte `json:"column_6"`

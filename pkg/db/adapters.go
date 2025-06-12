@@ -87,6 +87,9 @@ type HealderAdapter interface {
 	SaveCommandBatches(ctx context.Context, commandBatches []*sqlc.CommandBatch) error
 	SaveCommandsAndBatchCommandsTx(ctx context.Context, commands []sqlc.Command) error
 
+	// redeem commands
+	ListPendingSigningRedeemCommands(ctx context.Context) ([]sqlc.RedeemCommand, error)
+
 	GetCommandBatchByID(ctx context.Context, commandBatchID []byte) (sqlc.CommandBatch, error)
 	GetCommandBatches(ctx context.Context) ([]sqlc.CommandBatch, error)
 

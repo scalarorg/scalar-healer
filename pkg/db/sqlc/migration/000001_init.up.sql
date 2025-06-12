@@ -182,22 +182,7 @@ CREATE TYPE COMMAND_TYPE as ENUM (
    'redeemToken'
 );
 
-CREATE TABLE IF NOT EXISTS redeem_commands (
-    id BYTEA PRIMARY KEY,
-    chain TEXT NOT NULL,
-    status INT CHECK (status IN (0, 1, 2)),
-    -- 0 = PENDING, not included in the batch command
-    -- 1 = QUEUED, included in the batch command
-    -- 2 = EXECUTED, executed
-    params BYTEA NOT NULL,
-    data BYTEA NOT NULL,
-    sig_hash BYTEA NOT NULL,
-    signature BYTEA,
-    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
 
-CREATE INDEX IF NOT EXISTS redeem_commands_chain ON redeem_commands (chain);
 
 CREATE TABLE IF NOT EXISTS commands (
     id BYTEA PRIMARY KEY,
@@ -216,23 +201,37 @@ CREATE TABLE IF NOT EXISTS commands (
 
 CREATE INDEX IF NOT EXISTS commands_chain ON commands (chain);
 
+CREATE TYPE BATCH_STATUS as ENUM ('PENDING', 'SIGNED', 'EXECUTED'); 
+
 CREATE TABLE IF NOT EXISTS command_batchs (
     id BYTEA PRIMARY KEY,
     chain TEXT NOT NULL,
     data BYTEA NOT NULL,
     sig_hash BYTEA NOT NULL,
     signature BYTEA,
-    status INT CHECK (status IN (0, 1)),
-    -- 0 = PENDING, not included in the batch command
-    -- 1 = EXECUTED, executed
-
-    -- json format of byte array 
+    status BATCH_STATUS NOT NULL,
     extra_data BYTEA NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS command_batchs_chain ON command_batchs (chain);
+
+-- Redeem Command is special command that is not included in the batch command, it is a single command but we have to handle it as a batch command
+
+CREATE TABLE IF NOT EXISTS redeem_commands (
+    id BYTEA PRIMARY KEY,
+    chain TEXT NOT NULL,
+    status BATCH_STATUS NOT NULL,
+    params BYTEA NOT NULL,
+    data BYTEA NOT NULL,
+    sig_hash BYTEA NOT NULL,
+    signature BYTEA,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS redeem_commands_chain ON redeem_commands (chain);
 
 ALTER TABLE utxo_reservations ADD FOREIGN KEY (reservation_id) REFERENCES reservations(request_id) ON DELETE CASCADE;
 

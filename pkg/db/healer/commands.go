@@ -50,7 +50,7 @@ func (m *HealerRepository) SaveCommandBatches(ctx context.Context, commandBatche
 		chains          []string
 		bunchData       [][]byte
 		sigHashes       [][]byte
-		status          []int32
+		status          []string
 		bunchExtraData  [][]byte
 	)
 
@@ -59,7 +59,7 @@ func (m *HealerRepository) SaveCommandBatches(ctx context.Context, commandBatche
 		chains = append(chains, commandBatch.Chain)
 		bunchData = append(bunchData, commandBatch.Data)
 		sigHashes = append(sigHashes, commandBatch.SigHash)
-		status = append(status, commandBatch.Status.Int32)
+		status = append(status, string(commandBatch.Status))
 		bunchExtraData = append(bunchExtraData, commandBatch.ExtraData)
 	}
 
@@ -178,7 +178,7 @@ func newCommandBatch(chain string, chainID *big.Int, cmds []*sqlc.Command) (*sql
 		ID:        commandBatchID,
 		Data:      data,
 		SigHash:   evm.GetSignHash(data).Bytes(),
-		Status:    sqlc.COMMAND_BATCH_STATUS_PENDING.ToPgType(),
+		Status:    sqlc.BatchStatusPENDING,
 		Chain:     chain,
 		ExtraData: encodedExtraData,
 	}, nil
@@ -196,7 +196,7 @@ func NewRedeemCommand(chain string, cmdId sqlc.CommandID, chainID *big.Int, para
 		Chain:     chain,
 		Params:    params,
 		Data:      data,
-		Status:    sqlc.COMMAND_STATUS_PENDING.ToPgType(),
+		Status:    sqlc.BatchStatusPENDING,
 		SigHash:   evm.GetSignHash(data).Bytes(),
 		Signature: nil, // TODO: add signature
 	}, nil

@@ -66,7 +66,7 @@ func (q *Queries) GetCommandBatches(ctx context.Context) ([]CommandBatch, error)
 
 const saveCommandBatches = `-- name: SaveCommandBatches :exec
 INSERT INTO command_batchs (id, chain, data, sig_hash, status, extra_data)
-VALUES (unnest($1::bytea[]), unnest($2::text[]), unnest($3::bytea[]), unnest($4::bytea[]), unnest($5::int[]), unnest($6::bytea[]))
+VALUES (unnest($1::bytea[]), unnest($2::text[]), unnest($3::bytea[]), unnest($4::bytea[]), unnest($5::text[])::batch_status, unnest($6::bytea[]))
 `
 
 type SaveCommandBatchesParams struct {
@@ -74,7 +74,7 @@ type SaveCommandBatchesParams struct {
 	Column2 []string `json:"column_2"`
 	Column3 [][]byte `json:"column_3"`
 	Column4 [][]byte `json:"column_4"`
-	Column5 []int32  `json:"column_5"`
+	Column5 []string `json:"column_5"`
 	Column6 [][]byte `json:"column_6"`
 }
 

@@ -7,10 +7,11 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/rs/zerolog/log"
 	"github.com/scalarorg/scalar-healer/config"
+	"github.com/scalarorg/scalar-healer/internal/worker"
 	"github.com/scalarorg/scalar-healer/pkg/db"
 	"github.com/scalarorg/scalar-healer/pkg/openobserve"
 	"github.com/scalarorg/scalar-healer/pkg/session"
-	"github.com/scalarorg/scalar-healer/pkg/worker"
+	"github.com/scalarorg/scalar-healer/pkg/tofnd"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
 
@@ -18,7 +19,7 @@ type Server struct {
 	Raw           *echo.Echo
 	DB            db.HealderAdapter
 	traceProvider *sdktrace.TracerProvider
-	scheduler     worker.Worker
+	scheduler     *worker.Scheduler
 }
 
 func New(db db.HealderAdapter) *Server {
@@ -35,13 +36,14 @@ func New(db db.HealderAdapter) *Server {
 	e := echo.New()
 	e.HideBanner = true
 	tp := openobserve.SetupTraceHTTP()
+	tofndManager := tofnd.NewManager(config.Env.CLIENTS_CONFIG_PATH)
 
 	setupAddHandlerEvent(e)
 	setupMiddleware(e, db)
 	setupErrorHandler(e)
 	setupRoute(e)
 	setupValidator(e)
-	s := setupWorkers()
+	s := setupWorkers(db, tofndManager)
 
 	return &Server{e, db, tp, s}
 }

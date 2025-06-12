@@ -79,3 +79,6 @@ lib:
 	mkdir -p ./lib
 	cp ../bitcoin-vault/target/release/libbitcoin_vault_ffi.* ./lib
 
+.PHONY: dump
+dump:
+	docker compose exec postgres pg_dump -U $(HEALER_POSTGRES_USER) -h $(HEALER_POSTGRES_HOST) -p $(HEALER_POSTGRES_PORT) -d $(HEALER_POSTGRES_DB) -f dump.sql
