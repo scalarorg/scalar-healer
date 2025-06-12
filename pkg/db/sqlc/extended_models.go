@@ -76,23 +76,12 @@ func (c CommandStatus) ToPgType() pgtype.Int4 {
 	}
 }
 
-// type CommandBatchStatus uint8
-
-// const (
-// 	COMMAND_BATCH_STATUS_PENDING  CommandBatchStatus = 0
-// 	COMMAND_BATCH_STATUS_EXECUTED CommandBatchStatus = 1
-// )
-
-// func (c CommandBatchStatus) ToPgType() pgtype.Int4 {
-// 	return pgtype.Int4{
-// 		Int32: c.Int32(),
-// 		Valid: true,
-// 	}
-// }
-
-// func (s CommandBatchStatus) Int32() int32 {
-// 	return int32(s)
-// }
+type RedeemRequestWithCommand struct {
+	*RedeemRequest
+	Status    BatchStatus `json:"status"`
+	Signature []byte      `json:"signature"`
+	SigHash   []byte      `json:"sig_hash"`
+}
 
 type ChainRedeemSessionUpdate struct {
 	Chain             string
@@ -267,9 +256,9 @@ func (utxo *UtxoWithReservations) AppendReserved(requestID []byte, amount uint64
 	}
 	utxo.Reservations = append(utxo.Reservations, &UtxoReservation{
 		ReservationID: requestID,
-		Amount:    ConvertUint64ToNumeric(amount),
-		UtxoTxID: utxo.TxID,
-		UtxoVout: utxo.Vout,
+		Amount:        ConvertUint64ToNumeric(amount),
+		UtxoTxID:      utxo.TxID,
+		UtxoVout:      utxo.Vout,
 	})
 	return nil
 }

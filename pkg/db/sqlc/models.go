@@ -236,6 +236,7 @@ type Protocol struct {
 
 type RedeemCommand struct {
 	ID        []byte           `json:"id"`
+	RequestID int64            `json:"request_id"`
 	Chain     string           `json:"chain"`
 	Status    BatchStatus      `json:"status"`
 	Params    []byte           `json:"params"`

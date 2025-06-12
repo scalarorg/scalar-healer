@@ -61,13 +61,12 @@ func (m *HealerRepository) SaveRedeemRequest(ctx context.Context, sourceChain, d
 
 		nonce := uint64(time.Now().UnixNano())
 
-		requestId, _ := createRedeemCommandID(nonce, address, sourceChain, destChain, symbol, amount)
+		cmdId, _ := createRedeemCommandID(nonce, address, sourceChain, destChain, symbol, amount)
 
-		reservedUtxos, newUtxos, err := m.reserveUtxos(txCtx, redeemSession.CustodianGroupUid, uint64(protocol.CustodianQuorum), requestId[:], amount.Uint64(), constants.CHAIN_PARAMS.RedeemTxsVsizeLimit)
+		reservedUtxos, newUtxos, err := m.reserveUtxos(txCtx, redeemSession.CustodianGroupUid, uint64(protocol.CustodianQuorum), cmdId[:], amount.Uint64(), constants.CHAIN_PARAMS.RedeemTxsVsizeLimit)
 		if err != nil {
 			return err
 		}
-
 
 		err = m.saveUtxoSnapshot(txCtx, newUtxos)
 		if err != nil {
@@ -79,7 +78,7 @@ func (m *HealerRepository) SaveRedeemRequest(ctx context.Context, sourceChain, d
 				Amount:        amount.Uint64(),
 				LockingScript: lockingScript,
 				Utxos:         reservedUtxos,
-				RequestId:     requestId,
+				RequestId:     cmdId,
 			},
 			PayloadType: encode.ContractCallWithTokenPayloadType_CustodianOnly,
 		}
@@ -94,24 +93,12 @@ func (m *HealerRepository) SaveRedeemRequest(ctx context.Context, sourceChain, d
 			return err
 		}
 
-		redeemCommand, err := NewRedeemCommand(sourceChain, requestId, chainID, params)
+		redeemCommand, err := NewRedeemCommand(sourceChain, cmdId, chainID, params)
 		if err != nil {
 			return err
 		}
 
-		err = m.Queries.SaveRedeemCommand(ctx, sqlc.SaveRedeemCommandParams{
-			ID:      redeemCommand.ID,
-			Chain:   redeemCommand.Chain,
-			Status:  redeemCommand.Status,
-			Params:  redeemCommand.Params,
-			Data:    redeemCommand.Data,
-			SigHash: redeemCommand.SigHash,
-		})
-		if err != nil {
-			return err
-		}
-
-		return m.Queries.SaveRedeemRequest(ctx, sqlc.SaveRedeemRequestParams{
+		requestId, err := m.Queries.SaveRedeemRequest(ctx, sqlc.SaveRedeemRequestParams{
 			Address:           address.Bytes(),
 			Amount:            amount.String(),
 			Symbol:            symbol,
@@ -120,6 +107,21 @@ func (m *HealerRepository) SaveRedeemRequest(ctx context.Context, sourceChain, d
 			LockingScript:     lockingScript,
 			CustodianGroupUid: redeemSession.CustodianGroupUid,
 		})
+
+		if err != nil {
+			return err
+		}
+
+		return m.Queries.SaveRedeemCommand(ctx, sqlc.SaveRedeemCommandParams{
+			ID:        redeemCommand.ID,
+			Chain:     redeemCommand.Chain,
+			Status:    redeemCommand.Status,
+			Params:    redeemCommand.Params,
+			Data:      redeemCommand.Data,
+			SigHash:   redeemCommand.SigHash,
+			RequestID: requestId,
+		})
+
 	})
 
 	return err
@@ -158,7 +160,7 @@ func (m *HealerRepository) reserveUtxos(ctx context.Context, grUid []byte, quoru
 	return reserveUtxos, utxoSnapshot, nil
 }
 
-func (m *HealerRepository) ListRedeemRequests(ctx context.Context, address common.Address, page, size int32) ([]sqlc.RedeemRequest, int64, error) {
+func (m *HealerRepository) ListRedeemRequests(ctx context.Context, address common.Address, page, size int32) ([]sqlc.RedeemRequestWithCommand, int64, error) {
 	result, err := m.Queries.ListRedeemRequests(ctx, sqlc.ListRedeemRequestsParams{
 		Address: address.Bytes(),
 		Offset:  page * size,
@@ -172,10 +174,11 @@ func (m *HealerRepository) ListRedeemRequests(ctx context.Context, address commo
 		return nil, 0, nil
 	}
 
-	var redeemRequests []sqlc.RedeemRequest
-	for _, redeemRequest := range result {
-		var req sqlc.RedeemRequest
-		copier.Copy(&req, &redeemRequest)
+	var redeemRequests []sqlc.RedeemRequestWithCommand
+	for _, r := range result {
+		var req sqlc.RedeemRequestWithCommand
+		copier.Copy(&req, &r)
+		req.Status = sqlc.BatchStatus(r.Status.BatchStatus)
 		redeemRequests = append(redeemRequests, req)
 	}
 	return redeemRequests, result[0].Count, nil

@@ -38,7 +38,7 @@ func NewRepository(ctx context.Context, cfg *ConnConfig, migrationURL string) *H
 	if err != nil {
 		log.Fatal().Err(err).Msg("cannot parse db config")
 	}
-	if config.Env.IS_TEST  {
+	if config.Env.IS_TEST || config.Env.IS_DEV {
 		configs.ConnConfig.Tracer = &Tracer{}
 	}
 

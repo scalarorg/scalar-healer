@@ -219,6 +219,7 @@ CREATE INDEX IF NOT EXISTS command_batchs_chain ON command_batchs (chain);
 
 CREATE TABLE IF NOT EXISTS redeem_commands (
     id BYTEA PRIMARY KEY,
+    request_id BIGINT NOT NULL,
     chain TEXT NOT NULL,
     status BATCH_STATUS NOT NULL,
     params BYTEA NOT NULL,
@@ -239,7 +240,6 @@ ALTER TABLE tokens ADD FOREIGN KEY (symbol) REFERENCES protocols (symbol) ON DEL
 
 ALTER TABLE protocols ADD FOREIGN KEY (custodian_group_uid) REFERENCES custodian_groups (uid) ON DELETE CASCADE;
 
-
 ALTER TABLE redeem_sessions ADD FOREIGN KEY (custodian_group_uid) REFERENCES custodian_groups (uid) ON DELETE CASCADE;
 
 ALTER TABLE chain_redeem_sessions ADD FOREIGN KEY (custodian_group_uid) REFERENCES custodian_groups (uid) ON DELETE CASCADE;
@@ -247,3 +247,5 @@ ALTER TABLE chain_redeem_sessions ADD FOREIGN KEY (custodian_group_uid) REFERENC
 ALTER TABLE redeem_requests ADD FOREIGN KEY (custodian_group_uid) REFERENCES custodian_groups (uid) ON DELETE CASCADE;
 
 ALTER TABLE commands ADD FOREIGN KEY (command_batch_id) REFERENCES command_batchs (id);
+
+ALTER TABLE redeem_commands ADD FOREIGN KEY (request_id) REFERENCES redeem_requests (id) ON DELETE CASCADE;

@@ -63,7 +63,7 @@ type HealderAdapter interface {
 	UpdateRedeemExecutedCommands(ctx context.Context, chainId string, txHashes []string) error
 
 	SaveRedeemRequest(ctx context.Context, sourceChain, destChain string, address common.Address, amount *big.Int, symbol string, lockingScript []byte) error
-	ListRedeemRequests(ctx context.Context, address common.Address, page, size int32) ([]sqlc.RedeemRequest, int64, error)
+	ListRedeemRequests(ctx context.Context, address common.Address, page, size int32) ([]sqlc.RedeemRequestWithCommand, int64, error)
 
 	// contract calls
 	SaveContractCallWithToken(ctx context.Context, contractCallWithToken *chains.ContractCallWithToken, eventCheckPoint *scalarnet.EventCheckPoint) error

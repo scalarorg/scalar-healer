@@ -10,7 +10,7 @@ import (
 )
 
 const listPendingSigningRedeemCommands = `-- name: ListPendingSigningRedeemCommands :many
-SELECT id, chain, status, params, data, sig_hash, signature, created_at, updated_at FROM redeem_commands WHERE status = 'PENDING' AND signature IS NULL
+SELECT id, request_id, chain, status, params, data, sig_hash, signature, created_at, updated_at FROM redeem_commands WHERE status = 'PENDING' AND signature IS NULL
 `
 
 func (q *Queries) ListPendingSigningRedeemCommands(ctx context.Context) ([]RedeemCommand, error) {
@@ -24,6 +24,7 @@ func (q *Queries) ListPendingSigningRedeemCommands(ctx context.Context) ([]Redee
 		var i RedeemCommand
 		if err := rows.Scan(
 			&i.ID,
+			&i.RequestID,
 			&i.Chain,
 			&i.Status,
 			&i.Params,
@@ -44,17 +45,18 @@ func (q *Queries) ListPendingSigningRedeemCommands(ctx context.Context) ([]Redee
 }
 
 const saveRedeemCommand = `-- name: SaveRedeemCommand :exec
-INSERT INTO redeem_commands (id, chain, status, params, data, sig_hash)
-VALUES ($1, $2, $3, $4, $5, $6)
+INSERT INTO redeem_commands (id, chain, status, params, data, sig_hash, request_id)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
 `
 
 type SaveRedeemCommandParams struct {
-	ID      []byte      `json:"id"`
-	Chain   string      `json:"chain"`
-	Status  BatchStatus `json:"status"`
-	Params  []byte      `json:"params"`
-	Data    []byte      `json:"data"`
-	SigHash []byte      `json:"sig_hash"`
+	ID        []byte      `json:"id"`
+	Chain     string      `json:"chain"`
+	Status    BatchStatus `json:"status"`
+	Params    []byte      `json:"params"`
+	Data      []byte      `json:"data"`
+	SigHash   []byte      `json:"sig_hash"`
+	RequestID int64       `json:"request_id"`
 }
 
 func (q *Queries) SaveRedeemCommand(ctx context.Context, arg SaveRedeemCommandParams) error {
@@ -65,13 +67,14 @@ func (q *Queries) SaveRedeemCommand(ctx context.Context, arg SaveRedeemCommandPa
 		arg.Params,
 		arg.Data,
 		arg.SigHash,
+		arg.RequestID,
 	)
 	return err
 }
 
 const saveRedeemCommands = `-- name: SaveRedeemCommands :exec
-INSERT INTO redeem_commands (id, chain, status, params, data, sig_hash)
-VALUES (unnest($1::bytea[]), unnest($2::text[]), unnest($3::text[])::batch_status, unnest($4::bytea[]), unnest($5::bytea[]), unnest($6::bytea[]))
+INSERT INTO redeem_commands (id, chain, status, params, data, sig_hash, request_id)
+VALUES (unnest($1::bytea[]), unnest($2::text[]), unnest($3::text[])::batch_status, unnest($4::bytea[]), unnest($5::bytea[]), unnest($6::bytea[]), unnest($7::bigint[]))
 `
 
 type SaveRedeemCommandsParams struct {
@@ -81,6 +84,7 @@ type SaveRedeemCommandsParams struct {
 	Column4 [][]byte `json:"column_4"`
 	Column5 [][]byte `json:"column_5"`
 	Column6 [][]byte `json:"column_6"`
+	Column7 []int64  `json:"column_7"`
 }
 
 func (q *Queries) SaveRedeemCommands(ctx context.Context, arg SaveRedeemCommandsParams) error {
@@ -91,6 +95,7 @@ func (q *Queries) SaveRedeemCommands(ctx context.Context, arg SaveRedeemCommands
 		arg.Column4,
 		arg.Column5,
 		arg.Column6,
+		arg.Column7,
 	)
 	return err
 }

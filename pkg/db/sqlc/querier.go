@@ -44,7 +44,7 @@ type Querier interface {
 	SaveProtocols(ctx context.Context, arg SaveProtocolsParams) error
 	SaveRedeemCommand(ctx context.Context, arg SaveRedeemCommandParams) error
 	SaveRedeemCommands(ctx context.Context, arg SaveRedeemCommandsParams) error
-	SaveRedeemRequest(ctx context.Context, arg SaveRedeemRequestParams) error
+	SaveRedeemRequest(ctx context.Context, arg SaveRedeemRequestParams) (int64, error)
 	SaveRedeemSessions(ctx context.Context, arg SaveRedeemSessionsParams) error
 	SaveReservations(ctx context.Context, dollar_1 [][]byte) ([][]byte, error)
 	SaveTokens(ctx context.Context, arg SaveTokensParams) error
