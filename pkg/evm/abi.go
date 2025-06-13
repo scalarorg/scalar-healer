@@ -2,10 +2,12 @@ package evm
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	ethabi "github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/rs/zerolog/log"
+	"github.com/scalarorg/scalar-core/x/chains/types"
 	contracts "github.com/scalarorg/scalar-healer/pkg/evm/contracts/generated"
 )
 
@@ -23,10 +25,23 @@ var (
 	bytes32ArrayType, _ = abi.NewType("bytes32[]", "bytes32[]", nil)
 	stringArrayType, _  = abi.NewType("string[]", "string[]", nil)
 
+	addressArrayType, _ = abi.NewType("address[]", "address[]", nil)
+	uint256ArrayType, _ = abi.NewType("uint256[]", "uint256[]", nil)
+
+	ScalarGatewayABI, _ = abi.JSON(strings.NewReader(types.ScalarGatewayABI))
+
 	RedeemTokenPayloadArguments = abi.Arguments{{Type: uint64Type}, {Type: bytesType}, {Type: stringArrayType}, {Type: uint32ArrayType}, {Type: uint64ArrayType}, {Type: bytes32Type}}
 	RedeemTokenArguments        = abi.Arguments{{Type: stringType}, {Type: stringType}, {Type: bytesType}, {Type: stringType}, {Type: uint256Type}, {Type: bytes32Type}, {Type: uint64Type}}
 
 	SwitchPhaseArguments = abi.Arguments{{Type: uint8Type}, {Type: bytes32Type}}
+
+	CommandBatchArguments = abi.Arguments{
+		{Type: addressArrayType},
+		{Type: uint256ArrayType},
+		{Type: uint256Type},
+		{Type: bytesArrayType}}
+
+	ExecuteDataArguments = abi.Arguments{{Type: bytesType}, {Type: bytesType}}
 )
 
 var (

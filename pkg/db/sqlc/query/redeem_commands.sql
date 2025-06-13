@@ -10,4 +10,4 @@ VALUES ($1, $2, $3, $4, $5, $6, $7);
 SELECT * FROM redeem_commands WHERE status = 'PENDING' AND signature IS NULL;
 
 -- name: SubmitRedeemCommandSignature :exec
-UPDATE redeem_commands SET signature = $1, status = 'SIGNED' WHERE id = $2;
+UPDATE redeem_commands SET signature = $1, status = 'SIGNED', execute_data = $2 WHERE id = $3;

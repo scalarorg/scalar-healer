@@ -12,11 +12,11 @@ import (
 )
 
 const listRedeemRequests = `-- name: ListRedeemRequests :many
-SELECT rq.id, rq.address, rq.source_chain, rq.dest_chain, rq.symbol, rq.amount, rq.locking_script, rq.custodian_group_uid, rq.created_at, rq.updated_at, rc.status as status, rc.signature, rc.sig_hash, COUNT(rq.id) AS count
+SELECT rq.id, rq.address, rq.source_chain, rq.dest_chain, rq.symbol, rq.amount, rq.locking_script, rq.custodian_group_uid, rq.created_at, rq.updated_at, rc.status as status, rc.execute_data, COUNT(rq.id) AS count
 FROM redeem_requests rq
 LEFT JOIN redeem_commands rc ON rq.id = rc.request_id
 WHERE rq.address = $1
-GROUP BY rq.id, rc.status, rc.signature, rc.sig_hash
+GROUP BY rq.id, rc.status, rc.execute_data
 ORDER BY rq.created_at DESC
 LIMIT $2 OFFSET $3
 `
@@ -39,8 +39,7 @@ type ListRedeemRequestsRow struct {
 	CreatedAt         pgtype.Timestamp `json:"created_at"`
 	UpdatedAt         pgtype.Timestamp `json:"updated_at"`
 	Status            NullBatchStatus  `json:"status"`
-	Signature         []byte           `json:"signature"`
-	SigHash           []byte           `json:"sig_hash"`
+	ExecuteData       []byte           `json:"execute_data"`
 	Count             int64            `json:"count"`
 }
 
@@ -65,8 +64,7 @@ func (q *Queries) ListRedeemRequests(ctx context.Context, arg ListRedeemRequests
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.Status,
-			&i.Signature,
-			&i.SigHash,
+			&i.ExecuteData,
 			&i.Count,
 		); err != nil {
 			return nil, err

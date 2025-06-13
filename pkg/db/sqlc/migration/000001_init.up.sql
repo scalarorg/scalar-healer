@@ -226,6 +226,7 @@ CREATE TABLE IF NOT EXISTS redeem_commands (
     data BYTEA NOT NULL,
     sig_hash BYTEA NOT NULL,
     signature BYTEA,
+    execute_data BYTEA,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );

@@ -235,16 +235,17 @@ type Protocol struct {
 }
 
 type RedeemCommand struct {
-	ID        []byte           `json:"id"`
-	RequestID int64            `json:"request_id"`
-	Chain     string           `json:"chain"`
-	Status    BatchStatus      `json:"status"`
-	Params    []byte           `json:"params"`
-	Data      []byte           `json:"data"`
-	SigHash   []byte           `json:"sig_hash"`
-	Signature []byte           `json:"signature"`
-	CreatedAt pgtype.Timestamp `json:"created_at"`
-	UpdatedAt pgtype.Timestamp `json:"updated_at"`
+	ID          []byte           `json:"id"`
+	RequestID   int64            `json:"request_id"`
+	Chain       string           `json:"chain"`
+	Status      BatchStatus      `json:"status"`
+	Params      []byte           `json:"params"`
+	Data        []byte           `json:"data"`
+	SigHash     []byte           `json:"sig_hash"`
+	Signature   []byte           `json:"signature"`
+	ExecuteData []byte           `json:"execute_data"`
+	CreatedAt   pgtype.Timestamp `json:"created_at"`
+	UpdatedAt   pgtype.Timestamp `json:"updated_at"`
 }
 
 type RedeemRequest struct {

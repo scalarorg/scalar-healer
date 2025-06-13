@@ -2,10 +2,11 @@ package tofnd
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"fmt"
 	"time"
 
-	"github.com/btcsuite/btcd/btcec/v2/ecdsa"
+	ec "github.com/btcsuite/btcd/btcec/v2/ecdsa"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/rs/zerolog/log"
 	"github.com/scalarorg/scalar-core/x/tss/tofnd"
@@ -40,8 +41,9 @@ func NewClient(cfg *ClientConfig, timeout time.Duration) (*Client, error) {
 }
 
 type SigningResponse struct {
-	Sig     Signature `json:"signature"`
-	PartyID string    `json:"party_id"`
+	Sig     *Signature       `json:"signature"`
+	Pubkey  *ecdsa.PublicKey `json:"pubkey"`
+	PartyID string           `json:"party_id"`
 }
 
 func (c *Client) Sign(ctx context.Context, hashRaw []byte) (*SigningResponse, error) {
@@ -64,18 +66,19 @@ func (c *Client) Sign(ctx context.Context, hashRaw []byte) (*SigningResponse, er
 		return nil, err
 	}
 
-	ecdsaSig, err := ecdsa.ParseDERSignature(resp.GetSignature())
+	ecdsaSig, err := ec.ParseDERSignature(resp.GetSignature())
 	if err != nil {
 		return nil, err
 	}
 
-	sig, err := ToSignature(*ecdsaSig, hash)
+	sig, pk, err := ToSignature(*ecdsaSig, hash)
 	if err != nil {
 		return nil, err
 	}
 
 	return &SigningResponse{
 		Sig:     sig,
+		Pubkey:  pk,
 		PartyID: c.PartyID,
 	}, nil
 }

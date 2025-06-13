@@ -78,9 +78,8 @@ func (c CommandStatus) ToPgType() pgtype.Int4 {
 
 type RedeemRequestWithCommand struct {
 	*RedeemRequest
-	Status    BatchStatus `json:"status"`
-	Signature []byte      `json:"signature"`
-	SigHash   []byte      `json:"sig_hash"`
+	Status      BatchStatus `json:"status"`
+	ExecuteData []byte      `json:"execute_data"`
 }
 
 type ChainRedeemSessionUpdate struct {

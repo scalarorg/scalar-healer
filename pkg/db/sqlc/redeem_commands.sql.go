@@ -10,7 +10,7 @@ import (
 )
 
 const listPendingSigningRedeemCommands = `-- name: ListPendingSigningRedeemCommands :many
-SELECT id, request_id, chain, status, params, data, sig_hash, signature, created_at, updated_at FROM redeem_commands WHERE status = 'PENDING' AND signature IS NULL
+SELECT id, request_id, chain, status, params, data, sig_hash, signature, execute_data, created_at, updated_at FROM redeem_commands WHERE status = 'PENDING' AND signature IS NULL
 `
 
 func (q *Queries) ListPendingSigningRedeemCommands(ctx context.Context) ([]RedeemCommand, error) {
@@ -31,6 +31,7 @@ func (q *Queries) ListPendingSigningRedeemCommands(ctx context.Context) ([]Redee
 			&i.Data,
 			&i.SigHash,
 			&i.Signature,
+			&i.ExecuteData,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -101,15 +102,16 @@ func (q *Queries) SaveRedeemCommands(ctx context.Context, arg SaveRedeemCommands
 }
 
 const submitRedeemCommandSignature = `-- name: SubmitRedeemCommandSignature :exec
-UPDATE redeem_commands SET signature = $1, status = 'SIGNED' WHERE id = $2
+UPDATE redeem_commands SET signature = $1, status = 'SIGNED', execute_data = $2 WHERE id = $3
 `
 
 type SubmitRedeemCommandSignatureParams struct {
-	Signature []byte `json:"signature"`
-	ID        []byte `json:"id"`
+	Signature   []byte `json:"signature"`
+	ExecuteData []byte `json:"execute_data"`
+	ID          []byte `json:"id"`
 }
 
 func (q *Queries) SubmitRedeemCommandSignature(ctx context.Context, arg SubmitRedeemCommandSignatureParams) error {
-	_, err := q.db.Exec(ctx, submitRedeemCommandSignature, arg.Signature, arg.ID)
+	_, err := q.db.Exec(ctx, submitRedeemCommandSignature, arg.Signature, arg.ExecuteData, arg.ID)
 	return err
 }

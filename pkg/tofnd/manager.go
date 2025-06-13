@@ -2,6 +2,7 @@ package tofnd
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"encoding/json"
 	"sync"
 	"time"
@@ -42,11 +43,12 @@ func NewManager(configPath string) *Manager {
 }
 
 type Musig struct {
-	Sig       Signature `json:"signature"`
-	Weight    int       `json:"weight"`
-	Threshold int       `json:"threshold"`
-	PartyID   string    `json:"party_id"`
-	KeyID     string    `json:"key_id"`
+	Sig       *Signature       `json:"signature"`
+	Pubkey    *ecdsa.PublicKey `json:"pubkey"`
+	Weight    int              `json:"weight"`
+	Threshold int              `json:"threshold"`
+	PartyID   string           `json:"party_id"`
+	KeyID     string           `json:"key_id"`
 }
 
 type Musigs []Musigs
@@ -89,6 +91,7 @@ func (m *Manager) Sign(ctx context.Context, msg []byte) ([]Musig, error) {
 					Threshold: m.Threshold,
 					PartyID:   client.PartyID,
 					KeyID:     client.KeyID,
+					Pubkey:    resp.Pubkey,
 				},
 				Err: err,
 			}:

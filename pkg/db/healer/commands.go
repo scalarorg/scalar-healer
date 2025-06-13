@@ -108,12 +108,13 @@ func (m *HealerRepository) GetCommandBatchByID(ctx context.Context, commandBatch
 	return m.Queries.GetCommandBatchByID(ctx, commandBatchID)
 }
 
-func (m *HealerRepository) SubmitRedeemCommandSignatures(ctx context.Context, ids [][]byte, signature [][]byte) error {
+func (m *HealerRepository) SubmitRedeemCommandSignatures(ctx context.Context, ids [][]byte, signatures [][]byte, executeData [][]byte) error {
 	return m.execTx(ctx, func(cv context.Context, q *sqlc.Queries) error {
-		for index, sig := range signature {
+		for index, sig := range signatures {
 			err := q.SubmitRedeemCommandSignature(cv, sqlc.SubmitRedeemCommandSignatureParams{
-				ID:        ids[index],
-				Signature: sig,
+				ID:          ids[index],
+				Signature:   sig,
+				ExecuteData: executeData[index],
 			})
 			if err != nil {
 				return err

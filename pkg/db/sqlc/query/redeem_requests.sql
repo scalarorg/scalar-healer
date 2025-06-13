@@ -4,10 +4,10 @@ VALUES ($1, $2, $3, $4, $5, $6, $7)
 RETURNING id;
 
 -- name: ListRedeemRequests :many
-SELECT rq.*, rc.status as status, rc.signature, rc.sig_hash, COUNT(rq.id) AS count
+SELECT rq.*, rc.status as status, rc.execute_data, COUNT(rq.id) AS count
 FROM redeem_requests rq
 LEFT JOIN redeem_commands rc ON rq.id = rc.request_id
 WHERE rq.address = $1
-GROUP BY rq.id, rc.status, rc.signature, rc.sig_hash
+GROUP BY rq.id, rc.status, rc.execute_data
 ORDER BY rq.created_at DESC
 LIMIT $2 OFFSET $3;

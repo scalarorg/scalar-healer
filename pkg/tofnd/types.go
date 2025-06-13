@@ -1,6 +1,7 @@
 package tofnd
 
 import (
+	"crypto/ecdsa"
 	"encoding/hex"
 	"errors"
 
@@ -42,7 +43,7 @@ func (s Signature) ToHomesteadSig() []byte {
 }
 
 // ToSignature transforms an Scalar generated signature into a recoverable signature
-func ToSignature(sig ec.Signature, hash common.Hash) (Signature, error) {
+func ToSignature(sig ec.Signature, hash common.Hash) (*Signature, *ecdsa.PublicKey, error) {
 	s := Signature{}
 	encSig := sig.Serialize()
 
@@ -73,7 +74,12 @@ func ToSignature(sig ec.Signature, hash common.Hash) (Signature, error) {
 
 	// s[64] = 0 implicit
 
+	derivedPK, err := crypto.SigToPub(hash.Bytes(), s[:])
+	if err != nil {
+		return nil, nil, err
+	}
+
 	s[64] = 1
 
-	return s, nil
+	return &s, derivedPK, nil
 }
