@@ -2,8 +2,11 @@ package tofnd
 
 import (
 	"context"
+	"fmt"
 	"time"
 
+	"github.com/btcsuite/btcd/btcec/v2/ecdsa"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/rs/zerolog/log"
 	"github.com/scalarorg/scalar-core/x/tss/tofnd"
 	"google.golang.org/grpc"
@@ -37,19 +40,20 @@ func NewClient(cfg *ClientConfig, timeout time.Duration) (*Client, error) {
 }
 
 type SigningResponse struct {
-	Signature []byte `json:"signature"`
-	PartyID   string `json:"party_id"`
+	Sig     Signature `json:"signature"`
+	PartyID string    `json:"party_id"`
 }
 
-func (r *SigningResponse) GetSignature() []byte {
-	return r.Signature
-}
+func (c *Client) Sign(ctx context.Context, hashRaw []byte) (*SigningResponse, error) {
+	if len(hashRaw) != common.HashLength {
+		return nil, fmt.Errorf("hash to sign must be 32 bytes")
+	}
 
-func (c *Client) Sign(ctx context.Context, msg []byte) (*SigningResponse, error) {
-	// Call the Sign RPC, fill in as needed
+	hash := common.BytesToHash(hashRaw)
+
 	req := &tofnd.SignRequest{
 		KeyUid:    c.KeyID,
-		MsgToSign: msg,
+		MsgToSign: hashRaw,
 		PartyUid:  c.PartyID,
 	}
 
@@ -60,8 +64,18 @@ func (c *Client) Sign(ctx context.Context, msg []byte) (*SigningResponse, error)
 		return nil, err
 	}
 
+	ecdsaSig, err := ecdsa.ParseDERSignature(resp.GetSignature())
+	if err != nil {
+		return nil, err
+	}
+
+	sig, err := ToSignature(*ecdsaSig, hash)
+	if err != nil {
+		return nil, err
+	}
+
 	return &SigningResponse{
-		Signature: resp.GetSignature(),
-		PartyID:   c.PartyID,
+		Sig:     sig,
+		PartyID: c.PartyID,
 	}, nil
 }

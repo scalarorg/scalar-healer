@@ -2,6 +2,7 @@ package tofnd
 
 import (
 	"context"
+	"encoding/json"
 	"sync"
 	"time"
 
@@ -40,34 +41,56 @@ func NewManager(configPath string) *Manager {
 	}
 }
 
-type SignatureResult struct {
-	Client *Client
-	Sig    []byte
-	Err    error
+type Musig struct {
+	Sig       Signature `json:"signature"`
+	Weight    int       `json:"weight"`
+	Threshold int       `json:"threshold"`
+	PartyID   string    `json:"party_id"`
+	KeyID     string    `json:"key_id"`
 }
 
-func (m *Manager) Sign(ctx context.Context, msg []byte) ([]SignatureResult, error) {
+type Musigs []Musigs
+
+type SignResult struct {
+	Musig Musig
+	Err   error
+}
+
+func (m *Musig) MarshalJSON() ([]byte, error) {
+	return json.Marshal(*m)
+}
+
+func (r Musigs) MarshalJSON() ([]byte, error) {
+	return json.Marshal(r)
+}
+
+func (m *Manager) Sign(ctx context.Context, msg []byte) ([]Musig, error) {
 	var (
 		mu          sync.Mutex
-		results     []SignatureResult
+		results     []Musig
 		totalWeight int
 		wg          sync.WaitGroup
 		done        = make(chan struct{})
 	)
 
-	resultCh := make(chan SignatureResult, len(m.clients))
+	resultCh := make(chan SignResult, len(m.clients))
 
 	for _, client := range m.clients {
 		wg.Add(1)
 		go func(client *Client) {
 			defer wg.Done()
 
-			sig, err := client.Sign(ctx, msg)
+			resp, err := client.Sign(ctx, msg)
 			select {
-			case resultCh <- SignatureResult{
-				Client: client,
-				Sig:    sig.GetSignature(),
-				Err:    err,
+			case resultCh <- SignResult{
+				Musig: Musig{
+					Sig:       resp.Sig,
+					Weight:    client.Weight,
+					Threshold: m.Threshold,
+					PartyID:   client.PartyID,
+					KeyID:     client.KeyID,
+				},
+				Err: err,
 			}:
 			case <-done:
 			}
@@ -76,10 +99,10 @@ func (m *Manager) Sign(ctx context.Context, msg []byte) ([]SignatureResult, erro
 
 	for {
 		res := <-resultCh
-		if res.Err == nil && len(res.Sig) >= 64 {
+		if res.Err == nil && len(res.Musig.Sig) >= 64 {
 			mu.Lock()
-			results = append(results, res)
-			totalWeight += res.Client.Weight
+			results = append(results, res.Musig)
+			totalWeight += res.Musig.Weight
 			if totalWeight >= m.Threshold {
 				close(done) // signal goroutines to stop sending
 				mu.Unlock()
